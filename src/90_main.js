@@ -64,6 +64,7 @@ function updateOcclusion() {
   }
 }
 function render() {
+  if (RENDER && RENDER.on) { updateCompass(); state.needsRender = false; return; } // the path tracer owns the canvas
   updatePinVisibility(); updateOcclusion();
   if (state.shadowsDirty) { renderer.shadowMap.needsUpdate = true; state.shadowsDirty = false; }
   renderer.render(scene, camera);
@@ -78,7 +79,7 @@ function loop(now) {
   const dt = Math.min(state.tool === 'walk' ? 0.25 : 0.1, (now - last) / 1000); last = now;
   let active = stepTween(now);
   if (state.tool === 'walk') { if (stepWalk(dt)) active = true; }
-  else if (controls.update()) active = true;
+  else { controls.update(); if (loopView()) active = true; }
   if (stepSun(dt)) active = true;
   if (!(active || state.needsRender)) return;
   render();
@@ -107,7 +108,7 @@ function init() {
   syncAreaUI(); if (state.settings.layers.area) setAreaOn(true, false);
   document.body.classList.add('ready');
   if (DEBUG) {
-    window.__sb = { AREA, osmConvert, osmCoastLand, osmFromGeoJSON, osmProjector, setAreaOn, areaRayBlocked, sunFrame: () => sunFrame, estateCentre: () => ESTATE_CENTRE, state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
+    window.__sb = { THREE, RENDER, renderStart, renderStop, AREA, osmConvert, osmCoastLand, osmFromGeoJSON, osmProjector, setAreaOn, areaRayBlocked, sunFrame: () => sunFrame, estateCentre: () => ESTATE_CENTRE, state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
   }
 }
 init();

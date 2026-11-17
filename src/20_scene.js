@@ -38,7 +38,25 @@ controls.enableDamping = true; controls.dampingFactor = 0.09;
 controls.maxPolarAngle = 88 * DEG; controls.minDistance = 8; controls.maxDistance = 1600;
 controls.screenSpacePanning = false; // pan across the ground plane
 controls.zoomToCursor = true;
-controls.addEventListener('change', requestRender);
+// r160 OrbitControls never settle by themselves: every update re-clamps the target around `cursor` (normalise and
+// rescale, ~1e-14 m of rounding, compared exactly), and damping shrinks pan/rotate deltas geometrically without
+// reaching zero for ~2 minutes. Either way they report 'change' every frame and the scene redraws while idle.
+// Pin the (unused: infinite radius) cursor to the target so the clamp is exact, and decide "the view changed"
+// ourselves with tolerances far below anything visible.
+const _ocUpdate = controls.update.bind(controls);
+controls.update = (...a) => { controls.cursor.copy(controls.target); return _ocUpdate(...a); };
+/** returns a function answering "has the view visibly changed since you last asked?" (pose, fov, projection/offset) */
+function viewWatcher() {
+  const p = new THREE.Vector3(NaN, NaN, NaN), t = new THREE.Vector3(), q = new THREE.Quaternion(), m = new Float64Array(16);
+  return () => {
+    let moved = !(camera.position.distanceToSquared(p) <= 1e-10) || controls.target.distanceToSquared(t) > 1e-10 || 1 - Math.abs(camera.quaternion.dot(q)) > 1e-12;
+    const e = camera.projectionMatrix.elements;
+    for (let i = 0; i < 16 && !moved; i++) if (Math.abs(e[i] - m[i]) > 1e-9) moved = true;
+    if (moved) { p.copy(camera.position); t.copy(controls.target); q.copy(camera.quaternion); m.set(e); }
+    return moved;
+  };
+}
+const loopView = viewWatcher();
 
 /* lights */
 const hemi = new THREE.HemisphereLight('#DCE8F3', '#8C917C', 1.15);

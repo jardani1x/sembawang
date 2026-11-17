@@ -27,9 +27,16 @@ results = []
 def check(name, ok, detail=''):
     results.append((name, bool(ok), detail)); print(('PASS ' if ok else 'FAIL ') + name + (' — ' + str(detail) if detail else ''), flush=True)
 
+def vendor_file(url):
+    """https://cdn.jsdelivr.net/npm/<name>@<ver>/<path> → vendor/package (three r160) or vendor/<name>@<ver>/package"""
+    m = re.match(r'https://cdn\.jsdelivr\.net/npm/([^/]+)/(.*)$', url)
+    if not m: return None
+    base = VENDOR if m[1] == 'three@0.160.0' else os.path.join(ROOT, 'vendor', m[1], 'package')
+    return os.path.join(base, m[2])
+
 def route_cdn(route):
-    path = route.request.url[len(CDN):]
-    f = os.path.join(VENDOR, path)
+    f = vendor_file(route.request.url) or ''
+
     if os.path.isfile(f):
         route.fulfill(path=f, headers={'content-type': 'application/javascript', 'access-control-allow-origin': '*'})
     else:
@@ -41,7 +48,7 @@ def open_page(browser, w, h, mobile=False, name='desktop'):
     errors = []
     page.on('console', lambda m: errors.append(f'{m.type}: {m.text}') if m.type in ('error',) else None)
     page.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
-    page.route(CDN + '**', route_cdn)
+    page.route('https://cdn.jsdelivr.net/npm/**', route_cdn)
     page.goto(URL)
     page.wait_for_selector('body.ready', timeout=60000)
     page.wait_for_timeout(1500)
@@ -186,6 +193,10 @@ with sync_playwright() as p:
         sel = ev("__sb.state.selection && [__sb.state.selection.kind, __sb.state.selection.id]")
         check('QA m5: road tap works with context layer off', sel == ['road', 'Admiralty Street'], sel)
         ev("__sb.state.settings.layers.context = true")
+        # r160 OrbitControls jitter: the view must stop redrawing once nothing changes (top view used to redraw every frame)
+        ev("__sb.goPreset('top')"); page.wait_for_timeout(3500)
+        idle = ev("new Promise((r) => { const f0 = __sb.renderer.info.render.frame; setTimeout(() => r(__sb.renderer.info.render.frame - f0), 2000); })")
+        check('idle: no redraws once the view is still (render on demand)', idle == 0, idle)
         check('no console errors at end (desktop)', not errors, errors[:5])
         ctx.close()
     if not only or 'mobile' in only:
@@ -355,6 +366,122 @@ with sync_playwright() as p:
         page.tap('#btnArea'); page.wait_for_function('__sb.AREA.status === "ready"', timeout=60000); page.wait_for_timeout(1500)
         page.screenshot(path=f'{SHOTS}/area05_phone.png')
         check('area on phone: no console errors', not errors, errors[:5])
+        ctx.close()
+    if not only or 'render' in only:
+        # ---- photo-real render (path tracing). Software GPU here: low resolution, few samples ----
+        ctx, page, errors = open_page(browser, 960, 600)
+        ev = page.evaluate
+        ev("(() => { document.getElementById('left').classList.remove('open'); window.dispatchEvent(new Event('resize')); __sb.RENDER.scaleOverride = 0.5; })()")
+        ev("(() => { const d = document.getElementById('sunDate'); d.value = '2026-11-17'; d.dispatchEvent(new Event('change')); const t = document.getElementById('sunTime'); t.value = 600; t.dispatchEvent(new Event('input')); })()")
+        ev("__sb.goPreset('top')"); page.wait_for_timeout(1800)
+        # ground points classified by a THIRD method: CPU rays toward the sun (3 slightly different sun directions must agree)
+        pts = ev("""(() => {
+          const T = __sb.THREE, sc = __sb.scene, cam = __sb.camera, G = __sb.G, s = __sb.sunAt('2026-11-17', 600);
+          const skip = new Set([G.sunPath, G.tools]); const meshes = [];
+          sc.traverse((o) => { if (!o.isMesh) return; for (let c = o; c; c = c.parent) { if (skip.has(c) || !c.visible) return; } meshes.push(o); });
+          const dir = (az, el) => { const r = Math.PI / 180; return new T.Vector3(Math.cos(el * r) * Math.sin(az * r), Math.sin(el * r), -Math.cos(el * r) * Math.cos(az * r)); };
+          const dirs = [dir(s.az, s.el), dir(s.az + 0.6, s.el), dir(s.az, s.el + 0.6)];
+          const rc = new T.Raycaster(); const R = __sb.renderer.domElement.getBoundingClientRect();
+          const shade = [], lit = [];
+          for (let x = -80; x <= 400; x += 6) for (let z = -190; z <= 0; z += 6) {
+            const p = new T.Vector3(x, 0, z);
+            rc.set(cam.position, p.clone().sub(cam.position).normalize()); const h = rc.intersectObjects(meshes, false)[0];
+            if (!h || h.point.y > 0.6 || h.point.distanceTo(p) > 1.5) continue;     // the ground there is what the camera sees
+            if (h.object.name !== 'groundPlane') continue;                                                   // one surface (grass), so brightness differs only by shade
+            const o = h.point.clone(); o.y += 0.25;
+            const blocked = dirs.map((d) => { rc.set(o, d); return rc.intersectObjects(meshes, false).length > 0; });
+            if (blocked.some((b) => b !== blocked[0])) continue;                      // near a shadow edge: skip
+            const v = h.point.clone().project(cam); const px = [R.left + (v.x + 1) / 2 * R.width, R.top + (1 - v.y) / 2 * R.height];
+            if (px[0] < 20 || px[1] < 140 || px[0] > R.width - 20 || px[1] > R.height - 80) continue;
+            (blocked[0] ? shade : lit).push(px);
+          }
+          const pick = (a) => a.filter((_, i) => i % Math.max(1, Math.floor(a.length / 25)) === 0).slice(0, 25);
+          return { shade: pick(shade), lit: pick(lit), n: [shade.length, lit.length] };
+        })()""")
+        def lum_at(img, p):
+            v = [sum(img.getpixel((int(p[0]) + dx, int(p[1]) + dy))[:3]) / 3 for dx in (-1, 0, 1) for dy in (-1, 0, 1)]; return sum(v) / len(v)
+        def classify(img):
+            S = [lum_at(img, p) for p in pts['shade']]; L = [lum_at(img, p) for p in pts['lit']]
+            mS, mL = sum(S) / len(S), sum(L) / len(L); cut = (mS + mL) / 2
+            agree = (sum(v < cut for v in S) + sum(v >= cut for v in L)) / (len(S) + len(L))
+            return {'ratio': round(mS / max(1, mL), 2), 'agree': round(agree, 2)}
+        shot = lambda: Image.open(io.BytesIO(page.screenshot())).convert('RGB')
+        ev("__sb.render()"); page.wait_for_timeout(300); raster = classify(shot())
+        # Stop pressed while the ray tracer is still loading: the start must be abandoned
+        ev("(() => { document.getElementById('btnRender').click(); document.getElementById('renderStop').click(); })()"); page.wait_for_timeout(2500)
+        rc = ev("({ on: __sb.RENDER.on, open: document.body.classList.contains('render-open'), loaded: !!__sb.RENDER.lib })")
+        check('render: Stop during loading cancels the start', rc == {'on': False, 'open': False, 'loaded': True}, rc)
+        page.click('#btnRender')
+        page.wait_for_function('__sb.RENDER.on && __sb.RENDER.pt && __sb.RENDER.pt.samples >= 6', timeout=600000, polling=1000)
+        st = ev("({ samples: __sb.RENDER.pt.samples, info: __sb.RENDER.info, labels: document.getElementById('labels').style.visibility, status: document.getElementById('renderStatus').textContent })")
+        check('render: path tracer runs (lazy-loaded, samples accumulate, labels hidden)', st['samples'] >= 6 and st['info']['meshes'] > 150 and st['labels'] == 'hidden', st)
+        ev("document.getElementById('renderbar').style.visibility = 'hidden'"); page.wait_for_timeout(200)
+        traced = classify(shot()); page.screenshot(path=f'{SHOTS}/render01_top.png')
+        ev("document.getElementById('renderbar').style.visibility = ''")
+        # vertex colours: the traced scene must hold RGBA colours only (RGB gets read out of step → speckled confetti)
+        cs = ev("(() => { const bad = []; __sb.RENDER.scene.traverse((o) => { const c = o.isMesh && o.geometry.attributes.color; if (c && c.itemSize !== 4) bad.push(c.itemSize); }); return bad.length; })()")
+        check('render: colour attributes are RGBA in the traced scene', cs == 0, cs)
+        crowns = ev("""(() => { const T = __sb.THREE, cam = __sb.camera, R = __sb.renderer.domElement.getBoundingClientRect(), out = [];
+            __sb.G.landscape.traverse((o) => { if (!o.isInstancedMesh || !o.instanceColor) return; const m = new T.Matrix4(), p = new T.Vector3();
+              for (let i = 0; i < o.count && out.length < 60; i += 3) { o.getMatrixAt(i, m); p.setFromMatrixPosition(m).applyMatrix4(o.matrixWorld); const v = p.project(cam);
+                const x = R.left + (v.x + 1) / 2 * R.width, y = R.top + (1 - v.y) / 2 * R.height; if (x > 20 && y > 140 && x < R.width - 20 && y < R.height - 80) out.push([x, y]); } });
+            return out; })()""")
+        timg = Image.open(f'{SHOTS}/render01_top.png').convert('RGB')
+        if crowns:
+            mc = [sum(timg.getpixel((int(x), int(y)))[k] for x, y in crowns) / len(crowns) for k in range(3)]
+        else:
+            mc = [0, 0, 0]
+        check('render: tree crowns come out green (not speckled)', len(crowns) >= 10 and mc[1] > mc[0] * 1.08 and mc[1] > mc[2] * 1.08, {'crowns': len(crowns), 'mean rgb': [round(v) for v in mc]})
+        check('render: shadows fall where CPU sun rays say (traced image)', len(pts['shade']) >= 10 and len(pts['lit']) >= 10 and traced['ratio'] < 0.7 and traced['agree'] >= 0.9, {'traced': traced, 'points': pts['n']})
+        check('render: …and where the live shadow map puts them', raster['ratio'] < 0.75 and raster['agree'] >= 0.9, {'raster': raster})
+        # taps don't select while rendering
+        page.mouse.click(480, 330); page.wait_for_timeout(400)
+        check('render: tapping does not select', ev('__sb.state.selection') is None)
+        # layer change → the traced scene is rebuilt
+        before = ev('__sb.RENDER.info.tris')
+        ev("(() => { const cb = document.querySelector('input[name=landscape]'); cb.checked = false; cb.dispatchEvent(new Event('change')); })()")
+        page.wait_for_function(f'__sb.RENDER.info.tris !== {before}', timeout=60000)
+        after = ev('__sb.RENDER.info.tris')
+        ev("(() => { const cb = document.querySelector('input[name=landscape]'); cb.checked = true; cb.dispatchEvent(new Event('change')); })()")
+        page.wait_for_function(f'__sb.RENDER.info.tris === {before}', timeout=60000)
+        check('render: hiding trees rebuilds the traced scene', after < before, {'with trees': before, 'without': after})
+        # sky direction convention: looking at a low sun, the brightest sky is where the sun is
+        ev("(() => { const t = document.getElementById('sunTime'); t.value = 1095; t.dispatchEvent(new Event('input')); })()")
+        # (the controls never tilt above the horizontal, so look 2° down along the sun's azimuth: the sun, 18° up, is in the top of the frame)
+        sg = ev("""(() => { const T = __sb.THREE, s = __sb.sunAt('2026-11-17', 1095), r = Math.PI / 180, cam = __sb.camera, c = __sb.controls;
+            const d = new T.Vector3(Math.cos(s.el * r) * Math.sin(s.az * r), Math.sin(s.el * r), -Math.cos(s.el * r) * Math.cos(s.az * r));
+            const hz = new T.Vector3(Math.sin(s.az * r), 0, -Math.cos(s.az * r)), p = new T.Vector3(150, 400, -90);
+            cam.position.copy(p); c.target.copy(p).addScaledVector(hz, 100); c.target.y -= 100 * Math.tan(2 * r); c.update(); __sb.render();
+            const v = cam.position.clone().addScaledVector(d, 5000).project(cam), R = __sb.renderer.domElement.getBoundingClientRect();
+            const hp = new T.Vector3(p.x, -0.8, p.z).addScaledVector(hz, 29000).project(cam); // far-ground horizon
+            return { el: s.el, az: s.az, px: [R.left + (v.x + 1) / 2 * R.width, R.top + (1 - v.y) / 2 * R.height], horizonY: R.top + (1 - hp.y) / 2 * R.height, inView: Math.abs(v.x) < 0.9 && Math.abs(v.y) < 0.9 }; })()""")
+        page.wait_for_function('__sb.RENDER.pt.samples >= 4', timeout=300000, polling=1000)
+        UI = "['renderbar', 'compass', 'presets', 'topbar', 'toast']"
+        ev(f"{UI}.forEach((id) => {{ const e = document.getElementById(id); if (e) e.style.visibility = 'hidden'; }})"); page.wait_for_timeout(200)
+        img = shot(); ev(f"{UI}.forEach((id) => {{ const e = document.getElementById(id); if (e) e.style.visibility = ''; }})"); page.screenshot(path=f'{SHOTS}/render02_sun.png')
+        from PIL import ImageFilter
+        top = ev("document.getElementById('topbar').getBoundingClientRect().bottom")
+        sm = img.filter(ImageFilter.GaussianBlur(8)); W, H = sm.size; best = (0, 0, 0)
+        for y in range(int(top) + 10, int(sg['horizonY']) - 6, 3):   # sky only: sunlit ground mustn't win
+            for x in range(10, W - 10, 3):
+                v = sum(sm.getpixel((x, y))[:3])
+                if v > best[0]: best = (v, x, y)
+        off = math.hypot(best[1] - sg['px'][0], best[2] - sg['px'][1])
+        check('render: sky glow sits on the sun (sky texture direction convention)', sg['inView'] and off < 0.06 * W, {'sun px': [round(v) for v in sg['px']], 'brightest px': best[1:], 'off px': round(off), 'sun': [round(sg['az']), round(sg['el'], 1)]})
+        # camera move restarts sampling
+        n0 = ev('__sb.RENDER.pt.samples'); ev("(() => { __sb.goPreset('top'); })()"); page.wait_for_timeout(600)
+        check('render: moving the camera restarts the image', ev('__sb.RENDER.pt.samples') < n0, {'before': n0, 'after': ev('__sb.RENDER.pt.samples')})
+        # save the image
+        page.wait_for_function('__sb.RENDER.pt.samples >= 2', timeout=300000, polling=1000)
+        with page.expect_download(timeout=60000) as dl:
+            page.click('#renderSave')
+        f = dl.value.path(); im = Image.open(f); cv = tuple(ev('[__sb.renderer.domElement.width, __sb.renderer.domElement.height]'))
+        check('render: Save image downloads the traced PNG (canvas size)', dl.value.suggested_filename == 'sembawang-brook-render.png' and im.size == cv, {'name': dl.value.suggested_filename, 'size': im.size, 'canvas': cv, 'bytes': os.path.getsize(f)})
+        # stop → live view back
+        page.click('#renderStop'); page.wait_for_timeout(600)
+        back = ev("(() => { __sb.render(); return { on: __sb.RENDER.on, labels: document.getElementById('labels').style.visibility, calls: __sb.info().render.calls, open: document.body.classList.contains('render-open') }; })()")
+        check('render: Stop restores the live view', not back['on'] and back['labels'] == '' and back['calls'] > 20 and not back['open'], back)
+        check('render: no console errors', not errors, errors[:5])
         ctx.close()
     browser.close()
 fails = [r for r in results if not r[1]]

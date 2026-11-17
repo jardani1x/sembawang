@@ -121,4 +121,5 @@ function buildSelection() {
     L.selection.add(m, e);
   }
   requestRender();
+  renderInvalidate();
 }

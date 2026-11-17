@@ -168,7 +168,7 @@ body.mobile .title span{display:none}
 body.mobile .title b{font-size:14px}
 body.mobile .actions span{display:none}
 body.mobile .actions button{padding:0 7px}
-body.mobile .search{max-width:none;position:static}
+body.mobile .search{max-width:none;position:relative} /* keeps the magnifier inside the box (it sat on the menu button) */
 body.mobile #searchResults{position:fixed;left:8px;right:8px;top:calc(var(--top) + 4px)}
 body.mobile #topbar{gap:6px;padding:0 6px}
 body.mobile .title{display:none}
@@ -186,3 +186,23 @@ body.mobile .kv{grid-template-columns:84px 1fr}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .savebody textarea{width:100%;font:12px ui-monospace,Menlo,monospace;border:1px solid var(--line);border-radius:8px;padding:8px}
 .savebody img{max-width:100%;border-radius:10px;display:block}
+
+/* ray-traced render bar */
+#renderbar{position:fixed;left:50%;top:66px;transform:translateX(-50%) translateY(-12px);width:min(560px,calc(100% - 24px));background:var(--panel);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:14px;padding:10px 14px;box-shadow:var(--shadow);z-index:9;opacity:0;pointer-events:none;transition:.2s}
+body.render-open #renderbar{opacity:1;pointer-events:auto;transform:translateX(-50%)}
+#renderbar .rb-row{display:flex;align-items:center;gap:8px}
+#renderStatus{flex:1;font-size:13px;line-height:1.3}
+#renderStatus[data-kind=bad]{color:#B42318}
+#renderStatus[data-kind=ok]{color:#067647}
+#renderProg{width:100%;height:4px;margin-top:8px;appearance:none;-webkit-appearance:none;border:0;border-radius:2px;background:rgba(0,0,0,.08);overflow:hidden}
+#renderProg::-webkit-progress-bar{background:rgba(0,0,0,.08)}
+#renderProg::-webkit-progress-value{background:var(--accent)}
+#renderProg::-moz-progress-bar{background:var(--accent)}
+#renderbar .rb-hint{font-size:12px;color:var(--muted);margin-top:6px}
+body.mobile #renderbar{top:58px;width:calc(100% - 16px);padding:8px 10px}
+body.mobile #renderbar .rb-hint{display:none}
+
+/* phones: the Image button moves into the ⋯ menu so the search box keeps its width */
+#menu .phone-only{display:none}
+body.mobile #menu .phone-only{display:block}
+body.mobile #btnShot{display:none}

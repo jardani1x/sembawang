@@ -244,6 +244,7 @@ function applyArea() {
   controls.maxDistance = on ? 7000 : 1600;
   $('#areaBadge').hidden = !on;
   if (sunFrameChanged(sunFrameFor())) updateSun(); // sunlight/shadows/sun path: estate frame ↔ area frame
+  renderInvalidate();
   state.shadowsDirty = true; requestRender();
 }
 // in the area view the sunlight, shadows and sun path follow the view (see sunFrameFor)

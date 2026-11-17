@@ -101,6 +101,7 @@ const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
 function setNdc(ev) { const r = renderer.domElement.getBoundingClientRect(); ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1); }
 function pickAt(ev) {
+  if (RENDER && RENDER.on) return; // no selecting while the ray tracer is running
   setNdc(ev); raycaster.setFromCamera(ndc, camera);
   const hits = raycaster.intersectObjects(REG.pick, false);
   const ah = areaPick(raycaster);

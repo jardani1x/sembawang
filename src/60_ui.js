@@ -23,6 +23,7 @@ function applyLayers() {
   renderer.shadowMap.enabled = Ly.shadows; sun.castShadow = Ly.shadows && (lastSun ? lastSun.el > 0 : true);
   scene.traverse((o) => { if (o.material) { const ms = Array.isArray(o.material) ? o.material : [o.material]; ms.forEach((m) => { m.needsUpdate = true; }); } });
   applyArea();
+  renderInvalidate();
 }
 
 /* ---------- selection + info panel ---------- */
@@ -325,7 +326,7 @@ $('#btnMore').addEventListener('click', (e) => { e.stopPropagation(); menu.hidde
 document.addEventListener('click', (e) => { if (!e.target.closest('#menu, #btnMore')) menu.hidden = true; });
 menu.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return; menu.hidden = true;
-  ({ export: exportJSON, import: () => $('#importFile').click(), reset: resetSettings, about: () => $('#about').showModal(), help: () => $('#help').showModal() })[b.dataset.act]?.();
+  ({ shot: screenshot, export: exportJSON, import: () => $('#importFile').click(), reset: resetSettings, about: () => $('#about').showModal(), help: () => $('#help').showModal() })[b.dataset.act]?.();
 });
 $$('dialog .close').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
 
@@ -404,6 +405,7 @@ function resetSettings() {
   state.settings = DEFAULT_SETTINGS(); rebuildEverything(); syncControls(); goPreset(defaultPreset()); toast('Settings reset');
 }
 function screenshot() {
+  if (RENDER && RENDER.on) { renderSave(); return; }
   render();
   renderer.domElement.toBlob((blob) => {
     if (!blob) { toast('Could not capture the image', true); return; }

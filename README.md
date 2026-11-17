@@ -142,6 +142,15 @@ Shadows work the same way. In the estate view they cover about 660 m around the 
 
 ![Sun study, 21 June 17:00](docs/sun-study.jpg)
 
+### Photo-real render
+**Render** traces the current view with real light paths: direct sun, light from the whole sky, light bounced off walls and the ground, and soft contact shadows. It uses the same sun as the live view (date, time, direction and strength), under a Singapore clear sky that is hazy blue overhead and paler at the horizon, brighter around the sun.
+- The image starts grainy and sharpens as samples add up: 400 samples on a computer, 160 on a phone. Most views look clean after 10–60 seconds on a laptop GPU; phones are slower.
+- Moving the camera, or changing the date or time in **Sun**, restarts it. Changing layers, the area view or your flat rebuilds the scene first.
+- **Save image** (or **Image**) saves the rendered PNG; **Stop** returns to the live view. Labels and outlines are not in the render, and you can't select blocks while it runs.
+- The first time, the page downloads the ray tracer, [three-gpu-pathtracer](https://github.com/gkjohnson/three-gpu-pathtracer) 0.0.23 with three-mesh-bvh 0.7.8 (about 0.4 MB), and compiles it. That takes a few seconds on most GPUs. It needs WebGL 2 with float render targets, which nearly all current browsers have.
+
+![Ray-traced render](docs/render.jpg)
+
 ### Tools
 - **Measure** (<kbd>M</kbd>): tap two points on the ground or a building. It shows the straight-line distance, the plan distance and the height difference.
 - **Walk:** eye level is 1.6 m.
@@ -150,7 +159,7 @@ Shadows work the same way. In the estate view they cover about 660 m around the 
   - Buildings and the canal block your path.
 - **Layers:** block labels, facility pins, roads, canal, covered linkways, trees and play areas, neighbouring sites, shadows, and the sun path.
 - **Heights:** floor-to-floor (2.4–3.6 m) and void-deck (2.4–6 m) heights are editable assumptions. The whole model, the overlays and the sun hours rebuild to match.
-- **Image:** saves a PNG of the 3D view. Labels aren't included.
+- **Image:** saves a PNG of the 3D view (the ray-traced image while **Render** is on). Labels aren't included.
 - **⋯ menu:**
   - **Export** settings and site data as JSON.
   - **Import** a file. It is validated; a bad file is rejected and nothing changes.
@@ -209,6 +218,7 @@ src/
   70_tools.js              camera views + transitions, picking, measure, walk
   75_osmconv.js            OSM → area data converter (pure JS; shared by the page and tools/build_area.mjs)
   80_area.js               Sembawang area: load snapshot / cache / live Overpass, meshes, picking, search, sun occlusion
+  85_render.js             photo-real render: lazy-loads the path tracer, builds the traced scene, sky + sun, sampling, save
   90_main.js               validation, rebuilds, on-demand render loop, init
   style.css, template.html
 data/
@@ -271,22 +281,24 @@ python3 tools/build.py --preset-flat 439A,160,12 --out private.html
 
 ```sh
 pip install playwright && python -m playwright install chromium
-sh tools/fetch_three.sh         # three.js r160 into vendor/ (CDN requests are served from it)
+sh tools/fetch_three.sh         # three.js r160 and the path tracer into vendor/ (CDN requests are served from it)
 python3 tests/run.py            # desktop + phone; CHROME=/path/to/chrome to use a system Chrome
-python3 tests/run.py desktop    # or: mobile, area
+python3 tests/run.py desktop    # or: mobile, area, render
 OSM_EXPORT=export.geojson python3 tests/run.py area   # + converter parity and the live-update flow (Overpass mocked)
 ```
 
-The suite runs headless Chrome (58 checks). It covers:
+The suite runs headless Chrome (78 checks). It covers:
 - console errors and data validation
 - the sun position against independent values: 21 Jun 13:06 SGT at 68.0° due north, and the solstice noon and sunrise/sunset times
 - every camera view, selection, search (including `#12-160`), flat-type filters and the storey band
 - my flat and the sun-hours table
 - the sun bar and playback, measure, walk, the heights editor
 - export, import, and rejection of a bad import
-- persistence, PNG export, and the phone layout
+- persistence, PNG export, the phone layout, and that the view stops redrawing once it is still
 - the area view: snapshot load and render budget; land and sea in the right places (the estate and Sembawang Park on land, two points in the Straits at sea); the coastline-to-land algorithm on synthetic shapes; OSM search and tapping a building; sun hours with the surroundings; the sunlight frame (whole map in the overview, back to the estate when the area is off); a pixel test that buildings 1.6–2.1 km from the estate cast shadows; and the live update.
 - The live update test routes the Overpass request to a fixture built from the exports (`OSM_EXPORT=export.geojson:coastline.geojson`). It uses the real coastline, or a synthetic one if none is given. It then checks that the data matches the snapshot exactly, that land and sea are right in the live query box (Singapore plus a sliver of the Johor shore), that it is cached across reloads, and that switching back to the snapshot works.
+
+- the photo-real render: the path tracer loads and accumulates samples. Its shadows are checked against a third method, CPU rays cast from grass points towards the sun, and the live shadow map is checked the same way. The test also confirms that looking at a low sun puts the sky's glow on the sun, that vertex colours reach the tracer intact (tree crowns come out green), that pressing Stop while it loads cancels it, that taps don't select, that hiding trees rebuilds the scene, that moving the camera restarts the image, that Save downloads the PNG, and that Stop restores the live view.
 
 Screenshots go to `tests/shots/`, which is gitignored. The tests run in a software renderer, so they don't measure frame rate or iOS Safari behaviour.
 
@@ -307,8 +319,9 @@ The site appears at `https://jardani1x.github.io/sembawang-brooks/` within a few
 - **Blk 438A:** the brochure doesn't say which tower holds the 1-Room flats and which the 2-Room, and no rental unit numbers are printed.
 - **Reserved sites** around the estate (including the church site to the north) are flat, so future buildings there could reduce views and sun.
 - **Trees, play equipment and roof-garden items** are representative.
-- **The area view:** about 60% of the surrounding buildings have estimated heights. The ground is drawn only inside the query box, so the few buildings that straddle its edge (in Yishun, to the south) overhang it. Zoomed out, area shadows are coarse (about 2 m per shadow-map pixel on a computer, 4 m on a phone).
+- **The area view:** about 60% of the surrounding buildings have estimated heights. The ground runs under every building that straddles the query box. Zoomed out, area shadows are coarse (about 2 m per shadow-map pixel on a computer, 4 m on a phone).
 - **The live update** has been tested end to end against a fixture, not against the real Overpass server, which this build environment can't reach.
+- **The photo-real render** has been tested only in a software renderer here, at low resolution and with a few samples. Speed on real GPUs and phones is untested. It uses an older release of the path tracer (0.0.23, from 2024), because newer ones need three.js r185+. Two Scene fields that release reads (added in r162) get default values at load time. There is no haze, so distant ground meets the sky at a clean horizon.
 - **Not tested on real phones** for frame rate or iOS Safari quirks.
 
 **Licence:** none chosen yet, so all rights are reserved by default. Add a `LICENSE` file to change that.

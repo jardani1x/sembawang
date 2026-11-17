@@ -6,7 +6,7 @@
 <meta name="description" content="Interactive 3D model of the Sembawang Brook HDB BTO estate, reconstructed from the brochure site plan and the sales model.">
 <title>Sembawang Brook · 3D estate model</title>
 <style>/*__CSS__*/</style>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/","three/examples/jsm/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/","three-mesh-bvh":"https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.8/build/index.module.js","three-gpu-pathtracer":"https://cdn.jsdelivr.net/npm/three-gpu-pathtracer@0.0.23/build/index.module.js"}}</script>
 </head>
 <body data-tool="orbit">
 <header id="topbar">
@@ -23,10 +23,12 @@
     <button id="btnWalk" type="button" aria-pressed="false" title="Walk at eye level"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="13" cy="4" r="2" fill="currentColor"/><path d="M10 22l2-7 3 3v6 M8 12l3-4 4 1 2 4 M12 8l-1 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Walk</span></button>
     <button id="btnArea" type="button" aria-pressed="false" title="Sembawang area (OpenStreetMap)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Area</span></button>
     <button id="btnSun" type="button" aria-pressed="false" title="Sun & shadow study"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Sun</span></button>
+    <button id="btnRender" type="button" aria-pressed="false" title="Photo-real ray-traced render"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Render</span></button>
     <button id="btnShot" type="button" title="Save image (PNG)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.5-2h5L16 6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Image</span></button>
     <button id="btnMore" type="button" aria-haspopup="menu" title="More"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg><span class="sr">More</span></button>
   </nav>
   <div id="menu" role="menu" hidden>
+    <button type="button" role="menuitem" data-act="shot" class="phone-only">Save image (PNG)</button>
     <button type="button" role="menuitem" data-act="export">Export settings + data (JSON)</button>
     <button type="button" role="menuitem" data-act="import">Import JSON…</button>
     <button type="button" role="menuitem" data-act="reset">Reset settings</button>
@@ -104,6 +106,15 @@
   <div id="infoBody" class="pbody"></div>
 </aside>
 
+<section id="renderbar" aria-label="Ray-traced render">
+  <div class="rb-row">
+    <span id="renderStatus" role="status" aria-live="polite">Ray tracing…</span>
+    <button id="renderSave" type="button" class="btn">Save image</button>
+    <button id="renderStop" type="button" class="btn ghost">Stop</button>
+  </div>
+  <progress id="renderProg" max="1" value="0" aria-label="Render progress"></progress>
+  <div class="rb-hint">Drag to move the camera or change the time in Sun: the image restarts and sharpens again.</div>
+</section>
 <section id="sunbar" aria-label="Sun and shadow study">
   <div class="sunrow">
     <label>Date<input id="sunDate" type="date"></label>
@@ -164,6 +175,7 @@
     <li><b>Measure</b> <kbd>M</kbd>: tap two points; <kbd>Esc</kbd> to finish</li>
     <li><b>Walk</b>: drag to look, <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>/arrows to move, <kbd>Shift</kbd> faster; on phones use the left pad</li>
     <li><b>Sun</b>: pick a date and time (Singapore time), or play the day</li>
+    <li><b>Render</b>: a photo-real, ray-traced image of the current view, with sunlight, sky light, bounced light and soft shadows. It starts grainy and sharpens over a few seconds to a minute (longer on phones). Moving the camera or the time restarts it; <b>Save image</b> keeps it. The first time, the ray tracer downloads (about 0.4 MB) and compiles.</li>
   </ul>
 </dialog>
 <dialog id="saveDlg">

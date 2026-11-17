@@ -17,9 +17,12 @@ with sync_playwright() as p:
     page = ctx.new_page(); errs = []
     page.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
     page.on('pageerror', lambda e: errs.append(str(e)))
-    page.route(CDN + '**', lambda r: r.fulfill(path=os.path.join(VENDOR, r.request.url[len(CDN):]), headers={'content-type': 'application/javascript', 'access-control-allow-origin': '*'}))
+    def vf(url):
+        import re; m = re.match(r'https://cdn\.jsdelivr\.net/npm/([^/]+)/(.*)$', url)
+        return os.path.join(VENDOR if m[1] == 'three@0.160.0' else os.path.join(ROOT, 'vendor', m[1], 'package'), m[2])
+    page.route('https://cdn.jsdelivr.net/npm/**', lambda r: r.fulfill(path=vf(r.request.url), headers={'content-type': 'application/javascript', 'access-control-allow-origin': '*'}))
     page.goto(f'http://127.0.0.1:{srv.server_address[1]}/index.html?debug' + steps.get('query', ''))
-    page.wait_for_selector('body.ready', timeout=60000); page.wait_for_timeout(800)
+    page.wait_for_selector("body.ready", timeout=60000); page.set_default_timeout(1800000); page.wait_for_timeout(800)
     for st in steps['steps']:
         if 'js' in st: print(st.get('name', 'js'), '→', json.dumps(page.evaluate(st['js']))[:1500])
         if 'click' in st: page.click(st['click'])
