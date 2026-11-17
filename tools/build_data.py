@@ -34,6 +34,12 @@ def scl(pts):
     return [sc(p) for p in pts]
 
 s = json.load(open(SRC))
+# georeference: site frame -> WGS84 (fitted to OpenStreetMap building outlines; tools in tools/ + data/source/georef.json)
+GEOREF = json.load(open(os.path.join(ROOT, 'data', 'source', 'georef.json')))
+def _unproj(x, z):
+    r = math.pi / 180; g = GEOREF
+    return (g['lat0'] - (z + g['tz']) / (r * g['M']), g['lon0'] + (x + g['tx']) / (r * g['N'] * math.cos(g['lat0'] * r)))
+GEO_CENTRE = _unproj(170.0 * K, -80.0 * K)
 B = {b['id']: b for b in s['buildings']}
 
 # Bays per pad (pair of flats unless noted) - counted on model photos 01/02 (critic)
@@ -240,11 +246,12 @@ for b in blocks:
 
 site = {
   'format': 'sembawang-brook-site', 'version': 1,
+  'georef': GEOREF,
   'meta': {'name': 'Sembawang Brook', 'programme': 'HDB Build-To-Order 2026',
            'scale_m_per_px': SCALE, 'gridDeg': GRID_DEG, 'faceExtension_m': EXT,
            'origin': 'SW outer corner of Blk 436 (canal side x Admiralty Lane side)',
            'axes': '+X east, +Z south, +Y up (metres); buildings in local frame u (bearing 64.5) / v (bearing 154.5)',
-           'latlon': [1.447, 103.811], 'latlonConf': 'approximate (Admiralty St / Woodlands Ave 10, Sembawang); used only for the sun path',
+           'latlon': [round(GEO_CENTRE[0], 6), round(GEO_CENTRE[1], 6)], 'latlonConf': 'estate centre from the OpenStreetMap building-outline fit (data/source/georef.json); used for the sun and the area view',
            'sources': ['HDB brochure site plan pp.15-16 (scale bar, north arrow, unit table)',
                        'HDB 1:300 sales model photos IMG_1981-1990 (massing, facades, roof garden)'],
            'disclaimer': 'Brochure: developments and facilities are subject to change. This model is reconstructed from the brochure and sales model; it is not a survey.'},

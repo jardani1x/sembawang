@@ -22,7 +22,7 @@ function applyLayers() {
   G.sunPath.visible = Ly.sunPath; setCssVisible(G.sunPath, Ly.sunPath);
   renderer.shadowMap.enabled = Ly.shadows; sun.castShadow = Ly.shadows && (lastSun ? lastSun.el > 0 : true);
   scene.traverse((o) => { if (o.material) { const ms = Array.isArray(o.material) ? o.material : [o.material]; ms.forEach((m) => { m.needsUpdate = true; }); } });
-  state.shadowsDirty = true; requestRender();
+  applyArea();
 }
 
 /* ---------- selection + info panel ---------- */
@@ -33,6 +33,7 @@ function select(sel, opts = {}) {
   $$('#labels .lbl').forEach((el) => el.classList.toggle('on', !!sel && sel.kind === 'building' && el.dataset.owner === sel.id));
   if (sel && opts.fly) {
     if (sel.kind === 'building') focusAnchor(REG.anchors.get(sel.id));
+    else if (sel.kind === 'osm') areaFocus(sel.bi);
     else if (sel.kind === 'facility' && sel.f) flyTo(new THREE.Vector3(sel.f.x + 60, 60, sel.f.z + 60), new THREE.Vector3(sel.f.x, 0, sel.f.z), 50);
   }
   document.body.classList.toggle('has-sel', !!sel);
@@ -93,6 +94,7 @@ function renderInfo() {
   if (sel.kind === 'building') html = infoBuilding(sel.id, sel);
   else if (sel.kind === 'facility') { const f = sel.f; html = `<h2>${esc(f.name[0].toUpperCase() + f.name.slice(1))}</h2><p class="sub">${esc(f.where)}</p><dl class="kv"><dt>Source</dt><dd>${esc(f.conf)}</dd><dt>Note</dt><dd>Props in the 3D view are representative, not surveyed.</dd></dl>`; }
   else if (sel.kind === 'road') { const r = SITE.roads.find((x) => x.name === sel.id); html = `<h2>${esc(r.name)}</h2><p class="sub">${r.status === 'future' ? 'Future road' : r.status === 'existing' ? 'Existing road' : 'Status not stated'}</p><dl class="kv"><dt>Width</dt><dd>≈ ${r.width} m ${tag('Measured/inferred')}</dd><dt>Source</dt><dd>${esc(r.conf)}</dd></dl>`; }
+  else if (sel.kind === 'osm' && AREA.status === 'ready') html = areaInfoHTML(sel.bi);
   else if (sel.kind === 'reserved') html = `<h2>${esc(sel.id)}</h2><p class="sub">Neighbouring / reserved site (context only)</p><p class="note">Shown as a flat labelled plot. Any future buildings here are not modelled, so views and sun hours could change when they are built.</p>`;
   el.innerHTML = html;
   $('#info').classList.add('open');
@@ -145,7 +147,7 @@ function runSearch(q) {
       go: () => { select({ kind: 'building', id: info.block, stack: info, storeyHint: st }); focusFlat(info, st); } }];
     return [{ kind: 'Flat', label: `#${addr[1]}-${addr[2]}`, sub: `Blk ${info.block} has storeys 2–${info.storeys} (storey 1 is the void deck)`, go: () => {} }];
   }
-  for (const p of SEARCH) {
+  for (const p of (AREA.status === 'ready' ? SEARCH.concat(AREA.search) : SEARCH)) {
     let score = 0;
     for (const k of p.nkeys) {
       if (p.exact) { if (k === n) score = Math.max(score, 3); else if (k.startsWith(n) && n.length >= 2) score = Math.max(score, 1.5); continue; }
@@ -252,7 +254,7 @@ function renderMyFlat(compute = false) {
     const sd = state.settings.sun.date || todaySGT(), yr = sd.slice(0, 4);
     const rows = [['Selected', sd], ...keyDates(yr)].map(([n, d]) => { const r = flatSunHours(info, mu.storey, d); return `<tr><td>${n}<small>${d.slice(5)}</small></td><td class="n">${fmt(r.hours)}</td><td class="n">${fmt(r.before12)}</td><td class="n">${fmt(r.after15)}</td></tr>`; }).join('');
     table = `<h4>Direct sun on the main facade <small>(hours, estimate)</small></h4><table class="t"><thead><tr><th>Date</th><th class="n">Total</th><th class="n">Before 12</th><th class="n">After 3 pm</th></tr></thead><tbody>${rows}</tbody></table>
-      <p class="note">Geometric estimate at the centre of the flat's main facade, 5-minute steps, blocked by the modelled buildings only. It ignores trees, ledges, side windows, and anything future built on the reserved sites. Heights are assumed (${state.settings.heights.floorToFloor} m storeys, ${state.settings.heights.voidDeck} m void deck).</p>`;
+      <p class="note">Geometric estimate at the centre of the flat's main facade, 5-minute steps, blocked by the estate's buildings${AREA.status === 'ready' ? ' and the surrounding OpenStreetMap buildings (heights partly estimated)' : ' only — turn on the Sembawang area to include the surrounding buildings'}. It ignores trees, ledges, side windows, and anything future built on the reserved sites. Heights are assumed (${state.settings.heights.floorToFloor} m storeys, ${state.settings.heights.voidDeck} m void deck).</p>`;
   }
   out.innerHTML = head + table;
   $('#muGo').onclick = () => focusFlat(info, mu.storey);

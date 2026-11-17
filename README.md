@@ -13,6 +13,7 @@ An interactive 3D model of **Sembawang Brook**, an HDB Build-To-Order estate (20
 
 ## Contents
 - [What's in the model](#whats-in-the-model)
+- [Sembawang area (OpenStreetMap)](#sembawang-area-openstreetmap)
 - [Quick start](#quick-start)
 - [User guide](#user-guide)
 - [Accuracy](#accuracy)
@@ -38,6 +39,28 @@ An interactive 3D model of **Sembawang Brook**, an HDB Build-To-Order estate (20
 <img src="docs/top.jpg" width="49%" alt="Plan view, north up">
 <img src="docs/roof-garden.jpg" width="49%" alt="Blk 436 car-park roof garden">
 </p>
+
+## Sembawang area (OpenStreetMap)
+
+Press **Area** (or the views **Sembawang area** / **Sembawang Park**, keys <kbd>8</kbd> and <kbd>9</kbd>) to put the estate in its real surroundings. The area runs from Woodlands and Admiralty in the west to Sembawang Park on the coast, between 1.424–1.475°N and 103.79–103.848°E. It holds about **4,000 buildings**, plus roads, canals, drains, ponds and parks, all from [OpenStreetMap](https://www.openstreetmap.org/copyright).
+
+![The Sembawang area around the estate](docs/area.jpg)
+
+- **Tap any building** to see its name, address, storeys and height, with where each value came from, and a link to it on openstreetmap.org.
+- **Search** covers OSM names, addresses (for example `10 Admiralty Street`), parks and roads.
+- **Heights:**
+  - HDB blocks and other buildings that record storeys in OSM: a 3.6 m void deck plus 2.8 m per storey for residential blocks, the same as the estate model; 3 m per storey for everything else.
+  - A real `height` tag is used where present. Placeholder `height=0` tags are ignored.
+  - Buildings with no height data (mostly factories, sheds and landed houses) get modest defaults. **Highlight estimated heights** tints them orange.
+  - In the bundled snapshot: 1,548 buildings have OSM heights and 2,475 are estimated.
+- **Sun hours for your flat** also count the surrounding OSM buildings while the area is loaded.
+- **Live update (on the GitHub Pages version):** **Explore → Sembawang area → Update from OpenStreetMap** downloads the latest data from the Overpass API (about 15 MB; it can take a minute). It also fetches the coastline, which turns into sea and land. The result is cached in your browser, and **Use bundled snapshot** switches back. Inside the Claude view, outside data is blocked, so the page uses the bundled snapshot instead.
+- **The bundled snapshot** (`data/area-snapshot.json`) was built from an overpass-turbo export on 17 Nov 2026. That export has no coastline, so the sea north of Sembawang Park shows as land until you do a live update.
+- **Placing the estate:** the estate's block and car-park outlines were fitted to OSM's own outlines of Sembawang Brook. The median gap is **0.75 m**, and the fit puts the site origin at 1.45914°N, 103.81185°E. The same fit independently confirmed the brochure's north arrow (best rotation −0.09°) and its scale (within 0.6%). OSM buildings inside the estate boundary are replaced by the detailed model.
+
+![Sembawang Park](docs/sembawang-park.jpg)
+
+> Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the Open Database Licence (ODbL 1.0). `data/area-snapshot.json` is a derived database under the same licence.
 
 ## Quick start
 
@@ -68,6 +91,8 @@ Buttons along the bottom, or keys <kbd>1</kbd>–<kbd>7</kbd>:
 | 5 | **Top** | plan view, north up |
 | 6 | **Car-park roof** | the Blk 436 roof garden |
 | 7 | **Overview** | isometric; on phones, along the estate |
+| 8 | **Sembawang area** | the whole OSM area (turns the area on) |
+| 9 | **Sembawang Park** | the park and the coast |
 
 ### Blocks, stacks and flats
 - **Tap a block** to open its details:
@@ -155,6 +180,8 @@ Shortcuts are ignored while you type in a field or walk.
 | Car park (~24 m) and low-rise heights | Not printed in the brochure | Estimated |
 | Trees, play equipment, shelters | Placed to resemble the sales model | Representative |
 | Sun position | NOAA solar-position algorithm, within 0.02° of an independent calculation | Verified |
+| Where the estate is, and its north and scale | Block outlines fitted to OpenStreetMap: median gap 0.75 m, rotation −0.09°, scale within 0.6% | Verified independently |
+| Surrounding buildings | OpenStreetMap; heights from tags where present, otherwise estimated (flagged) | Mapped / estimated |
 
 ## How it was built
 
@@ -176,19 +203,24 @@ src/
   50_sun.js                NOAA sun position, sun light + path, per-flat sun hours
   60_ui.js                 panels, details, search, filters, my flat, layers, heights, sun bar, menu, keyboard
   70_tools.js              camera views + transitions, picking, measure, walk
+  75_osmconv.js            OSM → area data converter (pure JS; shared by the page and tools/build_area.mjs)
+  80_area.js               Sembawang area: load snapshot / cache / live Overpass, meshes, picking, search, sun occlusion
   90_main.js               validation, rebuilds, on-demand render loop, init
   style.css, template.html
 data/
-  site-data.json           generated dataset embedded in index.html
+  site-data.json           generated dataset embedded in index.html (includes the georeference)
+  area-snapshot.json       OSM area snapshot (ODbL), loaded on demand
   source/siteplan.json     measured site-plan geometry (scale, frame, pads, roads, canal, facilities, …)
   source/courtyard.json    paved areas segmented from the plan
+  source/georef.json       site frame ↔ WGS84 (fit to OSM building outlines)
 tools/
   build_data.py            source → data/site-data.json (with self-checks)
   build.py                 src + data → index.html
+  build_area.mjs           overpass-turbo GeoJSON export → data/area-snapshot.json (same converter as the page)
   segment_courtyard.py     plan colour segmentation for paved areas (needs the plan image, not included)
   fetch_three.sh           local three.js r160 for offline tests
 tests/
-  run.py                   headless end-to-end suite (40 checks)
+  run.py                   headless end-to-end suite (58 checks)
   probe.py                 ad-hoc screenshots / JS probes
 docs/                      README images
 ```
@@ -221,6 +253,11 @@ python3 tools/build.py          # inline src/ + data/ into index.html
 - Edit the modules in `src/`, never `index.html` directly, then rebuild.
 - To change a building's geometry, edit `data/source/siteplan.json` and its corrections in `tools/build_data.py`.
 
+**Refresh the area snapshot** from a new export. In [overpass-turbo](https://overpass-turbo.eu), run the query that `OSM_QUERY` in `src/75_osmconv.js` builds (add `way["natural"="coastline"]` to get the sea), then **Export → GeoJSON**:
+```sh
+node tools/build_area.mjs export.geojson 1.430,103.795,1.475,103.845   # the export's S,W,N,E box
+```
+
 **Optional private build** that opens with a flat preselected (keep it out of the public repo):
 ```sh
 python3 tools/build.py --preset-flat 439A,160,12 --out private.html
@@ -232,10 +269,11 @@ python3 tools/build.py --preset-flat 439A,160,12 --out private.html
 pip install playwright && python -m playwright install chromium
 sh tools/fetch_three.sh         # three.js r160 into vendor/ (CDN requests are served from it)
 python3 tests/run.py            # desktop + phone; CHROME=/path/to/chrome to use a system Chrome
-python3 tests/run.py desktop    # or: mobile
+python3 tests/run.py desktop    # or: mobile, area
+OSM_EXPORT=export.geojson python3 tests/run.py area   # + converter parity and the live-update flow (Overpass mocked)
 ```
 
-The suite runs headless Chrome. It covers:
+The suite runs headless Chrome (58 checks). It covers:
 - console errors and data validation
 - the sun position against independent values: 21 Jun 13:06 SGT at 68.0° due north, and the solstice noon and sunrise/sunset times
 - every camera view, selection, search (including `#12-160`), flat-type filters and the storey band
@@ -243,6 +281,7 @@ The suite runs headless Chrome. It covers:
 - the sun bar and playback, measure, walk, the heights editor
 - export, import, and rejection of a bad import
 - persistence, PNG export, and the phone layout
+- the area view: snapshot load and render budget, the coastline-to-land algorithm on synthetic shapes, OSM search and tapping a building, sun hours with the surroundings, and the live update. The live update test routes the Overpass request to a fixture made from the export plus a synthetic coastline, then checks the data matches the snapshot exactly, that it is cached across reloads, and that switching back to the snapshot works.
 
 Screenshots go to `tests/shots/`, which is gitignored. The tests run in a software renderer, so they don't measure frame rate or iOS Safari behaviour.
 
@@ -263,6 +302,8 @@ The site appears at `https://jardani1x.github.io/sembawang-brooks/` within a few
 - **Blk 438A:** the brochure doesn't say which tower holds the 1-Room flats and which the 2-Room, and no rental unit numbers are printed.
 - **Reserved sites** around the estate (including the church site to the north) are flat, so future buildings there could reduce views and sun.
 - **Trees, play equipment and roof-garden items** are representative.
+- **The area view:** about 60% of the surrounding buildings have estimated heights. The bundled snapshot has no coastline (a live update adds it). Shadows are drawn around the estate only, though the sun-hours estimate counts all loaded buildings.
+- **The live update** has been tested end to end against a fixture, not against the real Overpass server, which this build environment can't reach.
 - **Not tested on real phones** for frame rate or iOS Safari quirks.
 
 **Licence:** none chosen yet, so all rights are reserved by default. Add a `LICENSE` file to change that.

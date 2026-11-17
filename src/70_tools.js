@@ -18,11 +18,22 @@ function presetList() {
     { id: 'sembawang-dr', name: 'Sembawang Dr', hint: 'From the east (photo 9)', key: '4', fov: 50, pos: new THREE.Vector3(500, 75, -30), target: new THREE.Vector3(300, 32, -95) },
     { id: 'top', name: 'Top', hint: 'Plan view, north up', key: '5', fov: 45, pos: new THREE.Vector3(c.x, 520, c.z + 0.01), target: new THREE.Vector3(c.x, 0, c.z) },
     { id: 'roof436', name: 'Car-park roof', hint: 'Blk 436 roof garden', key: '6', fov: 50, pos: new THREE.Vector3(mc.x + 70, 85, mc.z + 60), target: new THREE.Vector3(mc.x, MSCP_H, mc.z) },
+    ...areaPresets(),
     { id: 'iso', name: 'Overview', hint: 'Isometric overview', key: '7', fov: 45, pos: new THREE.Vector3(c.x - 260, 330, c.z + 330), target: new THREE.Vector3(c.x, 20, c.z),
       portrait: (() => { const a = toWorld(-175, -10), t = toWorld(190, -35); return { pos: new THREE.Vector3(a.x, 240, a.z), target: new THREE.Vector3(t.x, 10, t.z), fov: 62 }; })() },
   ];
 }
 let PRESETS = [];
+/** area presets from the georeference (work before the area data is loaded) */
+function areaPresets() {
+  const P = osmProjector(SITE.georef), [S, W, N, E] = OSM_BBOX;
+  const sw = P(S, W), ne = P(N, E), cx = (sw[0] + ne[0]) / 2, cz = (sw[1] + ne[1]) / 2;
+  const park = P(1.46140, 103.83678); // Sembawang Park centre (from the OSM polygon's bounds)
+  return [
+    { id: 'area', name: 'Sembawang area', hint: 'Whole area from OpenStreetMap', key: '8', fov: 50, area: true, pos: new THREE.Vector3(cx - 900, 2600, cz + 3600), target: new THREE.Vector3(cx, 0, cz - 300) },
+    { id: 'sembawang-park', name: 'Sembawang Park', hint: 'The park and the coast', key: '9', fov: 50, area: true, pos: new THREE.Vector3(park[0] - 420, 300, park[1] + 520), target: new THREE.Vector3(park[0], 0, park[1]) },
+  ];
+}
 /** landscape screens open on the photo-1 view; portrait phones on the along-the-estate overview */
 const defaultPreset = () => (viewAspect() < 1 ? 'iso' : 'adm-st');
 
@@ -54,6 +65,7 @@ function fitPreset(p) {
 }
 function goPreset(id, instant = false) {
   const p0 = PRESETS.find((x) => x.id === id); if (!p0) return;
+  if (p0.area && !state.settings.layers.area) { setAreaOn(true, false); }
   const p = fitPreset(p0);
   if (instant) { camera.position.copy(p.pos); controls.target.copy(p.target); camera.fov = p.fov; camera.updateProjectionMatrix(); controls.update(); requestRender(); return; }
   flyTo(p.pos, p.target, p.fov);
@@ -91,6 +103,8 @@ function setNdc(ev) { const r = renderer.domElement.getBoundingClientRect(); ndc
 function pickAt(ev) {
   setNdc(ev); raycaster.setFromCamera(ndc, camera);
   const hits = raycaster.intersectObjects(REG.pick, false);
+  const ah = areaPick(raycaster);
+  if (ah && (!hits.length || ah.dist < hits[0].distance)) return ah;
   if (hits.length) return { kind: 'building', id: hits[0].object.userData.owner, point: hits[0].point };
   const roads = state.settings.layers.roads ? raycaster.intersectObjects(G.roads.children.filter((o) => o.userData.kind === 'road'), false) : [];
   if (roads.length) return { kind: 'road', id: roads[0].object.userData.owner.slice(5) };

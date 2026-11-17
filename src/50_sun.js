@@ -123,6 +123,7 @@ function flatSunHours(info, storey, dateStr, trace = null) {
   else { pl = new THREE.Vector3(info.u1 + 0.9, y, vm); nl = new THREE.Vector3(1, 0, 0); }
   const pw = pl.applyMatrix4(G.estate.matrixWorld), nw = nl.applyAxisAngle(new THREE.Vector3(0, 1, 0), GRID);
   let lit = 0, before12 = 0, after15 = 0; const step = 5, d = new THREE.Vector3();
+  const occs = areaOccludersNear(pw.x, pw.z); // surrounding OSM buildings, if the area is loaded
   for (let m = 6 * 60; m <= 20 * 60; m += step) {
     const p = sunAt(dateStr, m); if (p.el <= 0.5) continue;
     sunDir(p.az, p.el, d); const dot = d.dot(nw);
@@ -131,7 +132,8 @@ function flatSunHours(info, storey, dateStr, trace = null) {
     const hit = _ray.intersectObjects(REG.pick, false);
     if (trace) trace.push([m, +p.az.toFixed(1), +p.el.toFixed(1), +dot.toFixed(3), hit.length ? 'blocked by ' + hit[0].object.userData.owner + ' @' + hit[0].distance.toFixed(0) + 'm' : 'SUN']);
     if (hit.length) continue;
+    if (occs.length && areaRayBlocked(pw, d, occs)) { if (trace) trace[trace.length - 1][4] = 'blocked by OSM building'; continue; }
     lit += step; if (m < 12 * 60) before12 += step; if (m >= 15 * 60) after15 += step;
   }
-  return { hours: lit / 60, before12: before12 / 60, after15: after15 / 60 };
+  return { hours: lit / 60, before12: before12 / 60, after15: after15 / 60, withArea: occs.length > 0 };
 }

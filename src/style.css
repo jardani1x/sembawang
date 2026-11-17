@@ -52,6 +52,11 @@ button{cursor:pointer}
 .pin{pointer-events:auto;width:20px;height:20px;border-radius:50%;border:2px solid #fff;background:#34C759;color:#fff;font-size:11px;line-height:16px;padding:0;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .pin.bus{background:#5856D6;font-weight:700;font-size:11px}
 .pin.ctx{background:#FF9500;font-weight:800}
+#areaBadge{position:absolute;left:12px;bottom:72px;z-index:5;font-size:11px;background:rgba(255,255,255,.85);border-radius:8px;padding:3px 8px;color:var(--muted)}
+#areaBadge a{color:var(--text)}
+body.mobile #areaBadge{bottom:64px;left:8px}
+.lbl.park{background:rgba(232,245,220,.92);color:#2F5A1E}
+.lbl.estate{background:var(--mine);color:#fff;border-color:#fff;font-size:12.5px}
 .hour{font-size:10px;color:#B56A00;font-weight:700;pointer-events:none}
 #compass{position:absolute;right:14px;top:14px;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--shadow);z-index:5;padding:0}
 #compass .dial{position:absolute;inset:0;display:block}

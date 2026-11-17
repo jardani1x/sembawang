@@ -189,7 +189,7 @@ function roofY(storeys) { const { f2f, vd } = hts(); return vd + (storeys - 1) *
 /* ---------- state + persistence ---------- */
 const DEFAULT_SETTINGS = () => ({
   v: 1,
-  layers: { labels: true, facilities: true, roads: true, landscape: true, linkways: true, context: true, canal: true, shadows: true, sunPath: false },
+  layers: { labels: true, facilities: true, roads: true, landscape: true, linkways: true, context: true, canal: true, shadows: true, sunPath: false, area: false, areaEstimated: false },
   heights: { floorToFloor: SITE_DEFAULT.heights.floorToFloor, voidDeck: SITE_DEFAULT.heights.voidDeck },
   colourByType: false,
   typeFilter: [],

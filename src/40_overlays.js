@@ -100,8 +100,9 @@ function buildUnitMark() {
 
 /* selection outline (pick boxes of the selected owner) + optional stack highlight */
 function buildSelection() {
-  clearGroup(L.selection);
+  clearGroup(L.selection); clearGroup(AREA.sel);
   const sel = state.selection; if (!sel) { requestRender(); return; }
+  if (sel.kind === 'osm' && AREA.status === 'ready') { AREA.sel.add(areaSelection(sel.bi)); requestRender(); return; }
   const lineMat = new THREE.LineBasicMaterial({ color: '#0A84FF' });
   if (sel.kind === 'building') {
     for (const p of REG.pick) {

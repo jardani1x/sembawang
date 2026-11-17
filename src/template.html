@@ -21,6 +21,7 @@
   <nav class="actions" aria-label="Tools">
     <button id="btnMeasure" type="button" aria-pressed="false" title="Measure (M)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 17L17 3l4 4L7 21z M7 13l2 2 M10 10l2 2 M13 7l2 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Measure</span></button>
     <button id="btnWalk" type="button" aria-pressed="false" title="Walk at eye level"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="13" cy="4" r="2" fill="currentColor"/><path d="M10 22l2-7 3 3v6 M8 12l3-4 4 1 2 4 M12 8l-1 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Walk</span></button>
+    <button id="btnArea" type="button" aria-pressed="false" title="Sembawang area (OpenStreetMap)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Area</span></button>
     <button id="btnSun" type="button" aria-pressed="false" title="Sun & shadow study"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Sun</span></button>
     <button id="btnShot" type="button" title="Save image (PNG)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.5-2h5L16 6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Image</span></button>
     <button id="btnMore" type="button" aria-haspopup="menu" title="More"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg><span class="sr">More</span></button>
@@ -39,6 +40,7 @@
   <button id="compass" type="button" title="Tap to face north" aria-label="Compass: tap to face north"><span class="dial"><b>N</b><i class="ndl n"></i><i class="ndl s"></i></span></button>
   <div id="toolHint" hidden><span></span><output id="measureOut"></output><button id="toolExit" type="button">Done</button></div>
   <div id="joy" hidden aria-hidden="true"><i></i></div>
+  <div id="areaBadge" hidden>Map data <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a></div>
 </div>
 
 <aside id="left" class="panel open" aria-label="Explore">
@@ -53,6 +55,13 @@
         <p id="muErr" class="err" role="alert"></p>
       </form>
       <div id="muOut"></div>
+    </details>
+    <details id="sec-area"><summary>Sembawang area</summary>
+      <label class="switch"><input type="checkbox" id="areaOn"><span>Show the area around the estate (OpenStreetMap)</span></label>
+      <p id="areaStatus" class="note"></p>
+      <label class="switch"><input type="checkbox" id="areaEst"><span>Highlight estimated heights</span></label>
+      <div class="row"><button class="btn sm" type="button" id="areaUpdate">Update from OpenStreetMap</button><button class="btn sm ghost" type="button" id="areaSnapshot" hidden>Use bundled snapshot</button></div>
+      <p class="note">Live updates download ~15 MB from the Overpass API and work on the GitHub Pages version; inside the Claude view the bundled snapshot is used.</p>
     </details>
     <details id="sec-blocks" open><summary>Blocks</summary><div id="blockList" class="blist"></div></details>
     <details id="sec-types" open><summary>Flat types</summary>
@@ -126,6 +135,13 @@
     <li><b>Estimated:</b> 2.8 m floor-to-floor and a 3.6 m void deck (consistent with the model photos; editable under <i>Heights</i>), plus fixed estimates for the car-park height (~24 m) and the low-rise heights.</li>
     <li><b>Representative:</b> trees, play equipment, shelters and roof-garden items are placed from the photos to look right. They are not surveyed.</li>
   </ul>
+  <h3>Sembawang area (OpenStreetMap)</h3>
+  <ul>
+    <li>Buildings, roads, water and parks come from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (© OpenStreetMap contributors, ODbL). The bundled snapshot is from an overpass-turbo export; on the GitHub Pages version you can update it live.</li>
+    <li>Heights come from OSM <i>height</i> or <i>storeys</i> tags where present (most HDB blocks). The rest, mostly factories, sheds and houses, use modest defaults and are marked <i>Estimated</i>.</li>
+    <li>The estate is placed by fitting its block outlines to OSM's (median gap 0.75 m). That also confirmed the brochure's north and scale (within 0.6%).</li>
+    <li>Shadows are computed around the estate; buildings far out don't cast shadows in the view, but they do count in the sun-hours estimate.</li>
+  </ul>
   <h3>Known uncertainties</h3>
   <ul>
     <li>Unit labels #116 and #118 (Blk 437A) follow the numbering pattern of the other blocks; the brochure digits are illegible. Flat types are certain.</li>
@@ -143,7 +159,8 @@
     <li><b>Orbit</b> drag · <b>Pan</b> right-drag / two-finger drag · <b>Zoom</b> wheel / pinch</li>
     <li><b>Select</b> tap a block (tapping a facade also picks the stack under your finger), a pin, a road or a reserved site</li>
     <li><b>Views</b> buttons at the bottom, or keys <kbd>1</kbd>–<kbd>7</kbd>; <kbd>R</kbd> reset; <kbd>F</kbd> focus selection; compass = face north</li>
-    <li><b>Search</b> <kbd>/</kbd>: "437B", "#120", "#12-160", "4-room", "playground", "Admiralty"</li>
+    <li><b>Search</b> <kbd>/</kbd>: "437B", "#120", "#12-160", "4-room", "playground", "Admiralty"; with the area on also OSM addresses and places ("355 Sembawang", "Sembawang Park")</li>
+    <li><b>Area</b>: the surrounding Sembawang area from OpenStreetMap; views <kbd>8</kbd> (whole area) and <kbd>9</kbd> (Sembawang Park)</li>
     <li><b>Measure</b> <kbd>M</kbd>: tap two points; <kbd>Esc</kbd> to finish</li>
     <li><b>Walk</b>: drag to look, <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>/arrows to move, <kbd>Shift</kbd> faster; on phones use the left pad</li>
     <li><b>Sun</b>: pick a date and time (Singapore time), or play the day</li>

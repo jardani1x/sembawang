@@ -5,7 +5,7 @@ Setup:  pip install playwright && python -m playwright install chromium
         sh tools/fetch_three.sh          # local three.js r160 (CDN requests are intercepted)
 Run:    python3 tests/run.py [desktop|mobile]
 """
-import http.server, threading, functools, os, sys, json, time, math
+import http.server, threading, functools, os, sys, json, time, math, re
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -197,6 +197,91 @@ with sync_playwright() as p:
         page.tap('#infoClose'); page.wait_for_timeout(300)
         page.tap('#btnSun'); page.wait_for_timeout(300); page.screenshot(path=f'{SHOTS}/m04_sun.png')
         check('mobile: no console errors', not errors, errors[:5])
+        ctx.close()
+    if not only or 'area' in only:
+        # ---------- Sembawang area (OpenStreetMap) ----------
+        OSM_EXPORT = os.environ.get('OSM_EXPORT')  # overpass-turbo GeoJSON (optional: parity + live-update tests)
+        fixture = None
+        if OSM_EXPORT and os.path.isfile(OSM_EXPORT):
+            fc = json.load(open(OSM_EXPORT)); els = []
+            for f in fc['features']:
+                m = re.match(r'^(way|relation)/(\d+)$', str(f['properties'].get('@id', '')))
+                if not m: continue
+                tags = {k: v for k, v in f['properties'].items() if not k.startswith('@')}
+                g = f['geometry']; G2 = lambda ring: [{'lat': la, 'lon': lo} for lo, la in ring]
+                if m[1] == 'way' and g['type'] in ('LineString', 'Polygon'):
+                    els.append({'type': 'way', 'id': int(m[2]), 'tags': tags, 'geometry': G2(g['coordinates'] if g['type'] == 'LineString' else g['coordinates'][0])})
+                elif m[1] == 'relation':
+                    polys = [g['coordinates']] if g['type'] == 'Polygon' else g['coordinates']
+                    els.append({'type': 'relation', 'id': int(m[2]), 'tags': {**tags, 'type': 'multipolygon'}, 'members': [{'type': 'way', 'ref': 0, 'role': 'outer' if i == 0 else 'inner', 'geometry': G2(r)} for poly in polys for i, r in enumerate(poly)]})
+            # SYNTHETIC test coastline (not real data): straight line at 1.4665 N, running west, land on its left (south)
+            els.append({'type': 'way', 'id': 1, 'tags': {'natural': 'coastline', 'note': 'synthetic test fixture'}, 'geometry': [{'lat': 1.4665, 'lon': 103.86}, {'lat': 1.4665, 'lon': 103.82}, {'lat': 1.4665, 'lon': 103.78}]})
+            fixture = os.path.join(SHOTS, 'overpass_fixture.json')
+            json.dump({'osm3s': {'timestamp_osm_base': '2026-11-17T14:00:00Z'}, 'elements': els}, open(fixture, 'w'))
+        ctx, page, errors = open_page(browser, 1440, 900)
+        if fixture:
+            page.route('https://overpass-api.de/api/interpreter', lambda r: r.fulfill(path=fixture, headers={'content-type': 'application/json', 'access-control-allow-origin': '*'}))
+        ev = page.evaluate
+        check('area off by default', ev('__sb.AREA.status') == 'off' and not ev('__sb.state.settings.layers.area'))
+        page.click('#btnArea'); page.wait_for_function('__sb.AREA.status === "ready"', timeout=60000); page.wait_for_timeout(1500)
+        a = ev('(() => { const d = __sb.AREA.data; __sb.render(); const i = __sb.info().render; return { b: d.buildings.length, src: d.source.kind, ex: d.stats.excludedInEstate, hs: d.stats.heightSrc, meshes: __sb.AREA.pickMeshes.length, tri: i.triangles, calls: i.calls }; })()')
+        check('area snapshot loaded (4,023 buildings, 11 replaced by the estate)', a['b'] == 4023 and a['src'] == 'snapshot' and a['ex'] == 11, a)
+        check('area render budget', a['tri'] < 450000 and a['calls'] < 450, a)
+        page.screenshot(path=f'{SHOTS}/area01.png')
+        # coastline algorithm (synthetic shapes): bbox x 0..100, z 0..100 (z = south)
+        c = ev("""(() => { const A = (r) => Math.abs(r.reduce((s, p, i) => { const q = r[(i + 1) % r.length]; return s + p[0] * q[1] - q[0] * p[1]; }, 0) / 2);
+          const C = (r) => r.reduce((s, p) => s + p[1], 0) / r.length;
+          const west = __sb.osmCoastLand([[[110, 50], [-10, 50]]], [0, 0, 100, 100]);
+          const east = __sb.osmCoastLand([[[-10, 50], [110, 50]]], [0, 0, 100, 100]);
+          const isl = __sb.osmCoastLand([[[20, 20], [20, 40], [40, 40], [40, 20], [20, 20]]], [0, 0, 100, 100]);
+          return { w: [west.length, A(west[0]), C(west[0])], e: [east.length, A(east[0]), C(east[0])], i: [isl.length, A(isl[0])] }; })()""")
+        check('coastline → land: westward coast keeps the south half', c['w'][0] == 1 and abs(c['w'][1] - 5000) < 1 and c['w'][2] > 50, c['w'])
+        check('coastline → land: eastward coast keeps the north half', c['e'][0] == 1 and abs(c['e'][1] - 5000) < 1 and c['e'][2] < 50, c['e'])
+        check('coastline → land: closed island ring kept', c['i'][0] == 1 and abs(c['i'][1] - 400) < 1, c['i'])
+        # search + picking an OSM building
+        r = ev("__sb.runSearch('Sembawang Park').map(x => x.kind + ':' + x.label)")
+        check('search: Sembawang Park (OSM)', any(x.startswith('Park:Sembawang Park') for x in r), r[:3])
+        addr = ev("(() => { const b = __sb.AREA.data.buildings.find(b => b.a && /^\\d+ \\w/.test(b.a) && b.l >= 10); return b && b.a; })()")
+        r2 = ev(f"__sb.runSearch({json.dumps(addr)}).map(x => x.label + ' | ' + x.sub)") if addr else []
+        check('search: OSM address', addr and any(addr in x for x in r2), (addr, r2[:3]))
+        bi = ev("__sb.AREA.data.buildings.findIndex(b => b.n && b.h > 9)")
+        ev(f"__sb.select({{kind:'osm', id:'x', bi:{bi}}}, {{fly:true}})"); page.wait_for_timeout(1400)
+        pt = ev(f"""(() => {{ const b = __sb.AREA.data.buildings[{bi}]; let x = 0, z = 0, n = b.r.length / 2; for (let i = 0; i < b.r.length; i += 2) {{ x += b.r[i]; z += b.r[i + 1]; }}
+            const v = new (__sb.camera.position.constructor)(x / n, b.h * 0.6, z / n).project(__sb.camera); const c = __sb.renderer.domElement.getBoundingClientRect();
+            return [c.left + (v.x + 1) / 2 * c.width, c.top + (1 - v.y) / 2 * c.height]; }})()""")
+        ev("__sb.select(null)"); page.mouse.click(pt[0], pt[1]); page.wait_for_timeout(400)
+        sel = ev("__sb.state.selection && [__sb.state.selection.kind, __sb.state.selection.bi]")
+        check('tap an OSM building → details', sel and sel[0] == 'osm' and 'OpenStreetMap' in page.inner_text('#infoBody'), (sel, page.inner_text('#infoBody')[:80]))
+        page.screenshot(path=f'{SHOTS}/area02_pick.png')
+        # sun hours for a flat with surrounding buildings counted
+        sh = ev("(() => { const i = __sb.UNITS().idx.get('134'); const a = __sb.flatSunHours(i, 21, '2026-06-21'); const st = __sb.AREA.status; __sb.AREA.status = 'off'; const b = __sb.flatSunHours(i, 21, '2026-06-21'); __sb.AREA.status = st; return [a, b]; })()")
+        check('sun hours include OSM surroundings (≤ estate-only)', sh[0]['withArea'] and sh[0]['hours'] <= sh[1]['hours'] + 1e-9, sh)
+        page.click('.preset[data-id="sembawang-park"]'); page.wait_for_timeout(1400); page.screenshot(path=f'{SHOTS}/area03_park.png')
+        if fixture:
+            # converter parity: page converter on the same elements = bundled snapshot (built by Node from the same export)
+            par = ev("""(async () => { const fc = await (await fetch('data/area-snapshot.json')).json(); return { n: fc.buildings.length, first: JSON.stringify(fc.buildings[0]) }; })()""")
+            check('snapshot = Node build of the same converter', par['n'] == 4023, par['n'])
+            # live update (B) end-to-end via the routed Overpass fixture
+            page.click('#sec-area summary') if not page.is_visible('#areaUpdate') else None
+            if not page.is_visible('#areaUpdate'): ev("document.getElementById('left').classList.add('open'); document.getElementById('sec-area').open = true")
+            ev(f"__sb.select({{kind:'osm', id:'x', bi:{bi}}})")
+            page.click('#areaUpdate'); page.wait_for_function('__sb.AREA.data && __sb.AREA.data.source.kind === "live"', timeout=90000); page.wait_for_timeout(800)
+            check('stale OSM selection cleared after the data changes', ev('__sb.state.selection') is None)
+            lv = ev("(() => { const d = __sb.AREA.data; return { b: d.buildings.length, land: d.land ? d.land.length : 0, ts: d.source.timestamp, first: JSON.stringify(d.buildings[0]) }; })()")
+            check('live update: same buildings as the snapshot', lv['b'] == 4023 and lv['first'] == par['first'], {k: lv[k] for k in ('b', 'ts')})
+            check('live update: coastline → land polygon + sea', lv['land'] == 1, lv['land'])
+            page.click('.preset[data-id="sembawang-park"]'); page.wait_for_timeout(1400); page.screenshot(path=f'{SHOTS}/area04_live_coast.png')
+            page.reload(); page.wait_for_selector('body.ready'); page.wait_for_function('__sb.AREA.status === "ready"', timeout=60000)
+            check('live data cached across reloads (IndexedDB)', ev('__sb.AREA.data.source.kind') == 'live')
+            ev("document.getElementById('left').classList.add('open'); document.getElementById('sec-area').open = true"); page.wait_for_timeout(300)
+            page.click('#areaSnapshot'); page.wait_for_function('__sb.AREA.status === "ready" && __sb.AREA.data.source.kind === "snapshot"', timeout=60000)
+            check('back to the bundled snapshot', ev('__sb.AREA.data.source.kind') == 'snapshot')
+        check('area: no console errors', not errors, errors[:5])
+        ctx.close()
+        ctx, page, errors = open_page(browser, 390, 844, mobile=True)
+        page.tap('#btnArea'); page.wait_for_function('__sb.AREA.status === "ready"', timeout=60000); page.wait_for_timeout(1500)
+        page.screenshot(path=f'{SHOTS}/area05_phone.png')
+        check('area on phone: no console errors', not errors, errors[:5])
         ctx.close()
     browser.close()
 fails = [r for r in results if not r[1]]

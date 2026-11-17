@@ -43,8 +43,12 @@ const _pp = new THREE.Vector3();
 function updatePinVisibility() {
   const on = state.settings.layers.facilities, far = 200;
   for (const o of G.facilities.children) if (o.isCSS2DObject) o.visible = on && o.getWorldPosition(_pp).distanceTo(camera.position) < far;
-  const lab = state.settings.layers.labels; // small (low-rise) labels only when near
-  for (const o of REG.labels) o.visible = lab && (!o.element.classList.contains('small') || o.getWorldPosition(_pp).distanceTo(camera.position) < 380);
+  const lab = state.settings.layers.labels; // small (low-rise) labels only when near; block labels fade out at area scale
+  for (const o of REG.labels) { const d = o.getWorldPosition(_pp).distanceTo(camera.position); o.visible = lab && d < (o.element.classList.contains('small') ? 380 : 1400); }
+  if (AREA.group.visible) for (const o of AREA.labels) {
+    const d = o.getWorldPosition(_pp).distanceTo(camera.position);
+    o.visible = lab && (o.userData.estateMarker ? d > 1100 : o.userData.always ? true : d < 1700);
+  }
 }
 const _occRay = new THREE.Raycaster(), _lp = new THREE.Vector3(), _dir = new THREE.Vector3();
 let occlFrame = 0;
@@ -100,9 +104,10 @@ function init() {
   $('#dataCheck').textContent = issues.join('; ') || 'all brochure totals reproduced (1,360 flats)';
   if (issues.length) toast('Data check: ' + issues[0], true);
   renderer.setAnimationLoop(loop);
+  syncAreaUI(); if (state.settings.layers.area) setAreaOn(true, false);
   document.body.classList.add('ready');
   if (DEBUG) {
-    window.__sb = { state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
+    window.__sb = { AREA, osmConvert, osmCoastLand, osmFromGeoJSON, setAreaOn, areaRayBlocked, state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
   }
 }
 init();

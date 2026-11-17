@@ -59,6 +59,11 @@ button{cursor:pointer}
 .pin{pointer-events:auto;width:20px;height:20px;border-radius:50%;border:2px solid #fff;background:#34C759;color:#fff;font-size:11px;line-height:16px;padding:0;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .pin.bus{background:#5856D6;font-weight:700;font-size:11px}
 .pin.ctx{background:#FF9500;font-weight:800}
+#areaBadge{position:absolute;left:12px;bottom:72px;z-index:5;font-size:11px;background:rgba(255,255,255,.85);border-radius:8px;padding:3px 8px;color:var(--muted)}
+#areaBadge a{color:var(--text)}
+body.mobile #areaBadge{bottom:64px;left:8px}
+.lbl.park{background:rgba(232,245,220,.92);color:#2F5A1E}
+.lbl.estate{background:var(--mine);color:#fff;border-color:#fff;font-size:12.5px}
 .hour{font-size:10px;color:#B56A00;font-weight:700;pointer-events:none}
 #compass{position:absolute;right:14px;top:14px;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--shadow);z-index:5;padding:0}
 #compass .dial{position:absolute;inset:0;display:block}
@@ -204,6 +209,7 @@ body.mobile .kv{grid-template-columns:84px 1fr}
   <nav class="actions" aria-label="Tools">
     <button id="btnMeasure" type="button" aria-pressed="false" title="Measure (M)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 17L17 3l4 4L7 21z M7 13l2 2 M10 10l2 2 M13 7l2 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Measure</span></button>
     <button id="btnWalk" type="button" aria-pressed="false" title="Walk at eye level"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="13" cy="4" r="2" fill="currentColor"/><path d="M10 22l2-7 3 3v6 M8 12l3-4 4 1 2 4 M12 8l-1 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Walk</span></button>
+    <button id="btnArea" type="button" aria-pressed="false" title="Sembawang area (OpenStreetMap)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Area</span></button>
     <button id="btnSun" type="button" aria-pressed="false" title="Sun & shadow study"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Sun</span></button>
     <button id="btnShot" type="button" title="Save image (PNG)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.5-2h5L16 6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Image</span></button>
     <button id="btnMore" type="button" aria-haspopup="menu" title="More"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg><span class="sr">More</span></button>
@@ -222,6 +228,7 @@ body.mobile .kv{grid-template-columns:84px 1fr}
   <button id="compass" type="button" title="Tap to face north" aria-label="Compass: tap to face north"><span class="dial"><b>N</b><i class="ndl n"></i><i class="ndl s"></i></span></button>
   <div id="toolHint" hidden><span></span><output id="measureOut"></output><button id="toolExit" type="button">Done</button></div>
   <div id="joy" hidden aria-hidden="true"><i></i></div>
+  <div id="areaBadge" hidden>Map data <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a></div>
 </div>
 
 <aside id="left" class="panel open" aria-label="Explore">
@@ -236,6 +243,13 @@ body.mobile .kv{grid-template-columns:84px 1fr}
         <p id="muErr" class="err" role="alert"></p>
       </form>
       <div id="muOut"></div>
+    </details>
+    <details id="sec-area"><summary>Sembawang area</summary>
+      <label class="switch"><input type="checkbox" id="areaOn"><span>Show the area around the estate (OpenStreetMap)</span></label>
+      <p id="areaStatus" class="note"></p>
+      <label class="switch"><input type="checkbox" id="areaEst"><span>Highlight estimated heights</span></label>
+      <div class="row"><button class="btn sm" type="button" id="areaUpdate">Update from OpenStreetMap</button><button class="btn sm ghost" type="button" id="areaSnapshot" hidden>Use bundled snapshot</button></div>
+      <p class="note">Live updates download ~15 MB from the Overpass API and work on the GitHub Pages version; inside the Claude view the bundled snapshot is used.</p>
     </details>
     <details id="sec-blocks" open><summary>Blocks</summary><div id="blockList" class="blist"></div></details>
     <details id="sec-types" open><summary>Flat types</summary>
@@ -309,6 +323,13 @@ body.mobile .kv{grid-template-columns:84px 1fr}
     <li><b>Estimated:</b> 2.8 m floor-to-floor and a 3.6 m void deck (consistent with the model photos; editable under <i>Heights</i>), plus fixed estimates for the car-park height (~24 m) and the low-rise heights.</li>
     <li><b>Representative:</b> trees, play equipment, shelters and roof-garden items are placed from the photos to look right. They are not surveyed.</li>
   </ul>
+  <h3>Sembawang area (OpenStreetMap)</h3>
+  <ul>
+    <li>Buildings, roads, water and parks come from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (© OpenStreetMap contributors, ODbL). The bundled snapshot is from an overpass-turbo export; on the GitHub Pages version you can update it live.</li>
+    <li>Heights come from OSM <i>height</i> or <i>storeys</i> tags where present (most HDB blocks). The rest, mostly factories, sheds and houses, use modest defaults and are marked <i>Estimated</i>.</li>
+    <li>The estate is placed by fitting its block outlines to OSM's (median gap 0.75 m). That also confirmed the brochure's north and scale (within 0.6%).</li>
+    <li>Shadows are computed around the estate; buildings far out don't cast shadows in the view, but they do count in the sun-hours estimate.</li>
+  </ul>
   <h3>Known uncertainties</h3>
   <ul>
     <li>Unit labels #116 and #118 (Blk 437A) follow the numbering pattern of the other blocks; the brochure digits are illegible. Flat types are certain.</li>
@@ -326,7 +347,8 @@ body.mobile .kv{grid-template-columns:84px 1fr}
     <li><b>Orbit</b> drag · <b>Pan</b> right-drag / two-finger drag · <b>Zoom</b> wheel / pinch</li>
     <li><b>Select</b> tap a block (tapping a facade also picks the stack under your finger), a pin, a road or a reserved site</li>
     <li><b>Views</b> buttons at the bottom, or keys <kbd>1</kbd>–<kbd>7</kbd>; <kbd>R</kbd> reset; <kbd>F</kbd> focus selection; compass = face north</li>
-    <li><b>Search</b> <kbd>/</kbd>: "437B", "#120", "#12-160", "4-room", "playground", "Admiralty"</li>
+    <li><b>Search</b> <kbd>/</kbd>: "437B", "#120", "#12-160", "4-room", "playground", "Admiralty"; with the area on also OSM addresses and places ("355 Sembawang", "Sembawang Park")</li>
+    <li><b>Area</b>: the surrounding Sembawang area from OpenStreetMap; views <kbd>8</kbd> (whole area) and <kbd>9</kbd> (Sembawang Park)</li>
     <li><b>Measure</b> <kbd>M</kbd>: tap two points; <kbd>Esc</kbd> to finish</li>
     <li><b>Walk</b>: drag to look, <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>/arrows to move, <kbd>Shift</kbd> faster; on phones use the left pad</li>
     <li><b>Sun</b>: pick a date and time (Singapore time), or play the day</li>
@@ -346,7 +368,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
    00 CORE — data, coordinate frames, geometry helpers, state, persistence
    ===================================================================== */
 
-const SITE_DEFAULT = {"format":"sembawang-brook-site","version":1,"meta":{"name":"Sembawang Brook","programme":"HDB Build-To-Order 2026","scale_m_per_px":0.708,"gridDeg":25.5,"faceExtension_m":1.4,"origin":"SW outer corner of Blk 436 (canal side x Admiralty Lane side)","axes":"+X east, +Z south, +Y up (metres); buildings in local frame u (bearing 64.5) / v (bearing 154.5)","latlon":[1.447,103.811],"latlonConf":"approximate (Admiralty St / Woodlands Ave 10, Sembawang); used only for the sun path","sources":["HDB brochure site plan pp.15-16 (scale bar, north arrow, unit table)","HDB 1:300 sales model photos IMG_1981-1990 (massing, facades, roof garden)"],"disclaimer":"Brochure: developments and facilities are subject to change. This model is reconstructed from the brochure and sales model; it is not a survey."},"heights":{"floorToFloor":2.8,"voidDeck":3.6,"parapet":1.2,"conf":"2.8 m storey consistent with model photos (2.7-2.9 m); void deck 3.6 m within the photo range 3.2-4.6 m. Neither is printed in the brochure."},"flatTypes":{"2RF-T1":{"name":"2-Room Flexi (Type 1)","short":"2RF T1","rgb":[226,181,150]},"2RF-T2":{"name":"2-Room Flexi (Type 2)","short":"2RF T2","rgb":[204,136,115]},"3R":{"name":"3-Room","short":"3R","rgb":[150,190,105]},"4R":{"name":"4-Room","short":"4R","rgb":[232,222,96]},"5R":{"name":"5-Room","short":"5R","rgb":[240,178,80]},"3GEN":{"name":"3Gen","short":"3Gen","rgb":[176,170,162]},"1R-RENT":{"name":"1-Room (rental)","short":"1R rent","rgb":[242,235,188]},"2R-RENT":{"name":"2-Room (rental)","short":"2R rent","rgb":[242,235,188]}},"blocks":[{"id":"437A","storeys":30,"unitsPerFloor":10,"kind":"sale","mix":{"2RF-T1":58,"3R":29,"4R":116,"5R":87},"total":290,"core":{"u":51.17,"v":-109.26,"lu":12,"lv":8},"towers":[{"side":"W","scheme":"B","tanks":7,"rows":[{"face":"N","pads":[{"units":["104","106"],"unitsWE":["104","106"],"type":"4R","u":29.56,"v":-119.88,"lu":24.44,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["100","102"],"unitsWE":["102","100"],"type":"4R","u":29.62,"v":-101.25,"lu":24.34,"lv":7.91,"bays":8,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":6,"rows":[{"face":"N","pads":[{"units":["112","114"],"unitsWE":["112","114"],"type":"5R","u":75.25,"v":-117.46,"lu":28.85,"lv":8.01,"bays":9,"face":"N"}]},{"face":"S","pads":[{"units":["118"],"unitsWE":["118"],"type":"5R","u":69.42,"v":-98.83,"lu":13.93,"lv":7.91,"bays":5,"face":"S"},{"units":["116"],"unitsWE":["116"],"type":"3R","u":82.09,"v":-98.43,"lu":8.21,"lv":7.31,"bays":3,"face":"S"}]}]}],"link":[{"units":["108","110"],"unitsWE":["108","110"],"type":"2RF-T1","u":50.2,"v":-118.74,"lu":11.02,"lv":6.51,"bays":4,"face":"N"}],"notes":["Unit labels #116 (3-Room, east) and #118 (5-Room, west) follow the clockwise numbering used by every other block; the brochure digits are illegible at this resolution [Unverified]. Flat types and positions are certain.","2-Room Flexi link (#108/#110) is set back ~1.8 m from the west tower face [Measured]."]},{"id":"437B","storeys":30,"unitsPerFloor":9,"kind":"sale","mix":{"2RF-T2":58,"4R":58,"5R":116,"3GEN":29},"total":261,"core":{"u":107.5,"v":-52.2,"lu":10,"lv":7},"towers":[{"side":"W","scheme":"B","tanks":6,"rows":[{"face":"N","pads":[{"units":["124","126"],"unitsWE":["124","126"],"type":"5R","u":86.95,"v":-65.68,"lu":28.85,"lv":7.91,"bays":9,"face":"N"}]},{"face":"S","pads":[{"units":["120","122"],"unitsWE":["122","120"],"type":"5R","u":84.31,"v":-46.86,"lu":29.15,"lv":7.91,"bays":9,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":3,"rows":[{"face":"N","pads":[{"units":["132","134"],"unitsWE":["132","134"],"type":"4R","u":133.26,"v":-59.36,"lu":24.34,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["136"],"unitsWE":["136"],"type":"3GEN","u":129.5,"v":-47.66,"lu":13.93,"lv":7.51,"bays":5,"face":"S"}]}]}],"link":[{"units":["128","130"],"unitsWE":["128","130"],"type":"2RF-T2","u":108.34,"v":-58.07,"lu":11.72,"lv":8.52,"bays":4,"face":"N"}],"notes":["East tower is set back ~6 m behind the west tower and has a single 3Gen stack (#136) on its south side [Measured]."]},{"id":"438A","storeys":26,"unitsPerFloor":8,"kind":"rental","mix":{"1R-RENT":100,"2R-RENT":100},"total":200,"core":{"u":156.82,"v":-14.16,"lu":10,"lv":8},"points":[{"side":"W","scheme":"B","tanks":2,"u":143.76,"v":-14.27,"lu":12.12,"lv":19.03},{"side":"E","scheme":"A","tanks":1,"u":171.35,"v":-15.85,"lu":12.02,"lv":18.03}],"notes":["All 200 flats are rental (100 1-Room, 100 2-Room); the brochure does not say which tower holds which type, and unit numbers are not printed.","\"RENTAL\" is the west tower's roof label; both towers are rental."]},{"id":"439A","storeys":30,"unitsPerFloor":10,"kind":"sale","mix":{"2RF-T2":58,"3R":58,"4R":58,"5R":116},"total":290,"core":{"u":238.85,"v":3.8,"lu":10,"lv":7},"towers":[{"side":"W","scheme":"B","tanks":6,"rows":[{"face":"N","pads":[{"units":["158","160"],"unitsWE":["158","160"],"type":"5R","u":215.44,"v":-11.92,"lu":29.15,"lv":7.91,"bays":9,"face":"N"}]},{"face":"S","pads":[{"units":["154","156"],"unitsWE":["156","154"],"type":"4R","u":217.37,"v":6.41,"lu":24.75,"lv":7.91,"bays":8,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":5,"rows":[{"face":"N","pads":[{"units":["166","168"],"unitsWE":["166","168"],"type":"3R","u":258.17,"v":-4.64,"lu":16.43,"lv":7.31,"bays":6,"face":"N"}]},{"face":"S","pads":[{"units":["170","172"],"unitsWE":["172","170"],"type":"5R","u":260.91,"v":14.79,"lu":29.15,"lv":7.91,"bays":9,"face":"S"}]}]}],"link":[{"units":["162","164"],"unitsWE":["162","164"],"type":"2RF-T2","u":238.06,"v":-4.59,"lu":12.52,"lv":8.01,"bays":4,"face":"N"}],"notes":["East tower sits ~8 m south of the west tower [Measured].","3-Room pad #166/#168 position is +-2 m [Measured-manual]."]},{"id":"440A","storeys":30,"unitsPerFloor":11,"kind":"sale","mix":{"2RF-T2":87,"4R":232},"total":319,"core":{"u":327.17,"v":52.98,"lu":10,"lv":8},"towers":[{"side":"W","scheme":"B","tanks":6,"rows":[{"face":"N","pads":[{"units":["192","194"],"unitsWE":["192","194"],"type":"4R","u":305.74,"v":55.15,"lu":24.44,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["188","190"],"unitsWE":["190","188"],"type":"4R","u":305.24,"v":73.97,"lu":24.44,"lv":7.91,"bays":8,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":4,"rows":[{"face":"N","pads":[{"units":["174","176"],"unitsWE":["174","176"],"type":"4R","u":345.69,"v":43.93,"lu":24.75,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["180","182"],"unitsWE":["182","180"],"type":"4R","u":348.36,"v":65.6,"lu":24.75,"lv":8.01,"bays":8,"face":"S"}]}]}],"link":[{"units":["184","186"],"unitsWE":["186","184"],"type":"2RF-T2","u":325.6,"v":65.64,"lu":12.32,"lv":8.52,"bays":4,"face":"S"}],"tip":{"units":["178"],"unitsWE":["178"],"type":"2RF-T2","u":355.76,"v":57.68,"lu":6.21,"lv":8.01,"bays":2,"face":"E"},"notes":["East tower sits ~10 m north of the west tower [Measured].","2-Room Flexi #178 faces east at the tip; #184/#186 face south in the link."]}],"mscp":{"id":"436","storeys":8,"westWing":{"u0":2.0,"u1":38.77,"v0":-81.15,"v1":-2.0},"southWing":{"u0":38.77,"u1":120.41,"v0":-19.74,"v1":-2.0},"ramp":{"u":107.69,"v":-19.87,"r":12.72},"height":24.0,"uses":{"1":"Preschool, electrical sub-station (ESS), bin centre (pneumatic waste conveyance)","2":"Preschool, future amenities/facilities"},"notes":["8 storeys [Read]; roof-garden height ~24 m is an estimate (no heights in the brochure).","West-wing length is +-8 m (plan vs Blk 436 mini-plan disagree slightly).","Roof garden contents placed from model photo IMG_1985 - representative, not surveyed."]},"lowRise":[{"id":"437","use":"Precinct pavilion","u":7.24,"v":-96.09,"lu":16.03,"lv":16.03,"height":4.5,"storeys":1},{"id":"porch","use":"Drop-off porch","u":60.68,"v":-74.92,"lu":17.03,"lv":17.03,"height":4.5,"storeys":1},{"id":"438","use":"Precinct pavilion","u":189.16,"v":-11.27,"lu":15.03,"lv":19.03,"height":4.5,"storeys":1},{"id":"439","use":"Precinct pavilion + drop-off porch","u":293.69,"v":6.41,"lu":30.05,"lv":27.05,"height":4.5,"storeys":1}],"commercial440":{"id":"440","use":"Eating house, shops, mini-mart (1st storey)","polys":[[[235.27,-75.33],[244.48,-80.29],[259.34,-86.66],[261.47,-83.12],[254.38,-79.57],[257.22,-72.5],[256.51,-68.96],[240.23,-69.67]],[[268.55,-85.25],[273.5,-85.96],[279.87,-73.2],[284.83,-68.96],[288.37,-60.46],[274.21,-65.42],[267.84,-79.57]]],"height":9.0,"heightConf":"estimated ~2 storeys from model photo 08"},"ess441":{"id":"441","use":"Electrical sub-station","poly":[[285.54,-121.35],[303.94,-129.85],[311.74,-131.97],[314.56,-129.14],[315.27,-125.6],[290.49,-113.57],[287.66,-114.27],[285.54,-118.52]],"height":5.0,"heightConf":"estimated"},"roads":[{"name":"Admiralty Street","status":"existing","width":25,"line":[[-8.29,-168.79],[55.44,-195.7],[126.24,-224.01],[161.63,-238.17]],"conf":"[Measured \u00b14 m width, \u00b13 px line; west of px x=200 the alignment is Unverified]"},{"name":"Admiralty Close (future road)","status":"future","width":15,"line":[[117.74,-219.76],[121.99,-192.86],[127.65,-164.54],[133.31,-136.22],[124.82,-113.57]],"conf":"[Measured line \u00b14 px; width Inferred]"},{"name":"Internal driveway (Admiralty Close end \u2192 Blk 436 courtyard / drop-off)","status":"future","width":7,"line":[[124.82,-113.57],[106.41,-97.28],[92.25,-83.12],[55.44,-65.42],[28.53,-58.34]],"conf":"[Inferred from light-grey fill]"},{"name":"Internal service road (behind 438A/439A \u2192 440/441)","status":"future","width":6,"line":[[154.56,-65.42],[197.04,-76.04],[231.02,-83.12],[289.08,-111.44]],"conf":"[Unverified: light-grey strip]"},{"name":"Admiralty Lane (future road)","status":"future","width":20,"line":[[-1.2,46.44],[55.44,16.71],[126.24,-21.52],[182.87,-29.31],[225.36,-29.31],[267.84,-24.35],[310.32,-13.02],[354.22,6.79]],"conf":"[Measured line \u00b14 px; width 18-33 m varies with slip lanes \u2192 20 Inferred]"},{"name":"Sembawang Drive","status":"existing","width":25,"line":[[342.17,40.78],[354.22,6.79],[370.5,-61.88],[388.2,-136.22],[405.9,-214.1]],"conf":"[Measured \u00b14 m]"},{"name":"Admiralty Lane (existing, east of Sembawang Drive)","status":"existing","width":18,"line":[[354.22,6.79],[402.36,20.96],[448.38,39.36]],"conf":"[Measured line; width Inferred]"},{"name":"Woodlands Avenue 10","status":"existing","width":30,"line":[[-125.11,-136.22],[-100.32,-72.5],[-75.55,5.38],[-50.76,83.26]],"conf":"[Inferred: largely out of frame]"},{"name":"Unnamed road south from Admiralty Lane (between Sembawang Portico site and SE high-rise site)","status":"unknown","width":15,"line":[[306.78,-8.78],[301.82,83.26]],"conf":"[Unverified]"}],"canal":{"east":[[-76.25,-122.06],[-67.05,-104.36],[-32.36,-30.01],[-13.24,12.46],[-4.74,33.7]],"west":[[-104.57,-122.06],[-100.32,-104.36],[-57.85,-30.01],[-36.61,12.46],[-25.99,33.7]]},"drainage":[[-72.0,-129.14],[-11.82,-155.33],[-8.29,-148.96],[-67.05,-120.64]],"boundary":[[0.21,28.04],[-67.05,-121.35],[-3.33,-150.38],[48.36,-171.62],[69.6,-119.94],[109.95,-132.68],[119.16,-109.32],[133.31,-114.98],[154.56,-127.01],[211.19,-137.64],[246.6,-140.47],[281.99,-140.47],[329.43,-134.09],[359.88,-127.01],[381.11,-118.52],[366.96,-79.57],[352.8,-58.34],[338.64,-42.06],[305.37,-45.59],[272.8,-56.92],[234.56,-63.3],[187.83,-60.46],[154.56,-52.68],[122.69,-35.69],[79.5,-20.82]],"linkways":[{"name":"Admiralty Lane spine (W)","line":[[-6.87,3.97],[182.87,-90.2]],"width":4},{"name":"Canal-side (436 west)","line":[[-36.61,-75.33],[0.92,1.84]],"width":4},{"name":"436 north / 437 pavilion","line":[[-40.14,-83.12],[-16.07,-83.12],[4.46,-93.74]],"width":4},{"name":"437A drop-off link","line":[[3.05,-95.86],[29.24,-94.45]],"width":4},{"name":"Admiralty St bus bay \u2192 437A east \u2192 spine","line":[[35.61,-163.13],[44.81,-156.76],[68.89,-114.98],[83.05,-97.28],[98.63,-73.2]],"width":4},{"name":"438A south","line":[[122.69,-62.58],[151.73,-66.83]],"width":4},{"name":"439A south","line":[[186.42,-75.33],[224.65,-93.74]],"width":4},{"name":"439A\u2013439\u2013441 spine","line":[[226.06,-86.66],[286.24,-114.98]],"width":4},{"name":"439 links","line":[[251.56,-122.06],[284.83,-117.81]],"width":4},{"name":"441 west","line":[[279.17,-125.6],[295.45,-94.45]],"width":4},{"name":"440 south","line":[[223.24,-67.54],[279.17,-61.88],[304.66,-55.51]],"width":4},{"name":"440A south \u2192 Sembawang Dr bus bay","line":[[287.66,-58.34],[356.34,-86.66],[374.04,-73.91]],"width":4}],"facilities":[{"name":"adult fitness station","where":"437A/437B courtyard","x":45.52,"z":-140.47,"conf":"[marker low-res; order matches IMG_1983 labels \u2192 Inferred]","onRoof":false},{"name":"children playground","where":"437A/437B courtyard","x":53.32,"z":-122.06,"conf":"[Inferred, as above]","onRoof":false},{"name":"elderly fitness station","where":"437A/437B courtyard","x":40.56,"z":-110.73,"conf":"[Inferred, as above]","onRoof":false},{"name":"precinct pavilion","where":"Blk 437","x":-34.83,"z":-89.84,"conf":"[Read '5' + photo label]","onRoof":false},{"name":"drop-off porch","where":"beside 437B, 436 courtyard","x":22.51,"z":-93.74,"conf":"[Inferred from IMG_1985 label]","onRoof":false},{"name":"Adult fitness station (unverified)","where":"Blk 436 roof, west wing","x":-11.82,"z":-44.89,"conf":"[Unverified digit]","onRoof":true},{"name":"children playground","where":"Blk 436 roof, west wing","x":12.95,"z":-39.93,"conf":"[Inferred: IMG_1985 shows children playground on 436 west-wing roof]","onRoof":true},{"name":"elderly fitness station","where":"Blk 436 roof, south wing","x":58.98,"z":-35.69,"conf":"[Inferred: IMG_1985 'ELDERLY FITNESS STATION' on south-wing roof]","onRoof":true},{"name":"children playground","where":"ground, south of 436","x":40.56,"z":-10.9,"conf":"[Inferred: IMG_1985 'CHILDREN PLAYGROUND' at ground south of 436]","onRoof":false},{"name":"Fitness station (marker illegible)","where":"ground, south of Blk 436","x":28.53,"z":-5.24,"conf":"[Unverified: marker digit is 2 or 3]","onRoof":false},{"name":"precinct pavilion","where":"Blk 438","x":165.88,"z":-91.62,"conf":"[Read '5']","onRoof":false},{"name":"precinct pavilion","where":"Blk 439","x":259.34,"z":-124.89,"conf":"[Read '5']","onRoof":false},{"name":"drop-off porch","where":"Blk 439","x":268.55,"z":-113.57,"conf":"[Unverified digit]","onRoof":false},{"name":"eating house at 1st storey","where":"Blk 440","x":248.01,"z":-74.63,"conf":"[Unverified: two-digit marker]","onRoof":false},{"name":"shops at 1st storey","where":"Blk 440","x":272.09,"z":-79.57,"conf":"[Unverified]","onRoof":false},{"name":"mini-mart at 1st storey","where":"Blk 440","x":281.99,"z":-64.71,"conf":"[Unverified]","onRoof":false},{"name":"Residents' Network Centre (likely)","where":"Blk 440A, 1st storey","x":307.49,"z":-64.71,"conf":"[Unverified: the marker digit looks like 8 = RNC in the legend]","onRoof":false},{"name":"adult fitness station","where":"440A garden","x":342.88,"z":-78.16,"conf":"[Unverified digit]","onRoof":false},{"name":"children playground","where":"440A garden","x":335.8,"z":-64.01,"conf":"[Unverified digit]","onRoof":false},{"name":"Hardcourt (unverified)","where":"440A garden","x":315.99,"z":-55.51,"conf":"[Unverified digit]","onRoof":false},{"name":"elderly fitness station","where":"440A garden","x":325.89,"z":-51.96,"conf":"[Unverified digit]","onRoof":false},{"name":"space reserved for future community use","where":"east tip near Sembawang Drive","x":362.71,"z":-110.73,"conf":"[Unverified digit; grey pad ~ 11x16 m]","onRoof":false},{"name":"Heavy vehicle park (nearby)","where":"NE of the estate, beyond the school site. Brochure note 9: possible disamenities such as higher noise levels.","x":363.42,"z":-219.06,"conf":"[Read: label + dot on the site plan; extent not shown]","onRoof":false,"context":true}],"busBays":[{"name":"future bus bay & shelter","road":"Admiralty Street","x":32.78,"z":-163.13},{"name":"future bus bay & shelter","road":"Admiralty Lane (N side)","x":189.96,"z":-56.21},{"name":"future bus bay & shelter","road":"Admiralty Lane (S side)","x":211.19,"z":-35.69},{"name":"future bus bay & shelter","road":"Sembawang Drive","x":384.66,"z":-83.12},{"name":"future bus bay & shelter","road":"unnamed south road","x":299.7,"z":69.11}],"reserved":[{"name":"Site reserved for church","poly":[[49.77,-175.16],[101.45,-199.94],[106.41,-131.97],[70.31,-119.94]]},{"name":"Site reserved for school","poly":[[140.4,-224.72],[267.84,-233.93],[338.64,-233.93],[378.99,-118.52],[329.43,-134.09],[281.99,-140.47],[211.19,-137.64],[154.56,-127.01],[136.86,-134.81]]},{"name":"Acacia Home","poly":[[-89.7,-182.24],[-22.44,-199.94],[-11.82,-155.33],[-72.0,-129.14]]},{"name":"Chinese temple","poly":[[-100.32,-210.56],[-33.06,-228.26],[-22.44,-199.94],[-89.7,-182.24]]},{"name":"Site reserved for Chinese temple","poly":[[-107.41,-238.89],[-43.68,-241.01],[-33.06,-228.26],[-100.32,-210.56]]},{"name":"North Link Building","poly":[[-29.52,-238.89],[76.68,-238.89],[76.68,-222.6],[-11.82,-208.44]]},{"name":"Site reserved for public housing (incl. rental) under BTO (Sembawang Portico)","poly":[[76.68,20.96],[140.4,-8.78],[239.52,-15.86],[296.16,-1.7],[296.16,83.26],[97.92,83.26]]},{"name":"Site reserved for future high-rise residential development (SW)","poly":[[7.29,54.94],[90.84,33.7],[90.84,83.26],[16.5,83.26]]},{"name":"Site reserved for future high-rise residential development (SE)","poly":[[331.55,40.78],[437.76,54.94],[437.76,83.26],[331.55,83.26]]},{"name":"Site reserved for future high-rise industrial development (W of Woodlands Ave 10, partly out of frame)","poly":[[-142.8,-1.7],[-114.49,12.46],[-114.49,40.78],[-142.8,40.78]]},{"name":"Site reserved for civic & community institution (W of Woodlands Ave 10, partly out of frame)","poly":[[-142.8,47.86],[-107.41,47.86],[-107.41,83.26],[-142.8,83.26]]},{"name":"Public housing (inclusive of rental) (U/C) \u2014 Blks 443, 443B, E of Sembawang Drive","poly":[[409.44,-122.06],[448.38,-122.06],[448.38,-1.7],[409.44,-1.7]]}],"paved":[[[139.7,-122.1],[139.0,-120.6],[136.9,-122.1],[113.5,-122.1],[118.4,-110.7],[121.3,-111.4],[122.0,-113.6],[126.9,-113.6],[127.7,-111.4],[124.1,-109.3],[122.0,-103.7],[117.7,-100.1],[93.7,-88.8],[97.2,-81.0],[102.2,-75.3],[108.5,-59.8],[111.4,-59.8],[112.8,-61.9],[105.7,-76.7],[105.0,-84.5],[109.2,-88.8],[129.1,-98.7],[131.9,-104.4],[131.2,-110.7],[128.4,-112.1],[127.7,-114.3],[129.8,-116.4],[138.3,-119.2]],[[10.1,-105.8],[8.0,-106.5],[3.0,-103.7],[2.3,-98.7],[10.1,-102.2]],[[5.9,-92.3],[9.4,-85.2],[7.3,-80.3],[11.5,-70.4],[13.7,-71.8],[15.8,-71.1],[15.8,-69.0],[13.7,-66.8],[18.6,-56.2],[22.2,-52.0],[52.6,-52.0],[54.0,-54.1],[59.0,-52.7],[57.6,-53.4],[57.6,-55.5],[65.3,-59.8],[63.2,-63.3],[63.2,-67.5],[64.6,-69.7],[88.0,-81.0],[85.9,-85.2],[36.3,-61.2],[30.7,-61.2],[26.4,-64.0],[22.2,-71.8],[22.2,-76.0],[26.4,-80.3],[27.1,-83.8],[25.0,-81.7],[18.6,-81.0],[14.4,-83.8],[15.1,-86.7],[11.5,-92.3],[11.5,-94.4]]]};
+const SITE_DEFAULT = {"format":"sembawang-brook-site","version":1,"georef":{"lat0":1.4485,"lon0":103.819,"M":6335479.97910273,"N":6378150.641898369,"tx":-795.376,"tz":-1176.544,"theta":0.0,"scale":1.0,"originLatLon":[1.4591402,103.8118527],"method":"Least-squares fit of the estate block + car-park outlines (site plan, 0.708 m/px) to OpenStreetMap building outlines; rotation -0.09 deg and free scale 0.994 were not significant and are fixed at 0 and 1.","residual_m":{"median":0.75,"p80":1.8}},"meta":{"name":"Sembawang Brook","programme":"HDB Build-To-Order 2026","scale_m_per_px":0.708,"gridDeg":25.5,"faceExtension_m":1.4,"origin":"SW outer corner of Blk 436 (canal side x Admiralty Lane side)","axes":"+X east, +Z south, +Y up (metres); buildings in local frame u (bearing 64.5) / v (bearing 154.5)","latlon":[1.459865,103.813383],"latlonConf":"estate centre from the OpenStreetMap building-outline fit (data/source/georef.json); used for the sun and the area view","sources":["HDB brochure site plan pp.15-16 (scale bar, north arrow, unit table)","HDB 1:300 sales model photos IMG_1981-1990 (massing, facades, roof garden)"],"disclaimer":"Brochure: developments and facilities are subject to change. This model is reconstructed from the brochure and sales model; it is not a survey."},"heights":{"floorToFloor":2.8,"voidDeck":3.6,"parapet":1.2,"conf":"2.8 m storey consistent with model photos (2.7-2.9 m); void deck 3.6 m within the photo range 3.2-4.6 m. Neither is printed in the brochure."},"flatTypes":{"2RF-T1":{"name":"2-Room Flexi (Type 1)","short":"2RF T1","rgb":[226,181,150]},"2RF-T2":{"name":"2-Room Flexi (Type 2)","short":"2RF T2","rgb":[204,136,115]},"3R":{"name":"3-Room","short":"3R","rgb":[150,190,105]},"4R":{"name":"4-Room","short":"4R","rgb":[232,222,96]},"5R":{"name":"5-Room","short":"5R","rgb":[240,178,80]},"3GEN":{"name":"3Gen","short":"3Gen","rgb":[176,170,162]},"1R-RENT":{"name":"1-Room (rental)","short":"1R rent","rgb":[242,235,188]},"2R-RENT":{"name":"2-Room (rental)","short":"2R rent","rgb":[242,235,188]}},"blocks":[{"id":"437A","storeys":30,"unitsPerFloor":10,"kind":"sale","mix":{"2RF-T1":58,"3R":29,"4R":116,"5R":87},"total":290,"core":{"u":51.17,"v":-109.26,"lu":12,"lv":8},"towers":[{"side":"W","scheme":"B","tanks":7,"rows":[{"face":"N","pads":[{"units":["104","106"],"unitsWE":["104","106"],"type":"4R","u":29.56,"v":-119.88,"lu":24.44,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["100","102"],"unitsWE":["102","100"],"type":"4R","u":29.62,"v":-101.25,"lu":24.34,"lv":7.91,"bays":8,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":6,"rows":[{"face":"N","pads":[{"units":["112","114"],"unitsWE":["112","114"],"type":"5R","u":75.25,"v":-117.46,"lu":28.85,"lv":8.01,"bays":9,"face":"N"}]},{"face":"S","pads":[{"units":["118"],"unitsWE":["118"],"type":"5R","u":69.42,"v":-98.83,"lu":13.93,"lv":7.91,"bays":5,"face":"S"},{"units":["116"],"unitsWE":["116"],"type":"3R","u":82.09,"v":-98.43,"lu":8.21,"lv":7.31,"bays":3,"face":"S"}]}]}],"link":[{"units":["108","110"],"unitsWE":["108","110"],"type":"2RF-T1","u":50.2,"v":-118.74,"lu":11.02,"lv":6.51,"bays":4,"face":"N"}],"notes":["Unit labels #116 (3-Room, east) and #118 (5-Room, west) follow the clockwise numbering used by every other block; the brochure digits are illegible at this resolution [Unverified]. Flat types and positions are certain.","2-Room Flexi link (#108/#110) is set back ~1.8 m from the west tower face [Measured]."]},{"id":"437B","storeys":30,"unitsPerFloor":9,"kind":"sale","mix":{"2RF-T2":58,"4R":58,"5R":116,"3GEN":29},"total":261,"core":{"u":107.5,"v":-52.2,"lu":10,"lv":7},"towers":[{"side":"W","scheme":"B","tanks":6,"rows":[{"face":"N","pads":[{"units":["124","126"],"unitsWE":["124","126"],"type":"5R","u":86.95,"v":-65.68,"lu":28.85,"lv":7.91,"bays":9,"face":"N"}]},{"face":"S","pads":[{"units":["120","122"],"unitsWE":["122","120"],"type":"5R","u":84.31,"v":-46.86,"lu":29.15,"lv":7.91,"bays":9,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":3,"rows":[{"face":"N","pads":[{"units":["132","134"],"unitsWE":["132","134"],"type":"4R","u":133.26,"v":-59.36,"lu":24.34,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["136"],"unitsWE":["136"],"type":"3GEN","u":129.5,"v":-47.66,"lu":13.93,"lv":7.51,"bays":5,"face":"S"}]}]}],"link":[{"units":["128","130"],"unitsWE":["128","130"],"type":"2RF-T2","u":108.34,"v":-58.07,"lu":11.72,"lv":8.52,"bays":4,"face":"N"}],"notes":["East tower is set back ~6 m behind the west tower and has a single 3Gen stack (#136) on its south side [Measured]."]},{"id":"438A","storeys":26,"unitsPerFloor":8,"kind":"rental","mix":{"1R-RENT":100,"2R-RENT":100},"total":200,"core":{"u":156.82,"v":-14.16,"lu":10,"lv":8},"points":[{"side":"W","scheme":"B","tanks":2,"u":143.76,"v":-14.27,"lu":12.12,"lv":19.03},{"side":"E","scheme":"A","tanks":1,"u":171.35,"v":-15.85,"lu":12.02,"lv":18.03}],"notes":["All 200 flats are rental (100 1-Room, 100 2-Room); the brochure does not say which tower holds which type, and unit numbers are not printed.","\"RENTAL\" is the west tower's roof label; both towers are rental."]},{"id":"439A","storeys":30,"unitsPerFloor":10,"kind":"sale","mix":{"2RF-T2":58,"3R":58,"4R":58,"5R":116},"total":290,"core":{"u":238.85,"v":3.8,"lu":10,"lv":7},"towers":[{"side":"W","scheme":"B","tanks":6,"rows":[{"face":"N","pads":[{"units":["158","160"],"unitsWE":["158","160"],"type":"5R","u":215.44,"v":-11.92,"lu":29.15,"lv":7.91,"bays":9,"face":"N"}]},{"face":"S","pads":[{"units":["154","156"],"unitsWE":["156","154"],"type":"4R","u":217.37,"v":6.41,"lu":24.75,"lv":7.91,"bays":8,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":5,"rows":[{"face":"N","pads":[{"units":["166","168"],"unitsWE":["166","168"],"type":"3R","u":258.17,"v":-4.64,"lu":16.43,"lv":7.31,"bays":6,"face":"N"}]},{"face":"S","pads":[{"units":["170","172"],"unitsWE":["172","170"],"type":"5R","u":260.91,"v":14.79,"lu":29.15,"lv":7.91,"bays":9,"face":"S"}]}]}],"link":[{"units":["162","164"],"unitsWE":["162","164"],"type":"2RF-T2","u":238.06,"v":-4.59,"lu":12.52,"lv":8.01,"bays":4,"face":"N"}],"notes":["East tower sits ~8 m south of the west tower [Measured].","3-Room pad #166/#168 position is +-2 m [Measured-manual]."]},{"id":"440A","storeys":30,"unitsPerFloor":11,"kind":"sale","mix":{"2RF-T2":87,"4R":232},"total":319,"core":{"u":327.17,"v":52.98,"lu":10,"lv":8},"towers":[{"side":"W","scheme":"B","tanks":6,"rows":[{"face":"N","pads":[{"units":["192","194"],"unitsWE":["192","194"],"type":"4R","u":305.74,"v":55.15,"lu":24.44,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["188","190"],"unitsWE":["190","188"],"type":"4R","u":305.24,"v":73.97,"lu":24.44,"lv":7.91,"bays":8,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":4,"rows":[{"face":"N","pads":[{"units":["174","176"],"unitsWE":["174","176"],"type":"4R","u":345.69,"v":43.93,"lu":24.75,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["180","182"],"unitsWE":["182","180"],"type":"4R","u":348.36,"v":65.6,"lu":24.75,"lv":8.01,"bays":8,"face":"S"}]}]}],"link":[{"units":["184","186"],"unitsWE":["186","184"],"type":"2RF-T2","u":325.6,"v":65.64,"lu":12.32,"lv":8.52,"bays":4,"face":"S"}],"tip":{"units":["178"],"unitsWE":["178"],"type":"2RF-T2","u":355.76,"v":57.68,"lu":6.21,"lv":8.01,"bays":2,"face":"E"},"notes":["East tower sits ~10 m north of the west tower [Measured].","2-Room Flexi #178 faces east at the tip; #184/#186 face south in the link."]}],"mscp":{"id":"436","storeys":8,"westWing":{"u0":2.0,"u1":38.77,"v0":-81.15,"v1":-2.0},"southWing":{"u0":38.77,"u1":120.41,"v0":-19.74,"v1":-2.0},"ramp":{"u":107.69,"v":-19.87,"r":12.72},"height":24.0,"uses":{"1":"Preschool, electrical sub-station (ESS), bin centre (pneumatic waste conveyance)","2":"Preschool, future amenities/facilities"},"notes":["8 storeys [Read]; roof-garden height ~24 m is an estimate (no heights in the brochure).","West-wing length is +-8 m (plan vs Blk 436 mini-plan disagree slightly).","Roof garden contents placed from model photo IMG_1985 - representative, not surveyed."]},"lowRise":[{"id":"437","use":"Precinct pavilion","u":7.24,"v":-96.09,"lu":16.03,"lv":16.03,"height":4.5,"storeys":1},{"id":"porch","use":"Drop-off porch","u":60.68,"v":-74.92,"lu":17.03,"lv":17.03,"height":4.5,"storeys":1},{"id":"438","use":"Precinct pavilion","u":189.16,"v":-11.27,"lu":15.03,"lv":19.03,"height":4.5,"storeys":1},{"id":"439","use":"Precinct pavilion + drop-off porch","u":293.69,"v":6.41,"lu":30.05,"lv":27.05,"height":4.5,"storeys":1}],"commercial440":{"id":"440","use":"Eating house, shops, mini-mart (1st storey)","polys":[[[235.27,-75.33],[244.48,-80.29],[259.34,-86.66],[261.47,-83.12],[254.38,-79.57],[257.22,-72.5],[256.51,-68.96],[240.23,-69.67]],[[268.55,-85.25],[273.5,-85.96],[279.87,-73.2],[284.83,-68.96],[288.37,-60.46],[274.21,-65.42],[267.84,-79.57]]],"height":9.0,"heightConf":"estimated ~2 storeys from model photo 08"},"ess441":{"id":"441","use":"Electrical sub-station","poly":[[285.54,-121.35],[303.94,-129.85],[311.74,-131.97],[314.56,-129.14],[315.27,-125.6],[290.49,-113.57],[287.66,-114.27],[285.54,-118.52]],"height":5.0,"heightConf":"estimated"},"roads":[{"name":"Admiralty Street","status":"existing","width":25,"line":[[-8.29,-168.79],[55.44,-195.7],[126.24,-224.01],[161.63,-238.17]],"conf":"[Measured \u00b14 m width, \u00b13 px line; west of px x=200 the alignment is Unverified]"},{"name":"Admiralty Close (future road)","status":"future","width":15,"line":[[117.74,-219.76],[121.99,-192.86],[127.65,-164.54],[133.31,-136.22],[124.82,-113.57]],"conf":"[Measured line \u00b14 px; width Inferred]"},{"name":"Internal driveway (Admiralty Close end \u2192 Blk 436 courtyard / drop-off)","status":"future","width":7,"line":[[124.82,-113.57],[106.41,-97.28],[92.25,-83.12],[55.44,-65.42],[28.53,-58.34]],"conf":"[Inferred from light-grey fill]"},{"name":"Internal service road (behind 438A/439A \u2192 440/441)","status":"future","width":6,"line":[[154.56,-65.42],[197.04,-76.04],[231.02,-83.12],[289.08,-111.44]],"conf":"[Unverified: light-grey strip]"},{"name":"Admiralty Lane (future road)","status":"future","width":20,"line":[[-1.2,46.44],[55.44,16.71],[126.24,-21.52],[182.87,-29.31],[225.36,-29.31],[267.84,-24.35],[310.32,-13.02],[354.22,6.79]],"conf":"[Measured line \u00b14 px; width 18-33 m varies with slip lanes \u2192 20 Inferred]"},{"name":"Sembawang Drive","status":"existing","width":25,"line":[[342.17,40.78],[354.22,6.79],[370.5,-61.88],[388.2,-136.22],[405.9,-214.1]],"conf":"[Measured \u00b14 m]"},{"name":"Admiralty Lane (existing, east of Sembawang Drive)","status":"existing","width":18,"line":[[354.22,6.79],[402.36,20.96],[448.38,39.36]],"conf":"[Measured line; width Inferred]"},{"name":"Woodlands Avenue 10","status":"existing","width":30,"line":[[-125.11,-136.22],[-100.32,-72.5],[-75.55,5.38],[-50.76,83.26]],"conf":"[Inferred: largely out of frame]"},{"name":"Unnamed road south from Admiralty Lane (between Sembawang Portico site and SE high-rise site)","status":"unknown","width":15,"line":[[306.78,-8.78],[301.82,83.26]],"conf":"[Unverified]"}],"canal":{"east":[[-76.25,-122.06],[-67.05,-104.36],[-32.36,-30.01],[-13.24,12.46],[-4.74,33.7]],"west":[[-104.57,-122.06],[-100.32,-104.36],[-57.85,-30.01],[-36.61,12.46],[-25.99,33.7]]},"drainage":[[-72.0,-129.14],[-11.82,-155.33],[-8.29,-148.96],[-67.05,-120.64]],"boundary":[[0.21,28.04],[-67.05,-121.35],[-3.33,-150.38],[48.36,-171.62],[69.6,-119.94],[109.95,-132.68],[119.16,-109.32],[133.31,-114.98],[154.56,-127.01],[211.19,-137.64],[246.6,-140.47],[281.99,-140.47],[329.43,-134.09],[359.88,-127.01],[381.11,-118.52],[366.96,-79.57],[352.8,-58.34],[338.64,-42.06],[305.37,-45.59],[272.8,-56.92],[234.56,-63.3],[187.83,-60.46],[154.56,-52.68],[122.69,-35.69],[79.5,-20.82]],"linkways":[{"name":"Admiralty Lane spine (W)","line":[[-6.87,3.97],[182.87,-90.2]],"width":4},{"name":"Canal-side (436 west)","line":[[-36.61,-75.33],[0.92,1.84]],"width":4},{"name":"436 north / 437 pavilion","line":[[-40.14,-83.12],[-16.07,-83.12],[4.46,-93.74]],"width":4},{"name":"437A drop-off link","line":[[3.05,-95.86],[29.24,-94.45]],"width":4},{"name":"Admiralty St bus bay \u2192 437A east \u2192 spine","line":[[35.61,-163.13],[44.81,-156.76],[68.89,-114.98],[83.05,-97.28],[98.63,-73.2]],"width":4},{"name":"438A south","line":[[122.69,-62.58],[151.73,-66.83]],"width":4},{"name":"439A south","line":[[186.42,-75.33],[224.65,-93.74]],"width":4},{"name":"439A\u2013439\u2013441 spine","line":[[226.06,-86.66],[286.24,-114.98]],"width":4},{"name":"439 links","line":[[251.56,-122.06],[284.83,-117.81]],"width":4},{"name":"441 west","line":[[279.17,-125.6],[295.45,-94.45]],"width":4},{"name":"440 south","line":[[223.24,-67.54],[279.17,-61.88],[304.66,-55.51]],"width":4},{"name":"440A south \u2192 Sembawang Dr bus bay","line":[[287.66,-58.34],[356.34,-86.66],[374.04,-73.91]],"width":4}],"facilities":[{"name":"adult fitness station","where":"437A/437B courtyard","x":45.52,"z":-140.47,"conf":"[marker low-res; order matches IMG_1983 labels \u2192 Inferred]","onRoof":false},{"name":"children playground","where":"437A/437B courtyard","x":53.32,"z":-122.06,"conf":"[Inferred, as above]","onRoof":false},{"name":"elderly fitness station","where":"437A/437B courtyard","x":40.56,"z":-110.73,"conf":"[Inferred, as above]","onRoof":false},{"name":"precinct pavilion","where":"Blk 437","x":-34.83,"z":-89.84,"conf":"[Read '5' + photo label]","onRoof":false},{"name":"drop-off porch","where":"beside 437B, 436 courtyard","x":22.51,"z":-93.74,"conf":"[Inferred from IMG_1985 label]","onRoof":false},{"name":"Adult fitness station (unverified)","where":"Blk 436 roof, west wing","x":-11.82,"z":-44.89,"conf":"[Unverified digit]","onRoof":true},{"name":"children playground","where":"Blk 436 roof, west wing","x":12.95,"z":-39.93,"conf":"[Inferred: IMG_1985 shows children playground on 436 west-wing roof]","onRoof":true},{"name":"elderly fitness station","where":"Blk 436 roof, south wing","x":58.98,"z":-35.69,"conf":"[Inferred: IMG_1985 'ELDERLY FITNESS STATION' on south-wing roof]","onRoof":true},{"name":"children playground","where":"ground, south of 436","x":40.56,"z":-10.9,"conf":"[Inferred: IMG_1985 'CHILDREN PLAYGROUND' at ground south of 436]","onRoof":false},{"name":"Fitness station (marker illegible)","where":"ground, south of Blk 436","x":28.53,"z":-5.24,"conf":"[Unverified: marker digit is 2 or 3]","onRoof":false},{"name":"precinct pavilion","where":"Blk 438","x":165.88,"z":-91.62,"conf":"[Read '5']","onRoof":false},{"name":"precinct pavilion","where":"Blk 439","x":259.34,"z":-124.89,"conf":"[Read '5']","onRoof":false},{"name":"drop-off porch","where":"Blk 439","x":268.55,"z":-113.57,"conf":"[Unverified digit]","onRoof":false},{"name":"eating house at 1st storey","where":"Blk 440","x":248.01,"z":-74.63,"conf":"[Unverified: two-digit marker]","onRoof":false},{"name":"shops at 1st storey","where":"Blk 440","x":272.09,"z":-79.57,"conf":"[Unverified]","onRoof":false},{"name":"mini-mart at 1st storey","where":"Blk 440","x":281.99,"z":-64.71,"conf":"[Unverified]","onRoof":false},{"name":"Residents' Network Centre (likely)","where":"Blk 440A, 1st storey","x":307.49,"z":-64.71,"conf":"[Unverified: the marker digit looks like 8 = RNC in the legend]","onRoof":false},{"name":"adult fitness station","where":"440A garden","x":342.88,"z":-78.16,"conf":"[Unverified digit]","onRoof":false},{"name":"children playground","where":"440A garden","x":335.8,"z":-64.01,"conf":"[Unverified digit]","onRoof":false},{"name":"Hardcourt (unverified)","where":"440A garden","x":315.99,"z":-55.51,"conf":"[Unverified digit]","onRoof":false},{"name":"elderly fitness station","where":"440A garden","x":325.89,"z":-51.96,"conf":"[Unverified digit]","onRoof":false},{"name":"space reserved for future community use","where":"east tip near Sembawang Drive","x":362.71,"z":-110.73,"conf":"[Unverified digit; grey pad ~ 11x16 m]","onRoof":false},{"name":"Heavy vehicle park (nearby)","where":"NE of the estate, beyond the school site. Brochure note 9: possible disamenities such as higher noise levels.","x":363.42,"z":-219.06,"conf":"[Read: label + dot on the site plan; extent not shown]","onRoof":false,"context":true}],"busBays":[{"name":"future bus bay & shelter","road":"Admiralty Street","x":32.78,"z":-163.13},{"name":"future bus bay & shelter","road":"Admiralty Lane (N side)","x":189.96,"z":-56.21},{"name":"future bus bay & shelter","road":"Admiralty Lane (S side)","x":211.19,"z":-35.69},{"name":"future bus bay & shelter","road":"Sembawang Drive","x":384.66,"z":-83.12},{"name":"future bus bay & shelter","road":"unnamed south road","x":299.7,"z":69.11}],"reserved":[{"name":"Site reserved for church","poly":[[49.77,-175.16],[101.45,-199.94],[106.41,-131.97],[70.31,-119.94]]},{"name":"Site reserved for school","poly":[[140.4,-224.72],[267.84,-233.93],[338.64,-233.93],[378.99,-118.52],[329.43,-134.09],[281.99,-140.47],[211.19,-137.64],[154.56,-127.01],[136.86,-134.81]]},{"name":"Acacia Home","poly":[[-89.7,-182.24],[-22.44,-199.94],[-11.82,-155.33],[-72.0,-129.14]]},{"name":"Chinese temple","poly":[[-100.32,-210.56],[-33.06,-228.26],[-22.44,-199.94],[-89.7,-182.24]]},{"name":"Site reserved for Chinese temple","poly":[[-107.41,-238.89],[-43.68,-241.01],[-33.06,-228.26],[-100.32,-210.56]]},{"name":"North Link Building","poly":[[-29.52,-238.89],[76.68,-238.89],[76.68,-222.6],[-11.82,-208.44]]},{"name":"Site reserved for public housing (incl. rental) under BTO (Sembawang Portico)","poly":[[76.68,20.96],[140.4,-8.78],[239.52,-15.86],[296.16,-1.7],[296.16,83.26],[97.92,83.26]]},{"name":"Site reserved for future high-rise residential development (SW)","poly":[[7.29,54.94],[90.84,33.7],[90.84,83.26],[16.5,83.26]]},{"name":"Site reserved for future high-rise residential development (SE)","poly":[[331.55,40.78],[437.76,54.94],[437.76,83.26],[331.55,83.26]]},{"name":"Site reserved for future high-rise industrial development (W of Woodlands Ave 10, partly out of frame)","poly":[[-142.8,-1.7],[-114.49,12.46],[-114.49,40.78],[-142.8,40.78]]},{"name":"Site reserved for civic & community institution (W of Woodlands Ave 10, partly out of frame)","poly":[[-142.8,47.86],[-107.41,47.86],[-107.41,83.26],[-142.8,83.26]]},{"name":"Public housing (inclusive of rental) (U/C) \u2014 Blks 443, 443B, E of Sembawang Drive","poly":[[409.44,-122.06],[448.38,-122.06],[448.38,-1.7],[409.44,-1.7]]}],"paved":[[[139.7,-122.1],[139.0,-120.6],[136.9,-122.1],[113.5,-122.1],[118.4,-110.7],[121.3,-111.4],[122.0,-113.6],[126.9,-113.6],[127.7,-111.4],[124.1,-109.3],[122.0,-103.7],[117.7,-100.1],[93.7,-88.8],[97.2,-81.0],[102.2,-75.3],[108.5,-59.8],[111.4,-59.8],[112.8,-61.9],[105.7,-76.7],[105.0,-84.5],[109.2,-88.8],[129.1,-98.7],[131.9,-104.4],[131.2,-110.7],[128.4,-112.1],[127.7,-114.3],[129.8,-116.4],[138.3,-119.2]],[[10.1,-105.8],[8.0,-106.5],[3.0,-103.7],[2.3,-98.7],[10.1,-102.2]],[[5.9,-92.3],[9.4,-85.2],[7.3,-80.3],[11.5,-70.4],[13.7,-71.8],[15.8,-71.1],[15.8,-69.0],[13.7,-66.8],[18.6,-56.2],[22.2,-52.0],[52.6,-52.0],[54.0,-54.1],[59.0,-52.7],[57.6,-53.4],[57.6,-55.5],[65.3,-59.8],[63.2,-63.3],[63.2,-67.5],[64.6,-69.7],[88.0,-81.0],[85.9,-85.2],[36.3,-61.2],[30.7,-61.2],[26.4,-64.0],[22.2,-71.8],[22.2,-76.0],[26.4,-80.3],[27.1,-83.8],[25.0,-81.7],[18.6,-81.0],[14.4,-83.8],[15.1,-86.7],[11.5,-92.3],[11.5,-94.4]]]};
 /** optional private build-time preset {block, unit, storey}; public builds leave it null */
 const PRESET_FLAT = null;
 let SITE = structuredClone(SITE_DEFAULT);
@@ -529,7 +551,7 @@ function roofY(storeys) { const { f2f, vd } = hts(); return vd + (storeys - 1) *
 /* ---------- state + persistence ---------- */
 const DEFAULT_SETTINGS = () => ({
   v: 1,
-  layers: { labels: true, facilities: true, roads: true, landscape: true, linkways: true, context: true, canal: true, shadows: true, sunPath: false },
+  layers: { labels: true, facilities: true, roads: true, landscape: true, linkways: true, context: true, canal: true, shadows: true, sunPath: false, area: false, areaEstimated: false },
   heights: { floorToFloor: SITE_DEFAULT.heights.floorToFloor, voidDeck: SITE_DEFAULT.heights.voidDeck },
   colourByType: false,
   typeFilter: [],
@@ -1291,16 +1313,16 @@ function buildContext() {
   for (const rd of SITE.roads) {
     const drive = /driveway|service/i.test(rd.name);
     const kerb = new THREE.Mesh(ribbonGeometry(rd.line, rd.width + (drive ? 2 : 6), 0.07), new THREE.MeshStandardMaterial({ color: PAL.kerb, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1 }));
-    kerb.receiveShadow = true; G.roads.add(kerb);
+    kerb.receiveShadow = true; kerb.userData.roadName = rd.name; G.roads.add(kerb);
     const asph = new THREE.Mesh(ribbonGeometry(rd.line, rd.width, 0.1), new THREE.MeshStandardMaterial({ color: drive ? PAL.drive : '#9A9794', map: TEX.asphalt, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -2 }));
-    asph.receiveShadow = true; asph.userData = { owner: 'road:' + rd.name, kind: 'road' }; G.roads.add(asph);
+    asph.receiveShadow = true; asph.userData = { owner: 'road:' + rd.name, kind: 'road', roadName: rd.name }; G.roads.add(asph);
     if (!drive && !/unnamed/i.test(rd.name)) {
       // label on the longest segment
       let best = 0, bi = 0; for (let i = 0; i < rd.line.length - 1; i++) { const l = Math.hypot(rd.line[i + 1][0] - rd.line[i][0], rd.line[i + 1][1] - rd.line[i][1]); if (l > best) { best = l; bi = i; } }
       const a = rd.line[bi], b = rd.line[bi + 1];
       let ang = -Math.atan2(b[1] - a[1], b[0] - a[0]); if (Math.abs(ang) > Math.PI / 2) ang += Math.PI;
       const nm = rd.name.replace(/\s*\(existing.*?\)/i, '').replace(/\s*\(future road\)/i, '').toUpperCase() + (rd.status === 'future' ? ' (FUTURE)' : '');
-      G.roads.add(groundText(nm, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, ang, Math.min(4.5, rd.width * 0.22), '#FFFFFF', 0.16));
+      const gt = groundText(nm, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, ang, Math.min(4.5, rd.width * 0.22), '#FFFFFF', 0.16); gt.userData.roadName = rd.name; G.roads.add(gt);
     }
   }
 }
@@ -1524,8 +1546,9 @@ function buildUnitMark() {
 
 /* selection outline (pick boxes of the selected owner) + optional stack highlight */
 function buildSelection() {
-  clearGroup(L.selection);
+  clearGroup(L.selection); clearGroup(AREA.sel);
   const sel = state.selection; if (!sel) { requestRender(); return; }
+  if (sel.kind === 'osm' && AREA.status === 'ready') { AREA.sel.add(areaSelection(sel.bi)); requestRender(); return; }
   const lineMat = new THREE.LineBasicMaterial({ color: '#0A84FF' });
   if (sel.kind === 'building') {
     for (const p of REG.pick) {
@@ -1671,6 +1694,7 @@ function flatSunHours(info, storey, dateStr, trace = null) {
   else { pl = new THREE.Vector3(info.u1 + 0.9, y, vm); nl = new THREE.Vector3(1, 0, 0); }
   const pw = pl.applyMatrix4(G.estate.matrixWorld), nw = nl.applyAxisAngle(new THREE.Vector3(0, 1, 0), GRID);
   let lit = 0, before12 = 0, after15 = 0; const step = 5, d = new THREE.Vector3();
+  const occs = areaOccludersNear(pw.x, pw.z); // surrounding OSM buildings, if the area is loaded
   for (let m = 6 * 60; m <= 20 * 60; m += step) {
     const p = sunAt(dateStr, m); if (p.el <= 0.5) continue;
     sunDir(p.az, p.el, d); const dot = d.dot(nw);
@@ -1679,9 +1703,10 @@ function flatSunHours(info, storey, dateStr, trace = null) {
     const hit = _ray.intersectObjects(REG.pick, false);
     if (trace) trace.push([m, +p.az.toFixed(1), +p.el.toFixed(1), +dot.toFixed(3), hit.length ? 'blocked by ' + hit[0].object.userData.owner + ' @' + hit[0].distance.toFixed(0) + 'm' : 'SUN']);
     if (hit.length) continue;
+    if (occs.length && areaRayBlocked(pw, d, occs)) { if (trace) trace[trace.length - 1][4] = 'blocked by OSM building'; continue; }
     lit += step; if (m < 12 * 60) before12 += step; if (m >= 15 * 60) after15 += step;
   }
-  return { hours: lit / 60, before12: before12 / 60, after15: after15 / 60 };
+  return { hours: lit / 60, before12: before12 / 60, after15: after15 / 60, withArea: occs.length > 0 };
 }
 
 /* =====================================================================
@@ -1708,7 +1733,7 @@ function applyLayers() {
   G.sunPath.visible = Ly.sunPath; setCssVisible(G.sunPath, Ly.sunPath);
   renderer.shadowMap.enabled = Ly.shadows; sun.castShadow = Ly.shadows && (lastSun ? lastSun.el > 0 : true);
   scene.traverse((o) => { if (o.material) { const ms = Array.isArray(o.material) ? o.material : [o.material]; ms.forEach((m) => { m.needsUpdate = true; }); } });
-  state.shadowsDirty = true; requestRender();
+  applyArea();
 }
 
 /* ---------- selection + info panel ---------- */
@@ -1719,6 +1744,7 @@ function select(sel, opts = {}) {
   $$('#labels .lbl').forEach((el) => el.classList.toggle('on', !!sel && sel.kind === 'building' && el.dataset.owner === sel.id));
   if (sel && opts.fly) {
     if (sel.kind === 'building') focusAnchor(REG.anchors.get(sel.id));
+    else if (sel.kind === 'osm') areaFocus(sel.bi);
     else if (sel.kind === 'facility' && sel.f) flyTo(new THREE.Vector3(sel.f.x + 60, 60, sel.f.z + 60), new THREE.Vector3(sel.f.x, 0, sel.f.z), 50);
   }
   document.body.classList.toggle('has-sel', !!sel);
@@ -1779,6 +1805,7 @@ function renderInfo() {
   if (sel.kind === 'building') html = infoBuilding(sel.id, sel);
   else if (sel.kind === 'facility') { const f = sel.f; html = `<h2>${esc(f.name[0].toUpperCase() + f.name.slice(1))}</h2><p class="sub">${esc(f.where)}</p><dl class="kv"><dt>Source</dt><dd>${esc(f.conf)}</dd><dt>Note</dt><dd>Props in the 3D view are representative, not surveyed.</dd></dl>`; }
   else if (sel.kind === 'road') { const r = SITE.roads.find((x) => x.name === sel.id); html = `<h2>${esc(r.name)}</h2><p class="sub">${r.status === 'future' ? 'Future road' : r.status === 'existing' ? 'Existing road' : 'Status not stated'}</p><dl class="kv"><dt>Width</dt><dd>≈ ${r.width} m ${tag('Measured/inferred')}</dd><dt>Source</dt><dd>${esc(r.conf)}</dd></dl>`; }
+  else if (sel.kind === 'osm' && AREA.status === 'ready') html = areaInfoHTML(sel.bi);
   else if (sel.kind === 'reserved') html = `<h2>${esc(sel.id)}</h2><p class="sub">Neighbouring / reserved site (context only)</p><p class="note">Shown as a flat labelled plot. Any future buildings here are not modelled, so views and sun hours could change when they are built.</p>`;
   el.innerHTML = html;
   $('#info').classList.add('open');
@@ -1831,7 +1858,7 @@ function runSearch(q) {
       go: () => { select({ kind: 'building', id: info.block, stack: info, storeyHint: st }); focusFlat(info, st); } }];
     return [{ kind: 'Flat', label: `#${addr[1]}-${addr[2]}`, sub: `Blk ${info.block} has storeys 2–${info.storeys} (storey 1 is the void deck)`, go: () => {} }];
   }
-  for (const p of SEARCH) {
+  for (const p of (AREA.status === 'ready' ? SEARCH.concat(AREA.search) : SEARCH)) {
     let score = 0;
     for (const k of p.nkeys) {
       if (p.exact) { if (k === n) score = Math.max(score, 3); else if (k.startsWith(n) && n.length >= 2) score = Math.max(score, 1.5); continue; }
@@ -1938,7 +1965,7 @@ function renderMyFlat(compute = false) {
     const sd = state.settings.sun.date || todaySGT(), yr = sd.slice(0, 4);
     const rows = [['Selected', sd], ...keyDates(yr)].map(([n, d]) => { const r = flatSunHours(info, mu.storey, d); return `<tr><td>${n}<small>${d.slice(5)}</small></td><td class="n">${fmt(r.hours)}</td><td class="n">${fmt(r.before12)}</td><td class="n">${fmt(r.after15)}</td></tr>`; }).join('');
     table = `<h4>Direct sun on the main facade <small>(hours, estimate)</small></h4><table class="t"><thead><tr><th>Date</th><th class="n">Total</th><th class="n">Before 12</th><th class="n">After 3 pm</th></tr></thead><tbody>${rows}</tbody></table>
-      <p class="note">Geometric estimate at the centre of the flat's main facade, 5-minute steps, blocked by the modelled buildings only. It ignores trees, ledges, side windows, and anything future built on the reserved sites. Heights are assumed (${state.settings.heights.floorToFloor} m storeys, ${state.settings.heights.voidDeck} m void deck).</p>`;
+      <p class="note">Geometric estimate at the centre of the flat's main facade, 5-minute steps, blocked by the estate's buildings${AREA.status === 'ready' ? ' and the surrounding OpenStreetMap buildings (heights partly estimated)' : ' only — turn on the Sembawang area to include the surrounding buildings'}. It ignores trees, ledges, side windows, and anything future built on the reserved sites. Heights are assumed (${state.settings.heights.floorToFloor} m storeys, ${state.settings.heights.voidDeck} m void deck).</p>`;
   }
   out.innerHTML = head + table;
   $('#muGo').onclick = () => focusFlat(info, mu.storey);
@@ -2170,11 +2197,22 @@ function presetList() {
     { id: 'sembawang-dr', name: 'Sembawang Dr', hint: 'From the east (photo 9)', key: '4', fov: 50, pos: new THREE.Vector3(500, 75, -30), target: new THREE.Vector3(300, 32, -95) },
     { id: 'top', name: 'Top', hint: 'Plan view, north up', key: '5', fov: 45, pos: new THREE.Vector3(c.x, 520, c.z + 0.01), target: new THREE.Vector3(c.x, 0, c.z) },
     { id: 'roof436', name: 'Car-park roof', hint: 'Blk 436 roof garden', key: '6', fov: 50, pos: new THREE.Vector3(mc.x + 70, 85, mc.z + 60), target: new THREE.Vector3(mc.x, MSCP_H, mc.z) },
+    ...areaPresets(),
     { id: 'iso', name: 'Overview', hint: 'Isometric overview', key: '7', fov: 45, pos: new THREE.Vector3(c.x - 260, 330, c.z + 330), target: new THREE.Vector3(c.x, 20, c.z),
       portrait: (() => { const a = toWorld(-175, -10), t = toWorld(190, -35); return { pos: new THREE.Vector3(a.x, 240, a.z), target: new THREE.Vector3(t.x, 10, t.z), fov: 62 }; })() },
   ];
 }
 let PRESETS = [];
+/** area presets from the georeference (work before the area data is loaded) */
+function areaPresets() {
+  const P = osmProjector(SITE.georef), [S, W, N, E] = OSM_BBOX;
+  const sw = P(S, W), ne = P(N, E), cx = (sw[0] + ne[0]) / 2, cz = (sw[1] + ne[1]) / 2;
+  const park = P(1.46140, 103.83678); // Sembawang Park centre (from the OSM polygon's bounds)
+  return [
+    { id: 'area', name: 'Sembawang area', hint: 'Whole area from OpenStreetMap', key: '8', fov: 50, area: true, pos: new THREE.Vector3(cx - 900, 2600, cz + 3600), target: new THREE.Vector3(cx, 0, cz - 300) },
+    { id: 'sembawang-park', name: 'Sembawang Park', hint: 'The park and the coast', key: '9', fov: 50, area: true, pos: new THREE.Vector3(park[0] - 420, 300, park[1] + 520), target: new THREE.Vector3(park[0], 0, park[1]) },
+  ];
+}
 /** landscape screens open on the photo-1 view; portrait phones on the along-the-estate overview */
 const defaultPreset = () => (viewAspect() < 1 ? 'iso' : 'adm-st');
 
@@ -2206,6 +2244,7 @@ function fitPreset(p) {
 }
 function goPreset(id, instant = false) {
   const p0 = PRESETS.find((x) => x.id === id); if (!p0) return;
+  if (p0.area && !state.settings.layers.area) { setAreaOn(true, false); }
   const p = fitPreset(p0);
   if (instant) { camera.position.copy(p.pos); controls.target.copy(p.target); camera.fov = p.fov; camera.updateProjectionMatrix(); controls.update(); requestRender(); return; }
   flyTo(p.pos, p.target, p.fov);
@@ -2243,6 +2282,8 @@ function setNdc(ev) { const r = renderer.domElement.getBoundingClientRect(); ndc
 function pickAt(ev) {
   setNdc(ev); raycaster.setFromCamera(ndc, camera);
   const hits = raycaster.intersectObjects(REG.pick, false);
+  const ah = areaPick(raycaster);
+  if (ah && (!hits.length || ah.dist < hits[0].distance)) return ah;
   if (hits.length) return { kind: 'building', id: hits[0].object.userData.owner, point: hits[0].point };
   const roads = state.settings.layers.roads ? raycaster.intersectObjects(G.roads.children.filter((o) => o.userData.kind === 'road'), false) : [];
   if (roads.length) return { kind: 'road', id: roads[0].object.userData.owner.slice(5) };
@@ -2399,6 +2440,644 @@ renderer.domElement.addEventListener('pointerup', (e) => { if (walk.look && walk
 })();
 
 /* =====================================================================
+   75 OSM CONVERTER — pure functions, no THREE/DOM. Used by the page for
+   live OpenStreetMap updates AND by tools/build_area.mjs (Node) to build
+   the bundled snapshot, so both paths produce identical data.
+
+   Input : Overpass API JSON elements (`out geom`): ways with geometry
+           [{lat,lon}], multipolygon relations with member geometry.
+   Output: compact area data in the SITE frame (metres, +X east, +Z south,
+           origin = SW corner of Blk 436), via data/source/georef.json.
+   ===================================================================== */
+
+const OSMCONV_VERSION = 1;
+const OSM_BBOX = [1.4240, 103.7900, 1.4750, 103.8480]; // S, W, N, E — live query: Sembawang town to Sembawang Park and the coast
+const OSM_QUERY = (b = OSM_BBOX) => {
+  const bb = b.join(',');
+  return `[out:json][timeout:180];(` +
+    `way["building"](${bb});relation["building"](${bb});` +
+    `way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street|service|pedestrian|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link)$"](${bb});` +
+    `way["waterway"](${bb});way["natural"="water"](${bb});relation["natural"="water"](${bb});` +
+    `way["leisure"="park"](${bb});relation["leisure"="park"](${bb});way["natural"="coastline"](${bb});` +
+    `);out geom;`;
+};
+
+/* ---------- projection: WGS84 → local tangent plane → site frame ---------- */
+function osmProjector(g) {
+  const r = Math.PI / 180, kx = r * g.N * Math.cos(g.lat0 * r), kz = r * g.M;
+  const c = Math.cos(g.theta || 0), s = Math.sin(g.theta || 0), sc = g.scale || 1;
+  return (lat, lon) => {
+    const x = (lon - g.lon0) * kx - g.tx, z = -(lat - g.lat0) * kz - g.tz;
+    // inverse of P_osm = s·R(θ)·P_site + t
+    return [Math.round(((c * x + s * z) / sc) * 10) / 10, Math.round(((-s * x + c * z) / sc) * 10) / 10];
+  };
+}
+
+/* ---------- geometry helpers ---------- */
+function osmArea(r) { let a = 0; for (let i = 0, n = r.length; i < n; i++) { const p = r[i], q = r[(i + 1) % n]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; }
+function osmCentroid(r) { let x = 0, z = 0; for (const p of r) { x += p[0]; z += p[1]; } return [x / r.length, z / r.length]; }
+function osmInPoly(x, z, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, zi] = poly[i], [xj, zj] = poly[j];
+    if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function osmSimplify(pts, eps) { // Ramer–Douglas–Peucker (open polyline)
+  if (pts.length < 3) return pts;
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+  const stack = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop(); const [ax, az] = pts[a], [bx, bz] = pts[b];
+    const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz) || 1e-9; let md = -1, mi = -1;
+    for (let i = a + 1; i < b; i++) { const d = Math.abs(dz * (pts[i][0] - ax) - dx * (pts[i][1] - az)) / L; if (d > md) { md = d; mi = i; } }
+    if (md > eps) { keep[mi] = 1; stack.push([a, mi], [mi, b]); }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+function osmCleanRing(pts, eps = 0.25) {
+  const r = pts.slice(); if (r.length > 1 && r[0][0] === r[r.length - 1][0] && r[0][1] === r[r.length - 1][1]) r.pop();
+  if (r.length < 3) return null;
+  // closed ring: split at the vertex farthest from r[0] and simplify both halves (RDP needs a non-degenerate chord)
+  let far = 0, fd = -1;
+  for (let i = 1; i < r.length; i++) { const d = Math.hypot(r[i][0] - r[0][0], r[i][1] - r[0][1]); if (d > fd) { fd = d; far = i; } }
+  const a = osmSimplify(r.slice(0, far + 1), eps), b = osmSimplify([...r.slice(far), r[0]], eps);
+  const s = a.concat(b.slice(1, -1));
+  return s.length >= 3 && Math.abs(osmArea(s)) >= 2 ? s : null;
+}
+/** join way segments (arrays of points) into rings/chains by matching endpoints */
+function osmJoin(segs, allowReverse = true) {
+  const key = (p) => p[0] + ',' + p[1];
+  const pool = segs.filter((s) => s.length >= 2).map((s) => s.slice());
+  const out = [];
+  while (pool.length) {
+    let cur = pool.shift(), grown = true;
+    while (grown && key(cur[0]) !== key(cur[cur.length - 1])) {
+      grown = false;
+      for (let i = 0; i < pool.length; i++) {
+        const s = pool[i];
+        if (key(s[0]) === key(cur[cur.length - 1])) { cur = cur.concat(s.slice(1)); }
+        else if (key(s[s.length - 1]) === key(cur[0])) { cur = s.concat(cur.slice(1)); }
+        else if (allowReverse && key(s[s.length - 1]) === key(cur[cur.length - 1])) { cur = cur.concat(s.slice(0, -1).reverse()); }
+        else if (allowReverse && key(s[0]) === key(cur[0])) { cur = s.slice(1).reverse().concat(cur); }
+        else continue;
+        pool.splice(i, 1); grown = true; break;
+      }
+    }
+    out.push(cur);
+  }
+  return out;
+}
+
+/* ---------- coastline → land polygons inside the bbox ----------
+   OSM convention: land on the LEFT of the coastline direction. Work in
+   math orientation (x east, y north = −z). Pieces that cross the bbox are
+   closed by walking the bbox boundary counter-clockwise from each exit to
+   the next entry. Closed rings inside the bbox are islands (land).         */
+function osmCoastLand(chainsXZ, box) {
+  const [x0, y0, x1, y1] = [box[0], -box[3], box[2], -box[1]]; // math y = −z
+  const W = x1 - x0, H = y1 - y0, PER = 2 * (W + H);
+  const toM = (p) => [p[0], -p[1]], toS = (p) => [p[0], -p[1]];
+  const inside = (p) => p[0] >= x0 && p[0] <= x1 && p[1] >= y0 && p[1] <= y1;
+  const param = (p) => { // CCW perimeter parameter from the bottom-left corner
+    const e = 1e-6;
+    if (Math.abs(p[1] - y0) < e) return p[0] - x0;
+    if (Math.abs(p[0] - x1) < e) return W + (p[1] - y0);
+    if (Math.abs(p[1] - y1) < e) return W + H + (x1 - p[0]);
+    return 2 * W + H + (y1 - p[1]);
+  };
+  const corners = [[x1, y0, W], [x1, y1, W + H], [x0, y1, 2 * W + H], [x0, y0, PER]];
+  const clipSeg = (a, b) => { // Liang–Barsky → [t0,t1] or null
+    let t0 = 0, t1 = 1; const dx = b[0] - a[0], dy = b[1] - a[1];
+    for (const [p, q] of [[-dx, a[0] - x0], [dx, x1 - a[0]], [-dy, a[1] - y0], [dy, y1 - a[1]]]) {
+      if (p === 0) { if (q < 0) return null; continue; }
+      const t = q / p; if (p < 0) { if (t > t1) return null; if (t > t0) t0 = t; } else { if (t < t0) return null; if (t < t1) t1 = t; }
+    }
+    return [t0, t1];
+  };
+  const pieces = [], islands = [];
+  for (const ch of chainsXZ) {
+    const c = ch.map(toM);
+    const closed = c.length > 3 && c[0][0] === c[c.length - 1][0] && c[0][1] === c[c.length - 1][1];
+    if (closed && c.every(inside)) { islands.push(c.slice(0, -1)); continue; }
+    let cur = null;
+    for (let i = 0; i < c.length - 1; i++) {
+      const a = c[i], b = c[i + 1], t = clipSeg(a, b);
+      if (!t) { if (cur) { pieces.push(cur); cur = null; } continue; }
+      const pa = [a[0] + (b[0] - a[0]) * t[0], a[1] + (b[1] - a[1]) * t[0]], pb = [a[0] + (b[0] - a[0]) * t[1], a[1] + (b[1] - a[1]) * t[1]];
+      if (!cur) cur = { pts: [pa], entry: t[0] > 0 || !inside(a) ? param(pa) : null };
+      cur.pts.push(pb);
+      if (t[1] < 1) { cur.exit = param(pb); pieces.push(cur); cur = null; }
+    }
+    if (cur) pieces.push(cur);
+  }
+  const open = pieces.filter((p) => p.entry != null && p.exit != null);
+  const rings = islands.slice(); const used = new Set();
+  for (const start of open) {
+    if (used.has(start)) continue;
+    let ring = [...start.pts], cur = start; used.add(start); let guard = 0;
+    while (guard++ < 1000) {
+      // nearest entry CCW-ahead of cur.exit
+      let best = null, bd = Infinity;
+      for (const p of open) { let d = p.entry - cur.exit; if (d < 0) d += PER; if (d < bd) { bd = d; best = p; } }
+      const cs = []; // bbox corners passed on the way, in walking order
+      for (const [cx, cy, cp] of corners) { let d = cp % PER - cur.exit; if (d < 0) d += PER; if (d > 0 && d < bd) cs.push([d, cx, cy]); }
+      cs.sort((a, b) => a[0] - b[0]); for (const c of cs) ring.push([c[1], c[2]]);
+      if (!best || best === start) break;
+      ring = ring.concat(best.pts); used.add(best); cur = best;
+    }
+    rings.push(ring);
+  }
+  return rings.map((r) => r.map(toS));
+}
+
+/* ---------- classification ---------- */
+const OSM_ROAD_W = { motorway: 22, trunk: 18, primary: 14, secondary: 11, tertiary: 9, residential: 7, unclassified: 7, living_street: 6, service: 4, pedestrian: 5,
+  motorway_link: 7, trunk_link: 7, primary_link: 6, secondary_link: 6, tertiary_link: 6 };
+const OSM_WATERWAY_W = { river: 20, canal: 15, stream: 4, drain: 3, ditch: 2 };
+function osmNum(v) { const m = /^\s*(-?\d+(?:\.\d+)?)/.exec(String(v == null ? '' : v)); return m ? parseFloat(m[1]) : NaN; }
+/** height (m) of a building from OSM tags; src = height | levels | estimated */
+function osmHeight(t, areaM2) {
+  const LV = 3.0, lv = osmNum(t['building:levels']);
+  let base = osmNum(t.min_height); if (!(base >= 0)) { const ml = osmNum(t['building:min_level']); base = ml >= 0 ? ml * LV : 0; }
+  const h = osmNum(t.height);
+  if (h > 0) return { h: Math.max(h, base + 1), base, src: 'height', levels: lv > 0 ? lv : null };
+  const ty = t.building || 'yes';
+  if (lv > 0) {
+    const resi = /^(apartments|residential|dormitory)$/.test(ty) && lv >= 4; // HDB-style: void deck + 2.8 m storeys (as in the estate model)
+    return { h: base + (resi ? 3.6 + (lv - 1) * 2.8 : lv * LV), base, src: 'levels', levels: lv };
+  }
+  if (ty === 'roof' || ty === 'carport') return { h: 4.0, base: 3.4, src: 'estimated', levels: null };
+  let est = 3;
+  if (/^(house|detached|semidetached_house|terrace|bungalow)$/.test(ty) || (ty === 'residential' && areaM2 < 400)) est = 2;
+  else if (/^(shed|garage|garages|hut|kiosk|toilets|cabin)$/.test(ty)) est = 1;
+  else if (ty === 'construction') est = 2;
+  else if (/^(industrial|warehouse)$/.test(ty)) est = 4;
+  return { h: base + est * LV, base, src: 'estimated', levels: null };
+}
+
+/* ---------- main converter ---------- */
+function osmConvert(elements, opts) {
+  const P = osmProjector(opts.georef), ex = opts.exclude || null;
+  const box = [P(opts.bbox[2], opts.bbox[1]), P(opts.bbox[0], opts.bbox[3])]; // NW, SE corners (lat,lon)
+  const bbox = [box[0][0], box[0][1], box[1][0], box[1][1]]; // x0 (W), z0 (N), x1 (E), z1 (S)
+  const geom = (g) => (g || []).filter((p) => p && Number.isFinite(p.lat)).map((p) => P(p.lat, p.lon));
+  const out = { format: 'sembawang-area', version: OSMCONV_VERSION, source: { name: 'OpenStreetMap', attribution: '© OpenStreetMap contributors', licence: 'ODbL 1.0', url: 'https://www.openstreetmap.org/copyright', kind: opts.kind || 'snapshot', timestamp: opts.timestamp || null, bboxLatLon: opts.bbox },
+    bbox, buildings: [], roads: [], waterways: [], water: [], parks: [], land: null, stats: {} };
+  const st = { buildings: 0, excludedInEstate: 0, heightSrc: { height: 0, levels: 0, estimated: 0 }, roads: 0, roadsInEstate: 0, waterways: 0, water: 0, parks: 0, coastWays: 0, skipped: 0 };
+  const coast = [];
+  const ringsOf = (el) => {
+    if (el.type === 'way') { const g = geom(el.geometry); return g.length >= 4 ? [g] : []; }
+    if (el.type === 'relation') {
+      const outer = (el.members || []).filter((m) => m.type === 'way' && (m.role === 'outer' || m.role === '')).map((m) => geom(m.geometry));
+      return osmJoin(outer).filter((r) => r.length >= 4 && r[0][0] === r[r.length - 1][0] && r[0][1] === r[r.length - 1][1]);
+    }
+    return [];
+  };
+  for (const el of elements) {
+    const t = el.tags || {};
+    if (el.type === 'node') continue;
+    if (t.building && t.building !== 'no') {
+      for (const raw of ringsOf(el)) {
+        const r = osmCleanRing(raw); if (!r) { st.skipped++; continue; }
+        const c = osmCentroid(r);
+        if (ex && osmInPoly(c[0], c[1], ex)) { st.excludedInEstate++; continue; }
+        if (osmArea(r) < 0) r.reverse(); // store CCW in (x,z) = clockwise seen from above; renderer handles winding
+        const a = Math.abs(osmArea(r)), H = osmHeight(t, a);
+        const b = { id: el.type[0] + el.id, r: r.flat(), h: Math.round(H.h * 10) / 10, s: H.src[0] };
+        if (H.base) b.b = Math.round(H.base * 10) / 10;
+        if (H.levels) b.l = H.levels;
+        if (t.building !== 'yes') b.t = t.building;
+        if (t.name) b.n = t.name;
+        if (t['addr:housenumber'] || t['addr:street']) b.a = [t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' ');
+        out.buildings.push(b); st.buildings++; st.heightSrc[H.src]++;
+      }
+      continue;
+    }
+    if (t.natural === 'coastline' && el.type === 'way') { coast.push(geom(el.geometry)); st.coastWays++; continue; }
+    if (t.highway && OSM_ROAD_W[t.highway] && el.type === 'way') {
+      const g = geom(el.geometry); if (g.length < 2) continue;
+      if (ex) { const inn = g.filter((p) => osmInPoly(p[0], p[1], ex)).length; if (inn / g.length >= 0.5) { st.roadsInEstate++; continue; } }
+      const w = osmNum(t.width) > 0 ? osmNum(t.width) : OSM_ROAD_W[t.highway] * (t.oneway === 'yes' && /primary|secondary|trunk|motorway/.test(t.highway) ? 0.6 : 1);
+      const rd = { c: t.highway, w: Math.round(w * 10) / 10, p: osmSimplify(g, 0.4).flat() }; if (t.name) rd.n = t.name;
+      out.roads.push(rd); st.roads++; continue;
+    }
+    if (t.waterway && OSM_WATERWAY_W[t.waterway] && el.type === 'way') {
+      const g = geom(el.geometry); if (g.length < 2) continue;
+      const ww = { c: t.waterway, w: osmNum(t.width) > 0 ? osmNum(t.width) : OSM_WATERWAY_W[t.waterway], p: osmSimplify(g, 0.4).flat() }; if (t.name) ww.n = t.name;
+      out.waterways.push(ww); st.waterways++; continue;
+    }
+    if (t.natural === 'water' || t.leisure === 'park') {
+      for (const raw of ringsOf(el)) {
+        const r = osmCleanRing(raw, 0.5); if (!r) continue;
+        const o = { id: el.type[0] + el.id, r: r.flat() }; if (t.name) o.n = t.name;
+        if (t.natural === 'water') { out.water.push(o); st.water++; } else { out.parks.push(o); st.parks++; }
+      }
+    }
+  }
+  if (coast.length) {
+    const chains = osmJoin(coast, false);
+    out.land = osmCoastLand(chains, bbox).map((r) => r.map((p) => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]).flat());
+  }
+  out.stats = st;
+  return out;
+}
+/** GeoJSON (overpass-turbo export) → Overpass-style elements, for the snapshot build and tests */
+function osmFromGeoJSON(fc) {
+  const els = [];
+  for (const f of fc.features || []) {
+    const id = String((f.properties && f.properties['@id']) || f.id || ''); const m = /^(way|relation|node)\/(\d+)$/.exec(id);
+    if (!m) continue;
+    const tags = {}; for (const [k, v] of Object.entries(f.properties || {})) if (!k.startsWith('@') && !(m[1] === 'relation' && k === 'type')) tags[k] = v;
+    if (m[1] === 'relation') tags.type = 'multipolygon';
+    const g = f.geometry; if (!g) continue;
+    const toG = (ring) => ring.map(([lon, lat]) => ({ lat, lon }));
+    if (m[1] === 'way') {
+      if (g.type === 'LineString') els.push({ type: 'way', id: +m[2], tags, geometry: toG(g.coordinates) });
+      else if (g.type === 'Polygon') els.push({ type: 'way', id: +m[2], tags, geometry: toG(g.coordinates[0]) });
+    } else if (m[1] === 'relation') {
+      const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+      const members = []; polys.forEach((poly) => poly.forEach((ring, i) => members.push({ type: 'way', ref: 0, role: i === 0 ? 'outer' : 'inner', geometry: toG(ring) })));
+      els.push({ type: 'relation', id: +m[2], tags, members });
+    }
+  }
+  return els;
+}
+
+/* =====================================================================
+   80 AREA — the wider Sembawang area from OpenStreetMap.
+   Sources (in order): cached live data (IndexedDB) → bundled snapshot
+   (data/area-snapshot.json, built from an overpass-turbo export) → live
+   update from the Overpass API on request (B). Conversion is the shared
+   75_osmconv.js, so snapshot and live data are identical in shape.
+   Everything is placed in the SITE frame via SITE.georef.
+   ===================================================================== */
+
+const AREA = {
+  status: 'off',            // off | loading | ready | error
+  data: null,               // converted area data
+  group: new THREE.Group(),
+  pickMeshes: [],           // meshes whose triangles map to buildings (userData.tri2b)
+  occ: [],                  // per building: {x0,x1,z0,z1,h,base,ring}
+  search: [],               // search entries (names, addresses, parks, roads)
+  labels: [],
+  message: '',
+};
+AREA.group.name = 'area'; AREA.group.visible = false; scene.add(AREA.group);
+AREA.sel = new THREE.Group(); AREA.sel.name = 'areaSel'; scene.add(AREA.sel); // world-frame selection outline
+const AREA_SNAPSHOT_URL = 'data/area-snapshot.json';
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+const AREA_COL = {
+  hdb: ['#ECE9E2', '#C9C4BB'], house: ['#E9DCC8', '#B97A5C'], industrial: ['#CDD2D8', '#A7ADB4'],
+  civic: ['#E8E2D2', '#BDB6A6'], other: ['#E3E1DC', '#BEBBB4'], est: ['#F2C8A0', '#E0A877'],
+  land: '#DADDD0', sea: '#9CCBE0', water: '#8EC4DA', park: '#9DBA6A', major: '#9A9794', minor: '#ABA8A4', service: '#B8B5B0',
+};
+function areaCat(b) {
+  const t = b.t || 'yes';
+  if (/^(apartments|residential|dormitory)$/.test(t)) return 'hdb';
+  if (/^(house|detached|semidetached_house|terrace|bungalow)$/.test(t)) return 'house';
+  if (/^(industrial|warehouse|manufacture|shed|roof|parking|garages|construction)$/.test(t)) return 'industrial';
+  if (/^(school|public|commercial|retail|civic|government|hospital|temple|church|mosque|train_station|transportation|kindergarten|college|university|community_centre|office)$/.test(t)) return 'civic';
+  return 'other';
+}
+const ringPts = (flat) => { const r = []; for (let i = 0; i < flat.length; i += 2) r.push([flat[i], flat[i + 1]]); return r; };
+
+/* ---------- validation of converted data (snapshot, cache or live) ---------- */
+function areaValidate(d) {
+  if (!d || d.format !== 'sembawang-area' || d.version !== 1) throw new Error('not Sembawang area data (format/version)');
+  for (const k of ['buildings', 'roads', 'waterways', 'water', 'parks']) if (!Array.isArray(d[k])) throw new Error(k + ' missing');
+  if (!Array.isArray(d.bbox) || d.bbox.length !== 4 || !d.bbox.every(Number.isFinite)) throw new Error('bbox missing');
+  if (d.buildings.length < 50) throw new Error('too few buildings (' + d.buildings.length + ')');
+  for (const b of d.buildings.slice(0, 200)) if (!Array.isArray(b.r) || b.r.length < 6 || !(b.h > 0)) throw new Error('bad building ' + b.id);
+  return d;
+}
+
+/* ---------- IndexedDB cache for live data ---------- */
+function idb(mode, fn) {
+  return new Promise((res, rej) => {
+    let req; try { req = indexedDB.open('sembawang-brook-3d', 1); } catch (e) { rej(e); return; }
+    req.onupgradeneeded = () => req.result.createObjectStore('kv');
+    req.onerror = () => rej(req.error);
+    req.onsuccess = () => { const db = req.result; const tx = db.transaction('kv', mode); const st = tx.objectStore('kv'); const r = fn(st); tx.oncomplete = () => { res(r && r.result); db.close(); }; tx.onerror = () => { rej(tx.error); db.close(); }; };
+  });
+}
+const cacheGet = () => idb('readonly', (s) => s.get('area')).catch(() => null);
+const cachePut = (d) => idb('readwrite', (s) => s.put(d, 'area')).catch(() => null);
+const cacheDel = () => idb('readwrite', (s) => s.delete('area')).catch(() => null);
+
+/* ---------- loading ---------- */
+async function areaLoad() {
+  if (AREA.status === 'ready' || AREA.status === 'loading') return;
+  AREA.status = 'loading'; emit('area', AREA);
+  try {
+    let d = null;
+    const cached = await cacheGet();
+    if (cached) { try { d = areaValidate(cached); } catch (e) { d = null; } }
+    if (!d) {
+      const res = await fetch(AREA_SNAPSHOT_URL, { cache: 'force-cache' });
+      if (!res.ok) throw new Error('snapshot HTTP ' + res.status);
+      d = areaValidate(await res.json());
+    }
+    areaUse(d);
+  } catch (e) {
+    AREA.status = 'error';
+    AREA.message = location.protocol === 'file:'
+      ? 'The area data file can’t be read when the page is opened straight from disk. Use the GitHub Pages link, run a local web server, or tap “Update from OpenStreetMap”.'
+      : 'Couldn’t load the area data (' + e.message + ').';
+    emit('area', AREA);
+  }
+}
+/** live update (option B): Overpass API → shared converter → cache */
+async function areaLiveUpdate(onProgress) {
+  const q = OSM_QUERY(OSM_BBOX); let lastErr = null;
+  for (const url of OVERPASS) {
+    try {
+      const res = await fetch(url, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+      if (!res.ok) throw new Error('HTTP ' + res.status + (res.status === 429 ? ' (server busy — try again in a minute)' : ''));
+      let text;
+      if (res.body && res.body.getReader) {
+        const reader = res.body.getReader(), chunks = []; let n = 0;
+        for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); n += value.length; onProgress && onProgress(n); }
+        const all = new Uint8Array(n); let o = 0; for (const c of chunks) { all.set(c, o); o += c.length; }
+        text = new TextDecoder().decode(all);
+      } else text = await res.text();
+      const json = JSON.parse(text);
+      if (!Array.isArray(json.elements)) throw new Error('unexpected response');
+      const d = areaValidate(osmConvert(json.elements, { georef: SITE.georef, exclude: SITE.boundary, bbox: OSM_BBOX, kind: 'live', timestamp: (json.osm3s && json.osm3s.timestamp_osm_base) || new Date().toISOString() }));
+      await cachePut(d);
+      areaUse(d);
+      return d;
+    } catch (e) { lastErr = e; }
+  }
+  const blocked = IN_FRAME || /Failed to fetch|NetworkError|Load failed/i.test(String(lastErr && lastErr.message));
+  throw new Error(blocked ? 'OpenStreetMap couldn’t be reached from this view. Live updates work on the GitHub Pages version (this Claude view blocks outside data).' : String(lastErr && lastErr.message));
+}
+async function areaUseSnapshot() { await cacheDel(); AREA.status = 'off'; clearGroup(AREA.group, true); await areaLoad(); }
+
+/* ---------- build meshes ---------- */
+function areaUse(d) {
+  if (state.selection && state.selection.kind === 'osm') select(null); // building indices change with new data
+  AREA.data = d; clearGroup(AREA.group, true); AREA.pickMeshes = []; AREA.occ = []; AREA.labels = [];
+  const [bx0, bz0, bx1, bz1] = d.bbox;
+  // ground: land (or sea + coast-derived land)
+  const rect = [[bx0, bz0], [bx1, bz0], [bx1, bz1], [bx0, bz1]];
+  if (Array.isArray(d.land) && d.land.length) {
+    AREA.group.add(flatPoly(rect, -0.35, new THREE.MeshStandardMaterial({ color: AREA_COL.sea, roughness: 0.25, metalness: 0.05 })));
+    for (const r of d.land) AREA.group.add(flatPoly(ringPts(r), -0.06, new THREE.MeshStandardMaterial({ color: AREA_COL.land, roughness: 1 })));
+  } else AREA.group.add(flatPoly(rect, -0.06, new THREE.MeshStandardMaterial({ color: AREA_COL.land, roughness: 1 })));
+  // parks + water polygons
+  const parkMat = new THREE.MeshStandardMaterial({ color: AREA_COL.park, roughness: 1, polygonOffset: true, polygonOffsetFactor: -1 });
+  for (const p of d.parks) { try { AREA.group.add(flatPoly(ringPts(p.r), -0.03, parkMat)); } catch (e) { /* degenerate */ } }
+  const waterMat = new THREE.MeshStandardMaterial({ color: AREA_COL.water, roughness: 0.25, polygonOffset: true, polygonOffsetFactor: -2 });
+  for (const w of d.water) { try { AREA.group.add(flatPoly(ringPts(w.r), -0.02, waterMat)); } catch (e) { /* degenerate */ } }
+  // roads + waterways as merged ribbons per class
+  const ribbons = new Map();
+  const addRibbon = (key, flat, w, y) => {
+    const line = ringPts(flat); if (line.length < 2) return;
+    const g = ribbonGeometry(line, w, y); if (!ribbons.has(key)) ribbons.set(key, []); ribbons.get(key).push(g);
+  };
+  for (const r of d.roads) { const k = /^(motorway|trunk|primary|secondary)/.test(r.c) ? 'major' : /^(tertiary|residential|unclassified|living_street)/.test(r.c) ? 'minor' : 'service'; addRibbon(k, r.p, r.w, k === 'major' ? 0.02 : k === 'minor' ? 0.015 : 0.01); }
+  for (const w of d.waterways) addRibbon('water', w.p, w.w, 0.005);
+  for (const [k, geos] of ribbons) {
+    const merged = mergeGeos(geos); geos.forEach((g) => g.dispose());
+    const m = new THREE.Mesh(merged, new THREE.MeshStandardMaterial({ color: AREA_COL[k], roughness: k === 'water' ? 0.25 : 0.95, polygonOffset: true, polygonOffsetFactor: k === 'water' ? -3 : k === 'major' ? -6 : k === 'minor' ? -5 : -4 }));
+    m.receiveShadow = true; m.userData.areaKind = k; AREA.group.add(m);
+  }
+  // buildings: extruded footprints merged into ~800 m tiles (vertex colours, triangle → building map)
+  const TILE = 1100, tiles = new Map();
+  d.buildings.forEach((b, i) => {
+    const ring = ringPts(b.r); let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (const [x, z] of ring) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z); }
+    AREA.occ.push({ x0, x1, z0, z1, h: b.h, base: b.b || 0, ring });
+    const key = Math.floor((x0 + x1) / 2 / TILE) + ',' + Math.floor((z0 + z1) / 2 / TILE);
+    if (!tiles.has(key)) tiles.set(key, []); tiles.get(key).push(i);
+  });
+  const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
+  for (const ids of tiles.values()) {
+    const pos = [], nor = [], col = [], colE = [], tri2b = [];
+    const cTmp = new THREE.Color(), cE = new THREE.Color();
+    for (const i of ids) {
+      const b = d.buildings[i], ring = AREA.occ[i].ring, h = b.h, base = b.b || 0, cat = areaCat(b);
+      const [wallHex, roofHex] = AREA_COL[cat]; const est = b.s === 'e';
+      const push = (p, n, hex, hexE) => { pos.push(...p); nor.push(...n); cTmp.set(hex); col.push(cTmp.r, cTmp.g, cTmp.b); cE.set(hexE); colE.push(cE.r, cE.g, cE.b); };
+      const ccw = osmArea(ring) > 0; // in (x,z): positive = clockwise seen from above
+      for (let k = 0; k < ring.length; k++) {
+        const p = ring[k], q = ring[(k + 1) % ring.length], dx = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(dx, dz); if (L < 1e-3) continue;
+        let n = ccw ? [dz / L, 0, -dx / L] : [-dz / L, 0, dx / L];
+        // winding: geometric normal of (p,q,q+up) is (-dz, dx); swap when it disagrees with n
+        const swap = (-dz * n[0] + dx * n[2]) < 0; const A = swap ? q : p, B = swap ? p : q;
+        const v = [[A[0], base, A[1]], [B[0], base, B[1]], [B[0], h, B[1]], [A[0], base, A[1]], [B[0], h, B[1]], [A[0], h, A[1]]];
+        for (const vv of v) push(vv, n, wallHex, est ? AREA_COL.est[0] : wallHex);
+        tri2b.push(i, i);
+      }
+      // roof (earcut via ShapeUtils)
+      const contour = ring.map(([x, z]) => new THREE.Vector2(x, -z));
+      let tris = []; try { tris = THREE.ShapeUtils.triangulateShape(contour, []); } catch (e) { tris = []; }
+      for (const t of tris) {
+        // make each roof triangle face up regardless of the triangulator's winding
+        const [a, bb, c] = t.map((k) => ring[k]);
+        const ny = (bb[1] - a[1]) * (c[0] - a[0]) - (bb[0] - a[0]) * (c[1] - a[1]);
+        const order = ny >= 0 ? [a, bb, c] : [a, c, bb];
+        for (const p of order) push([p[0], h, p[1]], [0, 1, 0], roofHex, est ? AREA_COL.est[1] : roofHex);
+        tri2b.push(i);
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    const ca = new THREE.Float32BufferAttribute(col, 3), ce = new THREE.Float32BufferAttribute(colE, 3);
+    g.setAttribute('color', state.settings.layers.areaEstimated ? ce : ca);
+    g.userData = { colorBase: ca, colorEst: ce };
+    g.computeBoundingSphere(); g.computeBoundingBox();
+    const m = new THREE.Mesh(g, mat); m.castShadow = m.receiveShadow = true;
+    m.userData.tri2b = Uint32Array.from(tri2b); m.userData.areaKind = 'buildings';
+    AREA.group.add(m); AREA.pickMeshes.push(m);
+  }
+  // labels: larger named parks + Sembawang Park; road names on the ground for main roads
+  for (const p of d.parks) {
+    if (!p.n) continue; const r = ringPts(p.r), a = Math.abs(osmArea(r));
+    if (a < 15000 && !/Sembawang Park/i.test(p.n)) continue;
+    const c = osmCentroid(r), el = document.createElement('div'); el.className = 'lbl small park'; el.textContent = p.n;
+    const o = new CSS2DObject(el); o.position.set(c[0], 6, c[1]); o.userData.always = /Sembawang Park/i.test(p.n); AREA.group.add(o); AREA.labels.push(o);
+  }
+  const best = new Map();
+  for (const r of d.roads) {
+    if (!r.n || !/^(primary|secondary|tertiary|trunk)/.test(r.c)) continue;
+    const pts = ringPts(r.p);
+    for (let i = 0; i < pts.length - 1; i++) { const L = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]); if (!best.has(r.n) || L > best.get(r.n).L) best.set(r.n, { L, a: pts[i], b: pts[i + 1], w: r.w }); }
+  }
+  for (const [n, s] of best) {
+    if (s.L < 60) continue;
+    let ang = -Math.atan2(s.b[1] - s.a[1], s.b[0] - s.a[0]); if (Math.abs(ang) > Math.PI / 2) ang += Math.PI;
+    AREA.group.add(groundText(n.toUpperCase(), (s.a[0] + s.b[0]) / 2, (s.a[1] + s.b[1]) / 2, ang, Math.max(4, Math.min(9, s.w * 0.7)), '#FFFFFF', 0.2));
+  }
+  // estate marker for far-out views
+  const em = document.createElement('button'); em.type = 'button'; em.className = 'lbl estate'; em.textContent = 'Sembawang Brook';
+  em.addEventListener('click', (e) => { e.stopPropagation(); goPreset('iso'); });
+  const eo = new CSS2DObject(em); eo.position.set(ESTATE_CENTRE.x, 120, ESTATE_CENTRE.z); eo.userData.estateMarker = true; AREA.group.add(eo); AREA.labels.push(eo);
+  areaBuildSearch();
+  AREA.status = 'ready'; AREA.message = '';
+  applyArea(); emit('area', AREA);
+}
+function mergeGeos(geos) {
+  let n = 0, ni = 0; for (const g of geos) { n += g.attributes.position.count; ni += g.index ? g.index.count : 0; }
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3), idx = new Uint32Array(ni); let o = 0, oi = 0;
+  for (const g of geos) {
+    pos.set(g.attributes.position.array, o * 3); nor.set(g.attributes.normal.array, o * 3);
+    if (g.index) { const a = g.index.array; for (let k = 0; k < a.length; k++) idx[oi + k] = a[k] + o; oi += a.length; }
+    o += g.attributes.position.count;
+  }
+  const m = new THREE.BufferGeometry(); m.setAttribute('position', new THREE.BufferAttribute(pos, 3)); m.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); m.setIndex(new THREE.BufferAttribute(idx, 1));
+  m.computeBoundingSphere(); return m;
+}
+function areaRecolour() {
+  for (const m of AREA.pickMeshes) { const u = m.geometry.userData; m.geometry.setAttribute('color', state.settings.layers.areaEstimated ? u.colorEst : u.colorBase); }
+  requestRender();
+}
+
+/* ---------- show/hide: estate context that OSM replaces ---------- */
+const OSM_REPLACES_ROADS = new Set(['Admiralty Street', 'Sembawang Drive', 'Woodlands Avenue 10', 'Admiralty Lane (existing, east of Sembawang Drive)']);
+function applyArea() {
+  const on = !!state.settings.layers.area && AREA.status === 'ready';
+  AREA.group.visible = on; setCssVisible(AREA.group, on);
+  const gp = G.ground.getObjectByName('groundPlane'); if (gp) gp.visible = !on;
+  const cp = G.ground.getObjectByName('canalPatch'); if (cp) cp.visible = !on && !state.settings.layers.canal;
+  G.canal.visible = !on && state.settings.layers.canal;
+  for (const o of G.roads.children) { const nm = o.userData.roadName; if (nm && OSM_REPLACES_ROADS.has(nm)) o.visible = !on; }
+  scene.fog.near = on ? 3500 : 1100; scene.fog.far = on ? 11000 : 3200;
+  camera.far = on ? 16000 : 6000; camera.updateProjectionMatrix();
+  controls.maxDistance = on ? 7000 : 1600;
+  $('#areaBadge').hidden = !on;
+  state.shadowsDirty = true; requestRender();
+}
+async function setAreaOn(on, fly = true) {
+  state.settings.layers.area = on; saveSettings(); syncAreaUI();
+  if (on && AREA.status !== 'ready') { await areaLoad(); }
+  applyArea();
+  if (on && fly && AREA.status === 'ready') goPreset('area');
+}
+
+/* ---------- picking + info ---------- */
+const _araycaster = new THREE.Raycaster();
+function areaPick(rc) {
+  if (!AREA.group.visible || !AREA.pickMeshes.length) return null;
+  const hits = rc.intersectObjects(AREA.pickMeshes, false);
+  if (!hits.length) return null;
+  const h = hits[0], bi = h.object.userData.tri2b[h.faceIndex];
+  return bi == null ? null : { kind: 'osm', id: 'osm:' + AREA.data.buildings[bi].id, bi, dist: h.distance };
+}
+function areaInfoHTML(bi) {
+  const b = AREA.data.buildings[bi], src = { h: 'OSM height tag', l: 'OSM storeys', e: 'estimated (no height in OSM)' }[b.s];
+  const kind = b.t ? b.t.replace(/_/g, ' ') : 'building';
+  const osmUrl = 'https://www.openstreetmap.org/' + ({ w: 'way', r: 'relation' }[b.id[0]] || 'way') + '/' + b.id.slice(1);
+  return `<h2>${esc(b.n || (b.a ? (/^\d/.test(b.a) ? 'Blk ' : '') + b.a : 'Building'))}</h2><p class="sub">${esc(kind[0].toUpperCase() + kind.slice(1))} · OpenStreetMap</p>
+    <dl class="kv">${b.a ? `<dt>Address</dt><dd>${esc(b.a)}</dd>` : ''}${b.l ? `<dt>Storeys</dt><dd>${b.l} ${tag('OSM')}</dd>` : ''}
+    <dt>Height</dt><dd>≈ ${fmt(b.h)} m ${tag(b.s === 'e' ? 'Estimated' : 'OSM')}<br><small class="muted">${esc(src)}${b.s === 'l' ? (/^(apartments|residential|dormitory)$/.test(b.t || '') && b.l >= 4 ? ' · 3.6 m void deck + 2.8 m storeys' : ' · 3 m per storey') : ''}</small></dd>
+    <dt>Data</dt><dd>© OpenStreetMap contributors (ODbL) · ${esc(AREA.data.source.kind === 'live' ? 'live' : 'snapshot')} ${esc((AREA.data.source.timestamp || '').slice(0, 10))}</dd></dl>
+    <div class="row"><a class="btn sm ghost" href="${osmUrl}" target="_blank" rel="noopener">View on OpenStreetMap</a></div>`;
+}
+function areaSelection(bi) {
+  const b = AREA.data.buildings[bi], ring = ringPts(b.r), base = b.b || 0, top = b.h;
+  const g = new THREE.Group(), mat = new THREE.LineBasicMaterial({ color: '#0A84FF' });
+  for (const y of [base + 0.2, top + 0.2]) g.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(ring.map(([x, z]) => new THREE.Vector3(x, y, z))), mat));
+  const v = []; for (const [x, z] of ring) v.push(new THREE.Vector3(x, base, z), new THREE.Vector3(x, top, z));
+  g.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(v), mat));
+  return g;
+}
+function areaFocus(bi) {
+  const b = AREA.data.buildings[bi], c = osmCentroid(ringPts(b.r)), d = Math.max(90, b.h * 3);
+  flyTo(new THREE.Vector3(c[0] + d * 0.7, b.h + d * 0.6, c[1] + d * 0.7), new THREE.Vector3(c[0], b.h / 2, c[1]), 50);
+}
+
+/* ---------- search entries ---------- */
+function areaBuildSearch() {
+  AREA.search = [];
+  const d = AREA.data;
+  d.buildings.forEach((b, i) => {
+    if (!b.n && !b.a) return;
+    const label = b.n ? b.n : (/^\d/.test(b.a) ? 'Blk ' : '') + b.a;
+    AREA.search.push({ kind: 'Area', label, sub: [b.n && b.a ? b.a : '', b.l ? b.l + ' storeys' : '', 'OSM'].filter(Boolean).join(' · '),
+      keys: [b.n || '', b.a || '', b.a ? 'blk ' + b.a : ''].filter(Boolean),
+      go: () => { if (!state.settings.layers.area) setAreaOn(true, false); select({ kind: 'osm', id: 'osm:' + b.id, bi: i }); areaFocus(i); } });
+  });
+  for (const p of d.parks) if (p.n) {
+    const c = osmCentroid(ringPts(p.r));
+    AREA.search.push({ kind: 'Park', label: p.n, sub: 'OSM', keys: [p.n, 'park'], go: () => { if (!state.settings.layers.area) setAreaOn(true, false); select(null); flyTo(new THREE.Vector3(c[0] - 260, 260, c[1] + 260), new THREE.Vector3(c[0], 0, c[1]), 50); } });
+  }
+  const roads = new Map(); for (const r of d.roads) if (r.n && !roads.has(r.n)) roads.set(r.n, r);
+  for (const [n, r] of roads) {
+    if (SITE.roads.some((x) => x.name === n)) continue;
+    const pts = ringPts(r.p), m = pts[Math.floor(pts.length / 2)];
+    AREA.search.push({ kind: 'Road', label: n, sub: 'OSM', keys: [n], go: () => { if (!state.settings.layers.area) setAreaOn(true, false); select(null); flyTo(new THREE.Vector3(m[0] + 150, 180, m[1] + 150), new THREE.Vector3(m[0], 0, m[1]), 50); } });
+  }
+  for (const p of AREA.search) p.nkeys = p.keys.map(norm);
+}
+
+/* ---------- sun-ray occlusion by surrounding OSM buildings ---------- */
+/** buildings near a point (prefilter for a flat's sun-hours run) */
+function areaOccludersNear(x, z, R = 1500) {
+  if (AREA.status !== 'ready') return [];
+  return AREA.occ.filter((o) => o.x1 > x - R && o.x0 < x + R && o.z1 > z - R && o.z0 < z + R);
+}
+/** does the ray o + t·d (t>0, d.y>0) pass through any extruded footprint in `occs`? */
+function areaRayBlocked(o, d, occs) {
+  for (const b of occs) {
+    // vertical slab of the building: t where base ≤ y ≤ h
+    let ty0 = (b.base - o.y) / d.y, ty1 = (b.h - o.y) / d.y; if (ty0 > ty1) [ty0, ty1] = [ty1, ty0];
+    let t0 = Math.max(0, ty0), t1 = ty1; if (t1 <= t0) continue;
+    // AABB in x and z
+    for (const [p, dd, lo, hi] of [[o.x, d.x, b.x0, b.x1], [o.z, d.z, b.z0, b.z1]]) {
+      if (Math.abs(dd) < 1e-12) { if (p < lo || p > hi) { t1 = -1; break; } continue; }
+      let a = (lo - p) / dd, c = (hi - p) / dd; if (a > c) [a, c] = [c, a];
+      t0 = Math.max(t0, a); t1 = Math.min(t1, c); if (t1 <= t0) break;
+    }
+    if (t1 <= t0) continue;
+    // exact: 2D segment [t0,t1] against the footprint polygon
+    const ax = o.x + d.x * t0, az = o.z + d.z * t0, bx = o.x + d.x * t1, bz = o.z + d.z * t1;
+    if (osmInPoly(ax, az, b.ring) || osmInPoly(bx, bz, b.ring)) return true;
+    const r = b.ring;
+    for (let k = 0; k < r.length; k++) {
+      const p = r[k], q = r[(k + 1) % r.length];
+      const d1 = (bx - ax) * (p[1] - az) - (bz - az) * (p[0] - ax), d2 = (bx - ax) * (q[1] - az) - (bz - az) * (q[0] - ax);
+      const d3 = (q[0] - p[0]) * (az - p[1]) - (q[1] - p[1]) * (ax - p[0]), d4 = (q[0] - p[0]) * (bz - p[1]) - (q[1] - p[1]) * (bx - p[0]);
+      if ((d1 > 0) !== (d2 > 0) && (d3 > 0) !== (d4 > 0)) return true;
+    }
+  }
+  return false;
+}
+
+/* ---------- UI binding (Explore → Sembawang area) ---------- */
+function syncAreaUI() {
+  const on = !!state.settings.layers.area;
+  $('#btnArea').setAttribute('aria-pressed', on);
+  $('#areaOn').checked = on; $('#areaEst').checked = !!state.settings.layers.areaEstimated;
+  const d = AREA.data, st = $('#areaStatus');
+  if (AREA.status === 'loading') st.textContent = 'Loading the Sembawang area…';
+  else if (AREA.status === 'error') st.textContent = AREA.message;
+  else if (d) {
+    const s = d.stats || {}, hs = s.heightSrc || {};
+    st.innerHTML = `${d.buildings.length.toLocaleString()} buildings · ${((hs.levels || 0) + (hs.height || 0)).toLocaleString()} with heights from OSM, ${(hs.estimated || 0).toLocaleString()} estimated<br>
+      <b>${d.source.kind === 'live' ? 'Live OSM data' : 'Snapshot'}</b> · ${esc((d.source.timestamp || '').replace('T', ' ').slice(0, 16))} UTC${d.land ? '' : ' · coastline not in this data (sea shown as land)'}`;
+  } else st.textContent = 'Off. Turn it on to load about 4,000 OSM buildings around the estate.';
+  $('#areaSnapshot').hidden = !(d && d.source.kind === 'live');
+}
+on('area', () => { syncAreaUI(); if (state.selection && state.selection.kind === 'osm' && AREA.status !== 'ready') select(null); });
+$('#btnArea').addEventListener('click', () => setAreaOn(!state.settings.layers.area));
+$('#areaOn').addEventListener('change', (e) => setAreaOn(e.target.checked));
+$('#areaEst').addEventListener('change', (e) => { state.settings.layers.areaEstimated = e.target.checked; saveSettings(); areaRecolour(); });
+$('#areaUpdate').addEventListener('click', async () => {
+  const btn = $('#areaUpdate'), st = $('#areaStatus'); btn.disabled = true;
+  st.textContent = 'Asking OpenStreetMap (Overpass API)… this can take 20–60 s and ~15 MB.';
+  try {
+    await areaLiveUpdate((n) => { st.textContent = `Downloading from OpenStreetMap… ${(n / 1048576).toFixed(1)} MB`; });
+    state.settings.layers.area = true; saveSettings(); applyArea(); syncAreaUI(); toast('Area updated from OpenStreetMap');
+  } catch (e) { st.textContent = e.message; toast('Live update failed', true); }
+  finally { btn.disabled = false; }
+});
+$('#areaSnapshot').addEventListener('click', async () => { await areaUseSnapshot(); toast('Using the bundled snapshot'); });
+
+/* =====================================================================
    90 MAIN — rebuilds, render loop (on demand), init
    ===================================================================== */
 
@@ -2443,8 +3122,12 @@ const _pp = new THREE.Vector3();
 function updatePinVisibility() {
   const on = state.settings.layers.facilities, far = 200;
   for (const o of G.facilities.children) if (o.isCSS2DObject) o.visible = on && o.getWorldPosition(_pp).distanceTo(camera.position) < far;
-  const lab = state.settings.layers.labels; // small (low-rise) labels only when near
-  for (const o of REG.labels) o.visible = lab && (!o.element.classList.contains('small') || o.getWorldPosition(_pp).distanceTo(camera.position) < 380);
+  const lab = state.settings.layers.labels; // small (low-rise) labels only when near; block labels fade out at area scale
+  for (const o of REG.labels) { const d = o.getWorldPosition(_pp).distanceTo(camera.position); o.visible = lab && d < (o.element.classList.contains('small') ? 380 : 1400); }
+  if (AREA.group.visible) for (const o of AREA.labels) {
+    const d = o.getWorldPosition(_pp).distanceTo(camera.position);
+    o.visible = lab && (o.userData.estateMarker ? d > 1100 : o.userData.always ? true : d < 1700);
+  }
 }
 const _occRay = new THREE.Raycaster(), _lp = new THREE.Vector3(), _dir = new THREE.Vector3();
 let occlFrame = 0;
@@ -2500,9 +3183,10 @@ function init() {
   $('#dataCheck').textContent = issues.join('; ') || 'all brochure totals reproduced (1,360 flats)';
   if (issues.length) toast('Data check: ' + issues[0], true);
   renderer.setAnimationLoop(loop);
+  syncAreaUI(); if (state.settings.layers.area) setAreaOn(true, false);
   document.body.classList.add('ready');
   if (DEBUG) {
-    window.__sb = { state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
+    window.__sb = { AREA, osmConvert, osmCoastLand, osmFromGeoJSON, setAreaOn, areaRayBlocked, state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
   }
 }
 init();

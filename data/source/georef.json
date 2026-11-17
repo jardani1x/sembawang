@@ -1,0 +1,19 @@
+{
+ "lat0": 1.4485,
+ "lon0": 103.819,
+ "M": 6335479.97910273,
+ "N": 6378150.641898369,
+ "tx": -795.376,
+ "tz": -1176.544,
+ "theta": 0.0,
+ "scale": 1.0,
+ "originLatLon": [
+  1.4591402,
+  103.8118527
+ ],
+ "method": "Least-squares fit of the estate block + car-park outlines (site plan, 0.708 m/px) to OpenStreetMap building outlines; rotation -0.09 deg and free scale 0.994 were not significant and are fixed at 0 and 1.",
+ "residual_m": {
+  "median": 0.75,
+  "p80": 1.8
+ }
+}

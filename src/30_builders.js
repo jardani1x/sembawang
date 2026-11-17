@@ -381,16 +381,16 @@ function buildContext() {
   for (const rd of SITE.roads) {
     const drive = /driveway|service/i.test(rd.name);
     const kerb = new THREE.Mesh(ribbonGeometry(rd.line, rd.width + (drive ? 2 : 6), 0.07), new THREE.MeshStandardMaterial({ color: PAL.kerb, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1 }));
-    kerb.receiveShadow = true; G.roads.add(kerb);
+    kerb.receiveShadow = true; kerb.userData.roadName = rd.name; G.roads.add(kerb);
     const asph = new THREE.Mesh(ribbonGeometry(rd.line, rd.width, 0.1), new THREE.MeshStandardMaterial({ color: drive ? PAL.drive : '#9A9794', map: TEX.asphalt, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -2 }));
-    asph.receiveShadow = true; asph.userData = { owner: 'road:' + rd.name, kind: 'road' }; G.roads.add(asph);
+    asph.receiveShadow = true; asph.userData = { owner: 'road:' + rd.name, kind: 'road', roadName: rd.name }; G.roads.add(asph);
     if (!drive && !/unnamed/i.test(rd.name)) {
       // label on the longest segment
       let best = 0, bi = 0; for (let i = 0; i < rd.line.length - 1; i++) { const l = Math.hypot(rd.line[i + 1][0] - rd.line[i][0], rd.line[i + 1][1] - rd.line[i][1]); if (l > best) { best = l; bi = i; } }
       const a = rd.line[bi], b = rd.line[bi + 1];
       let ang = -Math.atan2(b[1] - a[1], b[0] - a[0]); if (Math.abs(ang) > Math.PI / 2) ang += Math.PI;
       const nm = rd.name.replace(/\s*\(existing.*?\)/i, '').replace(/\s*\(future road\)/i, '').toUpperCase() + (rd.status === 'future' ? ' (FUTURE)' : '');
-      G.roads.add(groundText(nm, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, ang, Math.min(4.5, rd.width * 0.22), '#FFFFFF', 0.16));
+      const gt = groundText(nm, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, ang, Math.min(4.5, rd.width * 0.22), '#FFFFFF', 0.16); gt.userData.roadName = rd.name; G.roads.add(gt);
     }
   }
 }
