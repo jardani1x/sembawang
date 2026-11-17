@@ -44,7 +44,7 @@ An interactive 3D model of **Sembawang Brook**, an HDB Build-To-Order estate (20
 
 Press **Area** (or the views **Sembawang area** / **Sembawang Park**, keys <kbd>8</kbd> and <kbd>9</kbd>) to put the estate in its real surroundings. The area runs from Woodlands and Admiralty in the west to Sembawang Park on the coast, between 1.424–1.475°N and 103.79–103.848°E. It holds about **4,000 buildings**, plus roads, canals, drains, ponds and parks, all from [OpenStreetMap](https://www.openstreetmap.org/copyright).
 
-![The Sembawang area around the estate](docs/area.jpg)
+![The Sembawang area around the estate, 17 Nov 16:00, with the sun path](docs/area.jpg)
 
 - **Tap any building** to see its name, address, storeys and height, with where each value came from, and a link to it on openstreetmap.org.
 - **Search** covers OSM names, addresses (for example `10 Admiralty Street`), parks and roads.
@@ -55,7 +55,7 @@ Press **Area** (or the views **Sembawang area** / **Sembawang Park**, keys <kbd>
   - In the bundled snapshot: 1,548 buildings have OSM heights and 2,475 are estimated.
 - **Sun hours for your flat** also count the surrounding OSM buildings while the area is loaded.
 - **Live update (on the GitHub Pages version):** **Explore → Sembawang area → Update from OpenStreetMap** downloads the latest data from the Overpass API (about 15 MB; it can take a minute). It also fetches the coastline, which turns into sea and land. The result is cached in your browser, and **Use bundled snapshot** switches back. Inside the Claude view, outside data is blocked, so the page uses the bundled snapshot instead.
-- **The bundled snapshot** (`data/area-snapshot.json`) was built from an overpass-turbo export on 17 Nov 2026. That export has no coastline, so the sea north of Sembawang Park shows as land until you do a live update.
+- **The bundled snapshot** (`data/area-snapshot.json`) was built from two overpass-turbo exports made on 17 Nov 2026: the main one (buildings, roads, water, parks) and a coastline-only one. So the Straits of Johor show as sea, with the shoreline and the old naval-base basins as OSM maps them.
 - **Placing the estate:** the estate's block and car-park outlines were fitted to OSM's own outlines of Sembawang Brook. The median gap is **0.75 m**, and the fit puts the site origin at 1.45914°N, 103.81185°E. The same fit independently confirmed the brochure's north arrow (best rotation −0.09°) and its scale (within 0.6%). OSM buildings inside the estate boundary are replaced by the detailed model.
 
 ![Sembawang Park](docs/sembawang-park.jpg)
@@ -135,6 +135,10 @@ Click **Sun** to open the sun bar:
 - **Play day** at ½, 1 or 3 hours per second, or **Now**
 - the readout shows altitude, azimuth, sunrise, solar noon and sunset
 - turn on the **Sun path** layer to draw the day's arc with hour markers
+
+The sun is about 150 million km away, so at any moment it sits in the same direction for every building in Sembawang and its rays arrive parallel. The sun path is therefore drawn as a dome: over the estate in the estate view, and over whatever part of the map you are looking at in the area view. Only its size and centre change; the directions and times on it are the same. Near the equator (1.46° N) the arc is tall. The sun rises in the east, passes almost overhead at noon (about 25° off the zenith to the south in December, 22° to the north in June) and sets in the west.
+
+Shadows work the same way. In the estate view they cover about 660 m around the estate, at full sharpness. In the area view they follow the view, so every surrounding building casts one, and zoomed out they cover the whole map at coarser resolution.
 
 ![Sun study, 21 June 17:00](docs/sun-study.jpg)
 
@@ -253,9 +257,9 @@ python3 tools/build.py          # inline src/ + data/ into index.html
 - Edit the modules in `src/`, never `index.html` directly, then rebuild.
 - To change a building's geometry, edit `data/source/siteplan.json` and its corrections in `tools/build_data.py`.
 
-**Refresh the area snapshot** from a new export. In [overpass-turbo](https://overpass-turbo.eu), run the query that `OSM_QUERY` in `src/75_osmconv.js` builds (add `way["natural"="coastline"]` to get the sea), then **Export → GeoJSON**:
+**Refresh the area snapshot** from new exports. In [overpass-turbo](https://overpass-turbo.eu), run the query that `OSM_QUERY` in `src/75_osmconv.js` builds and **Export → GeoJSON**. If the export has no coastline, export it separately with `[out:json][timeout:60];way["natural"="coastline"](1.424,103.79,1.475,103.848);out geom;`. Then merge them (a feature in both is kept once):
 ```sh
-node tools/build_area.mjs export.geojson 1.430,103.795,1.475,103.845   # the export's S,W,N,E box
+node tools/build_area.mjs export.geojson coastline.geojson 1.430,103.795,1.475,103.845   # last arg: the main export's S,W,N,E box
 ```
 
 **Optional private build** that opens with a flat preselected (keep it out of the public repo):
@@ -281,7 +285,8 @@ The suite runs headless Chrome (58 checks). It covers:
 - the sun bar and playback, measure, walk, the heights editor
 - export, import, and rejection of a bad import
 - persistence, PNG export, and the phone layout
-- the area view: snapshot load and render budget, the coastline-to-land algorithm on synthetic shapes, OSM search and tapping a building, sun hours with the surroundings, and the live update. The live update test routes the Overpass request to a fixture made from the export plus a synthetic coastline, then checks the data matches the snapshot exactly, that it is cached across reloads, and that switching back to the snapshot works.
+- the area view: snapshot load and render budget; land and sea in the right places (the estate and Sembawang Park on land, two points in the Straits at sea); the coastline-to-land algorithm on synthetic shapes; OSM search and tapping a building; sun hours with the surroundings; the sunlight frame (whole map in the overview, back to the estate when the area is off); a pixel test that buildings 1.6–2.1 km from the estate cast shadows; and the live update.
+- The live update test routes the Overpass request to a fixture built from the exports (`OSM_EXPORT=export.geojson:coastline.geojson`). It uses the real coastline, or a synthetic one if none is given. It then checks that the data matches the snapshot exactly, that land and sea are right in the live query box (Singapore plus a sliver of the Johor shore), that it is cached across reloads, and that switching back to the snapshot works.
 
 Screenshots go to `tests/shots/`, which is gitignored. The tests run in a software renderer, so they don't measure frame rate or iOS Safari behaviour.
 
@@ -302,7 +307,7 @@ The site appears at `https://jardani1x.github.io/sembawang-brooks/` within a few
 - **Blk 438A:** the brochure doesn't say which tower holds the 1-Room flats and which the 2-Room, and no rental unit numbers are printed.
 - **Reserved sites** around the estate (including the church site to the north) are flat, so future buildings there could reduce views and sun.
 - **Trees, play equipment and roof-garden items** are representative.
-- **The area view:** about 60% of the surrounding buildings have estimated heights. The bundled snapshot has no coastline (a live update adds it). Shadows are drawn around the estate only, though the sun-hours estimate counts all loaded buildings.
+- **The area view:** about 60% of the surrounding buildings have estimated heights. The ground is drawn only inside the query box, so the few buildings that straddle its edge (in Yishun, to the south) overhang it. Zoomed out, area shadows are coarse (about 2 m per shadow-map pixel on a computer, 4 m on a phone).
 - **The live update** has been tested end to end against a fixture, not against the real Overpass server, which this build environment can't reach.
 - **Not tested on real phones** for frame rate or iOS Safari quirks.
 

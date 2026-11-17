@@ -76,13 +76,30 @@ const hhmm = (m) => { if (m == null) return '—'; const t = Math.round(m); retu
 
 const _sd = new THREE.Vector3();
 let lastSun = null;
+/* Where the sunlight and the sun-path dome are centred, and how big they are.
+   The sun is ~150 million km away, so its direction is the same for every building in Sembawang;
+   the frame only decides WHICH buildings get shadows and how large the dome is drawn.
+   Estate only: tight around the estate (sharpest shadows). Area view: follows what you are looking at,
+   sized to the view, moving in half-frame steps so small pans don't re-render the shadow map. */
+const SUN_FRAMES = [[400, 330], [700, 600], [1300, 1100], [2400, 2000], [Infinity, 4000]]; // camera distance → half-size (m); 4 km covers the whole ground extent
+let sunFrame = { x: NaN, z: NaN, half: 0, area: false };
+function sunFrameFor() {
+  if (!(state.settings.layers.area && AREA.status === 'ready')) return { x: ESTATE_CENTRE.x, z: ESTATE_CENTRE.z, half: 330, area: false };
+  const d = camera.position.distanceTo(controls.target);
+  const half = SUN_FRAMES.find((f) => d < f[0])[1], snap = half / 2;
+  return { x: Math.round(controls.target.x / snap) * snap, z: Math.round(controls.target.z / snap) * snap, half, area: true };
+}
+const sunFrameChanged = (f) => f.x !== sunFrame.x || f.z !== sunFrame.z || f.half !== sunFrame.half || f.area !== sunFrame.area;
 function updateSun() {
   const s = state.settings.sun; const dateStr = s.date || todaySGT();
   const p = sunAt(dateStr, s.minutes); lastSun = { ...p, dateStr, minutes: s.minutes };
   sunDir(p.az, p.el, _sd);
-  const c = ESTATE_CENTRE;
+  const f = sunFrame = sunFrameFor(), c = new THREE.Vector3(f.x, 0, f.z), D = f.half * 1.5 + 600;
   sun.target.position.copy(c); sun.target.updateMatrixWorld();
-  sun.position.copy(c).addScaledVector(_sd, 900);
+  sun.position.copy(c).addScaledVector(_sd, D);
+  Object.assign(sun.shadow.camera, { left: -f.half, right: f.half, top: f.half, bottom: -f.half, near: 10, far: 2 * D });
+  sun.shadow.camera.updateProjectionMatrix();
+  sun.shadow.normalBias = Math.max(0.5, 1.2 * 2 * f.half / SHADOW_SIZE); // coarser texels in the wide frames need more bias
   const day = clamp((p.el + 2) / 10, 0, 1);
   sun.intensity = 2.6 * day; sun.castShadow = state.settings.layers.shadows && p.el > 0;
   hemi.intensity = 0.45 + 0.75 * day;
@@ -95,18 +112,20 @@ function buildSunPath(dateStr) {
   clearGroup(G.sunPath, true);
   G.sunPath.visible = state.settings.layers.sunPath;
   if (!state.settings.layers.sunPath) return;
-  const R = 420, c = ESTATE_CENTRE, pts = [];
+  // dome over the estate, or (area view) over whatever part of the map is in view — same sun directions either way
+  const f = sunFrame.half ? sunFrame : sunFrameFor();
+  const R = f.area ? Math.min(2900, Math.max(420, f.half * 1.15)) : 420, k = R / 420, c = new THREE.Vector3(f.x, 0, f.z), pts = [];
   for (let m = 0; m < 1440; m += 10) { const p = sunAt(dateStr, m); if (p.el > 0) pts.push(sunDir(p.az, p.el).multiplyScalar(R).add(c)); }
-  if (pts.length > 1) G.sunPath.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#F5A623' })));
+  if (pts.length > 1) G.sunPath.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#F5A623', fog: false })));
   if (lastSun && lastSun.el > 0) {
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(9, 20, 12), new THREE.MeshBasicMaterial({ color: '#FFC83D' }));
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(9 * k, 20, 12), new THREE.MeshBasicMaterial({ color: '#FFC83D', fog: false }));
     ball.position.copy(sunDir(lastSun.az, lastSun.el).multiplyScalar(R).add(c)); G.sunPath.add(ball);
   }
   // hour ticks
   for (let h = 7; h <= 19; h++) {
     const p = sunAt(dateStr, h * 60); if (p.el <= 0) continue;
     const el = document.createElement('div'); el.className = 'hour'; el.textContent = h;
-    const o = new CSS2DObject(el); o.position.copy(sunDir(p.az, p.el).multiplyScalar(R + 18).add(c)); G.sunPath.add(o);
+    const o = new CSS2DObject(el); o.position.copy(sunDir(p.az, p.el).multiplyScalar(R + 18 * k).add(c)); G.sunPath.add(o);
   }
 }
 

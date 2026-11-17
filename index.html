@@ -325,10 +325,10 @@ body.mobile .kv{grid-template-columns:84px 1fr}
   </ul>
   <h3>Sembawang area (OpenStreetMap)</h3>
   <ul>
-    <li>Buildings, roads, water and parks come from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (© OpenStreetMap contributors, ODbL). The bundled snapshot is from an overpass-turbo export; on the GitHub Pages version you can update it live.</li>
+    <li>Buildings, roads, water and parks come from <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (© OpenStreetMap contributors, ODbL). The bundled snapshot is from overpass-turbo exports, coastline included; on the GitHub Pages version you can update it live.</li>
     <li>Heights come from OSM <i>height</i> or <i>storeys</i> tags where present (most HDB blocks). The rest, mostly factories, sheds and houses, use modest defaults and are marked <i>Estimated</i>.</li>
     <li>The estate is placed by fitting its block outlines to OSM's (median gap 0.75 m). That also confirmed the brochure's north and scale (within 0.6%).</li>
-    <li>Shadows are computed around the estate; buildings far out don't cast shadows in the view, but they do count in the sun-hours estimate.</li>
+    <li>The sun is so far away that it sits in the same direction for every building here, so the sun path is drawn as a dome over whatever you're looking at: the estate, or in the area view the part of the map in view. Shadows follow the view too, so every building casts one; zoomed out they are coarser.</li>
   </ul>
   <h3>Known uncertainties</h3>
   <ul>
@@ -1647,13 +1647,30 @@ const hhmm = (m) => { if (m == null) return '—'; const t = Math.round(m); retu
 
 const _sd = new THREE.Vector3();
 let lastSun = null;
+/* Where the sunlight and the sun-path dome are centred, and how big they are.
+   The sun is ~150 million km away, so its direction is the same for every building in Sembawang;
+   the frame only decides WHICH buildings get shadows and how large the dome is drawn.
+   Estate only: tight around the estate (sharpest shadows). Area view: follows what you are looking at,
+   sized to the view, moving in half-frame steps so small pans don't re-render the shadow map. */
+const SUN_FRAMES = [[400, 330], [700, 600], [1300, 1100], [2400, 2000], [Infinity, 4000]]; // camera distance → half-size (m); 4 km covers the whole ground extent
+let sunFrame = { x: NaN, z: NaN, half: 0, area: false };
+function sunFrameFor() {
+  if (!(state.settings.layers.area && AREA.status === 'ready')) return { x: ESTATE_CENTRE.x, z: ESTATE_CENTRE.z, half: 330, area: false };
+  const d = camera.position.distanceTo(controls.target);
+  const half = SUN_FRAMES.find((f) => d < f[0])[1], snap = half / 2;
+  return { x: Math.round(controls.target.x / snap) * snap, z: Math.round(controls.target.z / snap) * snap, half, area: true };
+}
+const sunFrameChanged = (f) => f.x !== sunFrame.x || f.z !== sunFrame.z || f.half !== sunFrame.half || f.area !== sunFrame.area;
 function updateSun() {
   const s = state.settings.sun; const dateStr = s.date || todaySGT();
   const p = sunAt(dateStr, s.minutes); lastSun = { ...p, dateStr, minutes: s.minutes };
   sunDir(p.az, p.el, _sd);
-  const c = ESTATE_CENTRE;
+  const f = sunFrame = sunFrameFor(), c = new THREE.Vector3(f.x, 0, f.z), D = f.half * 1.5 + 600;
   sun.target.position.copy(c); sun.target.updateMatrixWorld();
-  sun.position.copy(c).addScaledVector(_sd, 900);
+  sun.position.copy(c).addScaledVector(_sd, D);
+  Object.assign(sun.shadow.camera, { left: -f.half, right: f.half, top: f.half, bottom: -f.half, near: 10, far: 2 * D });
+  sun.shadow.camera.updateProjectionMatrix();
+  sun.shadow.normalBias = Math.max(0.5, 1.2 * 2 * f.half / SHADOW_SIZE); // coarser texels in the wide frames need more bias
   const day = clamp((p.el + 2) / 10, 0, 1);
   sun.intensity = 2.6 * day; sun.castShadow = state.settings.layers.shadows && p.el > 0;
   hemi.intensity = 0.45 + 0.75 * day;
@@ -1666,18 +1683,20 @@ function buildSunPath(dateStr) {
   clearGroup(G.sunPath, true);
   G.sunPath.visible = state.settings.layers.sunPath;
   if (!state.settings.layers.sunPath) return;
-  const R = 420, c = ESTATE_CENTRE, pts = [];
+  // dome over the estate, or (area view) over whatever part of the map is in view — same sun directions either way
+  const f = sunFrame.half ? sunFrame : sunFrameFor();
+  const R = f.area ? Math.min(2900, Math.max(420, f.half * 1.15)) : 420, k = R / 420, c = new THREE.Vector3(f.x, 0, f.z), pts = [];
   for (let m = 0; m < 1440; m += 10) { const p = sunAt(dateStr, m); if (p.el > 0) pts.push(sunDir(p.az, p.el).multiplyScalar(R).add(c)); }
-  if (pts.length > 1) G.sunPath.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#F5A623' })));
+  if (pts.length > 1) G.sunPath.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#F5A623', fog: false })));
   if (lastSun && lastSun.el > 0) {
-    const ball = new THREE.Mesh(new THREE.SphereGeometry(9, 20, 12), new THREE.MeshBasicMaterial({ color: '#FFC83D' }));
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(9 * k, 20, 12), new THREE.MeshBasicMaterial({ color: '#FFC83D', fog: false }));
     ball.position.copy(sunDir(lastSun.az, lastSun.el).multiplyScalar(R).add(c)); G.sunPath.add(ball);
   }
   // hour ticks
   for (let h = 7; h <= 19; h++) {
     const p = sunAt(dateStr, h * 60); if (p.el <= 0) continue;
     const el = document.createElement('div'); el.className = 'hour'; el.textContent = h;
-    const o = new CSS2DObject(el); o.position.copy(sunDir(p.az, p.el).multiplyScalar(R + 18).add(c)); G.sunPath.add(o);
+    const o = new CSS2DObject(el); o.position.copy(sunDir(p.az, p.el).multiplyScalar(R + 18 * k).add(c)); G.sunPath.add(o);
   }
 }
 
@@ -2451,14 +2470,17 @@ renderer.domElement.addEventListener('pointerup', (e) => { if (walk.look && walk
    ===================================================================== */
 
 const OSMCONV_VERSION = 1;
-const OSM_BBOX = [1.4240, 103.7900, 1.4750, 103.8480]; // S, W, N, E — live query: Sembawang town to Sembawang Park and the coast
+const OSM_BBOX = [1.4240, 103.7900, 1.4750, 103.8480];
+const EXT_CAP = 1000; // m: how far the ground may extend beyond the query box (< the 0.01° coastline margin) // S, W, N, E — live query: Sembawang town to Sembawang Park and the coast
 const OSM_QUERY = (b = OSM_BBOX) => {
   const bb = b.join(',');
+  // coastline from a box 0.01° (~1.1 km) wider, so it is complete under the ground extent (see EXT_CAP)
+  const bc = [b[0] - 0.01, b[1] - 0.01, b[2] + 0.01, b[3] + 0.01].map((v) => +v.toFixed(4)).join(',');
   return `[out:json][timeout:180];(` +
     `way["building"](${bb});relation["building"](${bb});` +
     `way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street|service|pedestrian|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link)$"](${bb});` +
     `way["waterway"](${bb});way["natural"="water"](${bb});relation["natural"="water"](${bb});` +
-    `way["leisure"="park"](${bb});relation["leisure"="park"](${bb});way["natural"="coastline"](${bb});` +
+    `way["leisure"="park"](${bb});relation["leisure"="park"](${bb});way["natural"="coastline"](${bc});` +
     `);out geom;`;
 };
 
@@ -2676,9 +2698,18 @@ function osmConvert(elements, opts) {
       }
     }
   }
+  // ground extent: the query box grown to cover features that straddle it (Overpass returns whole ways), capped
+  const ext = bbox.slice(), grow = (f) => { for (let i = 0; i < f.length; i += 2) { if (f[i] < ext[0]) ext[0] = f[i]; if (f[i + 1] < ext[1]) ext[1] = f[i + 1]; if (f[i] > ext[2]) ext[2] = f[i]; if (f[i + 1] > ext[3]) ext[3] = f[i + 1]; } };
+  for (const k of ['buildings', 'water', 'parks']) for (const o of out[k]) grow(o.r);
+  for (const k of ['roads', 'waterways']) for (const o of out[k]) grow(o.p);
+  out.ext = [Math.max(ext[0], bbox[0] - EXT_CAP), Math.max(ext[1], bbox[1] - EXT_CAP), Math.min(ext[2], bbox[2] + EXT_CAP), Math.min(ext[3], bbox[3] + EXT_CAP)].map(Math.round);
   if (coast.length) {
     const chains = osmJoin(coast, false);
-    out.land = osmCoastLand(chains, bbox).map((r) => r.map((p) => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]).flat());
+    // land on the ground extent — unless a coastline ends inside it (shore missing there): then only the query box
+    const [ex0, ez0, ex1, ez1] = out.ext, inExt = (p) => p[0] > ex0 && p[0] < ex1 && p[1] > ez0 && p[1] < ez1;
+    const ok = chains.every((c) => (c[0][0] === c[c.length - 1][0] && c[0][1] === c[c.length - 1][1]) || (!inExt(c[0]) && !inExt(c[c.length - 1])));
+    if (!ok) out.ext = bbox.map(Math.round);
+    out.land = osmCoastLand(chains, out.ext).map((r) => r.map((p) => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]).flat());
   }
   out.stats = st;
   return out;
@@ -2819,11 +2850,12 @@ async function areaUseSnapshot() { await cacheDel(); AREA.status = 'off'; clearG
 function areaUse(d) {
   if (state.selection && state.selection.kind === 'osm') select(null); // building indices change with new data
   AREA.data = d; clearGroup(AREA.group, true); AREA.pickMeshes = []; AREA.occ = []; AREA.labels = [];
-  const [bx0, bz0, bx1, bz1] = d.bbox;
+  const [bx0, bz0, bx1, bz1] = Array.isArray(d.ext) && d.ext.length === 4 ? d.ext : d.bbox; // ground covers features straddling the query box
   // ground: land (or sea + coast-derived land)
   const rect = [[bx0, bz0], [bx1, bz0], [bx1, bz1], [bx0, bz1]];
   if (Array.isArray(d.land) && d.land.length) {
-    AREA.group.add(flatPoly(rect, -0.35, new THREE.MeshStandardMaterial({ color: AREA_COL.sea, roughness: 0.25, metalness: 0.05 })));
+    // the land sits only 0.3 m above the sea; at 5 km that is below depth-buffer precision, so push the sea back
+    AREA.group.add(flatPoly(rect, -0.35, new THREE.MeshStandardMaterial({ color: AREA_COL.sea, roughness: 0.25, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 8 })));
     for (const r of d.land) AREA.group.add(flatPoly(ringPts(r), -0.06, new THREE.MeshStandardMaterial({ color: AREA_COL.land, roughness: 1 })));
   } else AREA.group.add(flatPoly(rect, -0.06, new THREE.MeshStandardMaterial({ color: AREA_COL.land, roughness: 1 })));
   // parks + water polygons
@@ -2949,8 +2981,11 @@ function applyArea() {
   camera.far = on ? 16000 : 6000; camera.updateProjectionMatrix();
   controls.maxDistance = on ? 7000 : 1600;
   $('#areaBadge').hidden = !on;
+  if (sunFrameChanged(sunFrameFor())) updateSun(); // sunlight/shadows/sun path: estate frame ↔ area frame
   state.shadowsDirty = true; requestRender();
 }
+// in the area view the sunlight, shadows and sun path follow the view (see sunFrameFor)
+controls.addEventListener('change', () => { if (state.settings.layers.area && AREA.status === 'ready' && sunFrameChanged(sunFrameFor())) updateSun(); });
 async function setAreaOn(on, fly = true) {
   state.settings.layers.area = on; saveSettings(); syncAreaUI();
   if (on && AREA.status !== 'ready') { await areaLoad(); }
@@ -3186,7 +3221,7 @@ function init() {
   syncAreaUI(); if (state.settings.layers.area) setAreaOn(true, false);
   document.body.classList.add('ready');
   if (DEBUG) {
-    window.__sb = { AREA, osmConvert, osmCoastLand, osmFromGeoJSON, setAreaOn, areaRayBlocked, state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
+    window.__sb = { AREA, osmConvert, osmCoastLand, osmFromGeoJSON, osmProjector, setAreaOn, areaRayBlocked, sunFrame: () => sunFrame, estateCentre: () => ESTATE_CENTRE, state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
   }
 }
 init();

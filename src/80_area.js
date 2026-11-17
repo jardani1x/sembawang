@@ -112,11 +112,12 @@ async function areaUseSnapshot() { await cacheDel(); AREA.status = 'off'; clearG
 function areaUse(d) {
   if (state.selection && state.selection.kind === 'osm') select(null); // building indices change with new data
   AREA.data = d; clearGroup(AREA.group, true); AREA.pickMeshes = []; AREA.occ = []; AREA.labels = [];
-  const [bx0, bz0, bx1, bz1] = d.bbox;
+  const [bx0, bz0, bx1, bz1] = Array.isArray(d.ext) && d.ext.length === 4 ? d.ext : d.bbox; // ground covers features straddling the query box
   // ground: land (or sea + coast-derived land)
   const rect = [[bx0, bz0], [bx1, bz0], [bx1, bz1], [bx0, bz1]];
   if (Array.isArray(d.land) && d.land.length) {
-    AREA.group.add(flatPoly(rect, -0.35, new THREE.MeshStandardMaterial({ color: AREA_COL.sea, roughness: 0.25, metalness: 0.05 })));
+    // the land sits only 0.3 m above the sea; at 5 km that is below depth-buffer precision, so push the sea back
+    AREA.group.add(flatPoly(rect, -0.35, new THREE.MeshStandardMaterial({ color: AREA_COL.sea, roughness: 0.25, metalness: 0.05, polygonOffset: true, polygonOffsetFactor: 4, polygonOffsetUnits: 8 })));
     for (const r of d.land) AREA.group.add(flatPoly(ringPts(r), -0.06, new THREE.MeshStandardMaterial({ color: AREA_COL.land, roughness: 1 })));
   } else AREA.group.add(flatPoly(rect, -0.06, new THREE.MeshStandardMaterial({ color: AREA_COL.land, roughness: 1 })));
   // parks + water polygons
@@ -242,8 +243,11 @@ function applyArea() {
   camera.far = on ? 16000 : 6000; camera.updateProjectionMatrix();
   controls.maxDistance = on ? 7000 : 1600;
   $('#areaBadge').hidden = !on;
+  if (sunFrameChanged(sunFrameFor())) updateSun(); // sunlight/shadows/sun path: estate frame ↔ area frame
   state.shadowsDirty = true; requestRender();
 }
+// in the area view the sunlight, shadows and sun path follow the view (see sunFrameFor)
+controls.addEventListener('change', () => { if (state.settings.layers.area && AREA.status === 'ready' && sunFrameChanged(sunFrameFor())) updateSun(); });
 async function setAreaOn(on, fly = true) {
   state.settings.layers.area = on; saveSettings(); syncAreaUI();
   if (on && AREA.status !== 'ready') { await areaLoad(); }

@@ -10,14 +10,17 @@
    ===================================================================== */
 
 const OSMCONV_VERSION = 1;
-const OSM_BBOX = [1.4240, 103.7900, 1.4750, 103.8480]; // S, W, N, E — live query: Sembawang town to Sembawang Park and the coast
+const OSM_BBOX = [1.4240, 103.7900, 1.4750, 103.8480];
+const EXT_CAP = 1000; // m: how far the ground may extend beyond the query box (< the 0.01° coastline margin) // S, W, N, E — live query: Sembawang town to Sembawang Park and the coast
 const OSM_QUERY = (b = OSM_BBOX) => {
   const bb = b.join(',');
+  // coastline from a box 0.01° (~1.1 km) wider, so it is complete under the ground extent (see EXT_CAP)
+  const bc = [b[0] - 0.01, b[1] - 0.01, b[2] + 0.01, b[3] + 0.01].map((v) => +v.toFixed(4)).join(',');
   return `[out:json][timeout:180];(` +
     `way["building"](${bb});relation["building"](${bb});` +
     `way["highway"~"^(motorway|trunk|primary|secondary|tertiary|residential|unclassified|living_street|service|pedestrian|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link)$"](${bb});` +
     `way["waterway"](${bb});way["natural"="water"](${bb});relation["natural"="water"](${bb});` +
-    `way["leisure"="park"](${bb});relation["leisure"="park"](${bb});way["natural"="coastline"](${bb});` +
+    `way["leisure"="park"](${bb});relation["leisure"="park"](${bb});way["natural"="coastline"](${bc});` +
     `);out geom;`;
 };
 
@@ -235,9 +238,18 @@ function osmConvert(elements, opts) {
       }
     }
   }
+  // ground extent: the query box grown to cover features that straddle it (Overpass returns whole ways), capped
+  const ext = bbox.slice(), grow = (f) => { for (let i = 0; i < f.length; i += 2) { if (f[i] < ext[0]) ext[0] = f[i]; if (f[i + 1] < ext[1]) ext[1] = f[i + 1]; if (f[i] > ext[2]) ext[2] = f[i]; if (f[i + 1] > ext[3]) ext[3] = f[i + 1]; } };
+  for (const k of ['buildings', 'water', 'parks']) for (const o of out[k]) grow(o.r);
+  for (const k of ['roads', 'waterways']) for (const o of out[k]) grow(o.p);
+  out.ext = [Math.max(ext[0], bbox[0] - EXT_CAP), Math.max(ext[1], bbox[1] - EXT_CAP), Math.min(ext[2], bbox[2] + EXT_CAP), Math.min(ext[3], bbox[3] + EXT_CAP)].map(Math.round);
   if (coast.length) {
     const chains = osmJoin(coast, false);
-    out.land = osmCoastLand(chains, bbox).map((r) => r.map((p) => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]).flat());
+    // land on the ground extent — unless a coastline ends inside it (shore missing there): then only the query box
+    const [ex0, ez0, ex1, ez1] = out.ext, inExt = (p) => p[0] > ex0 && p[0] < ex1 && p[1] > ez0 && p[1] < ez1;
+    const ok = chains.every((c) => (c[0][0] === c[c.length - 1][0] && c[0][1] === c[c.length - 1][1]) || (!inExt(c[0]) && !inExt(c[c.length - 1])));
+    if (!ok) out.ext = bbox.map(Math.round);
+    out.land = osmCoastLand(chains, out.ext).map((r) => r.map((p) => [Math.round(p[0] * 10) / 10, Math.round(p[1] * 10) / 10]).flat());
   }
   out.stats = st;
   return out;
