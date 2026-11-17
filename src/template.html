@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Interactive 3D model of the Sembawang Brook HDB BTO estate, reconstructed from the brochure site plan and the sales model.">
+<title>Sembawang Brook · 3D estate model</title>
+<style>/*__CSS__*/</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body data-tool="orbit">
+<header id="topbar">
+  <button id="btnMenu" class="icon" type="button" aria-label="Show or hide the explore panel" title="Explore panel">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  <div class="title"><b>Sembawang Brook</b><span>3D estate model</span></div>
+  <div class="search">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="search" type="search" placeholder="Search block, #unit, flat type, facility…" autocomplete="off" aria-label="Search" aria-controls="searchResults">
+    <div id="searchResults" role="listbox" hidden></div>
+  </div>
+  <nav class="actions" aria-label="Tools">
+    <button id="btnMeasure" type="button" aria-pressed="false" title="Measure (M)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 17L17 3l4 4L7 21z M7 13l2 2 M10 10l2 2 M13 7l2 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Measure</span></button>
+    <button id="btnWalk" type="button" aria-pressed="false" title="Walk at eye level"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="13" cy="4" r="2" fill="currentColor"/><path d="M10 22l2-7 3 3v6 M8 12l3-4 4 1 2 4 M12 8l-1 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Walk</span></button>
+    <button id="btnSun" type="button" aria-pressed="false" title="Sun & shadow study"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Sun</span></button>
+    <button id="btnShot" type="button" title="Save image (PNG)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.5-2h5L16 6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Image</span></button>
+    <button id="btnMore" type="button" aria-haspopup="menu" title="More"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg><span class="sr">More</span></button>
+  </nav>
+  <div id="menu" role="menu" hidden>
+    <button type="button" role="menuitem" data-act="export">Export settings + data (JSON)</button>
+    <button type="button" role="menuitem" data-act="import">Import JSON…</button>
+    <button type="button" role="menuitem" data-act="reset">Reset settings</button>
+    <hr>
+    <button type="button" role="menuitem" data-act="help">Controls &amp; shortcuts</button>
+    <button type="button" role="menuitem" data-act="about">About this model &amp; sources</button>
+  </div>
+</header>
+
+<div id="viewport">
+  <button id="compass" type="button" title="Tap to face north" aria-label="Compass: tap to face north"><span class="dial"><b>N</b><i class="ndl n"></i><i class="ndl s"></i></span></button>
+  <div id="toolHint" hidden><span></span><output id="measureOut"></output><button id="toolExit" type="button">Done</button></div>
+  <div id="joy" hidden aria-hidden="true"><i></i></div>
+</div>
+
+<aside id="left" class="panel open" aria-label="Explore">
+  <div class="phead"><b>Explore</b><button id="leftClose" class="icon" type="button" aria-label="Close panel">×</button></div>
+  <div class="pbody">
+    <details id="sec-mine" open><summary>My flat</summary>
+      <form id="muForm" class="form">
+        <label>Block<select id="muBlock"></select></label>
+        <label>Unit<select id="muUnit"></select></label>
+        <label>Storey<input id="muStorey" type="number" min="2" max="30" step="1" value="10" inputmode="numeric"></label>
+        <div class="row"><button class="btn" type="submit">Show my flat</button><button class="btn ghost" type="button" id="muClear">Clear</button></div>
+        <p id="muErr" class="err" role="alert"></p>
+      </form>
+      <div id="muOut"></div>
+    </details>
+    <details id="sec-blocks" open><summary>Blocks</summary><div id="blockList" class="blist"></div></details>
+    <details id="sec-types" open><summary>Flat types</summary>
+      <label class="switch"><input type="checkbox" id="colourByType"><span>Colour stacks by flat type</span></label>
+      <div id="typeChips" class="chips" aria-label="Filter by flat type"></div>
+      <div class="row between"><small id="typeSummary" class="muted"></small><button class="link" type="button" id="typeClear">Clear filter</button></div>
+    </details>
+    <details id="sec-storey"><summary>Storey highlight</summary>
+      <label class="switch"><input type="checkbox" id="storeyOn"><span>Highlight one storey on every block</span></label>
+      <input id="storeyN" type="range" min="2" max="30" step="1" value="10" aria-label="Storey">
+      <small id="storeyOut" class="muted"></small>
+    </details>
+    <details id="sec-layers"><summary>Layers</summary>
+      <div id="layers" class="layers">
+        <label><input type="checkbox" name="labels">Block labels</label>
+        <label><input type="checkbox" name="facilities">Facility pins</label>
+        <label><input type="checkbox" name="roads">Roads</label>
+        <label><input type="checkbox" name="canal">Canal</label>
+        <label><input type="checkbox" name="linkways">Covered linkways</label>
+        <label><input type="checkbox" name="landscape">Trees &amp; play areas</label>
+        <label><input type="checkbox" name="context">Neighbouring sites</label>
+        <label><input type="checkbox" name="shadows">Shadows</label>
+        <label><input type="checkbox" name="sunPath">Sun path</label>
+      </div>
+    </details>
+    <details id="sec-heights"><summary>Heights (assumed)</summary>
+      <form id="hForm" class="form">
+        <p class="note">The brochure gives storey counts but no heights. Defaults match the sales-model photos: storeys 2.7–2.9 m apart, void deck 3.2–4.6 m.</p>
+        <label>Floor-to-floor (m)<input id="hF2F" type="number" min="2.4" max="3.6" step="0.05" inputmode="decimal"></label>
+        <label>Void deck (m)<input id="hVD" type="number" min="2.4" max="6" step="0.1" inputmode="decimal"></label>
+        <div class="row"><button class="btn" type="submit">Apply</button><button class="btn ghost" type="button" id="hReset">Reset 2.8 / 3.6</button></div>
+        <p id="hErr" class="err" role="alert"></p>
+      </form>
+    </details>
+  </div>
+</aside>
+
+<aside id="info" class="panel" aria-label="Details" aria-live="polite">
+  <div class="phead"><b>Details</b><button id="infoClose" class="icon" type="button" aria-label="Close details">×</button></div>
+  <div id="infoBody" class="pbody"></div>
+</aside>
+
+<section id="sunbar" aria-label="Sun and shadow study">
+  <div class="sunrow">
+    <label>Date<input id="sunDate" type="date"></label>
+    <label class="grow">Time (SGT)<input id="sunTime" type="range" min="360" max="1200" step="5"></label>
+    <button id="sunPlay" class="btn sm" type="button" aria-pressed="false">Play day</button>
+    <select id="sunSpeed" aria-label="Playback speed"><option value="30">½ h/s</option><option value="60" selected>1 h/s</option><option value="180">3 h/s</option></select>
+    <button id="sunNow" class="btn sm ghost" type="button">Now</button>
+  </div>
+  <div id="sunRead" class="sunread"></div>
+</section>
+
+<footer id="bottombar">
+  <div id="presets" class="presets" role="toolbar" aria-label="Camera views"></div>
+  <button id="btnFocus" class="btn sm ghost" type="button" title="Focus selection (F)">Focus</button>
+  <button id="btnReset" class="btn sm ghost" type="button" title="Reset view (R)">Reset</button>
+</footer>
+
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+
+<dialog id="about">
+  <button class="close icon" type="button" aria-label="Close">×</button>
+  <h2>About this model</h2>
+  <p>A reconstruction of <b>Sembawang Brook</b> (HDB BTO 2026) from the brochure site plan and photos of HDB's 1:300 sales model. It is <b>not a survey</b>, and the brochure says layouts and facilities are subject to change.</p>
+  <h3>What is measured, read or estimated</h3>
+  <ul>
+    <li><b>Read:</b> storeys (30; 26 for 438A; 8 for the car park), the flat-mix table, unit numbers, labels, road names.</li>
+    <li><b>Measured:</b> block positions and footprints from the site plan (scale 0.708 m/px, checked three times, within 0.2%), the 25.5° estate grid, the canal, roads and linkways. Facade patterns and roof features come from the model photos.</li>
+    <li><b>Derived:</b> storey 1 is a void deck, because every block's flat count divides exactly by its residential floors (290 = 10 × 29 …).</li>
+    <li><b>Estimated:</b> 2.8 m floor-to-floor and a 3.6 m void deck (consistent with the model photos; editable under <i>Heights</i>), plus fixed estimates for the car-park height (~24 m) and the low-rise heights.</li>
+    <li><b>Representative:</b> trees, play equipment, shelters and roof-garden items are placed from the photos to look right. They are not surveyed.</li>
+  </ul>
+  <h3>Known uncertainties</h3>
+  <ul>
+    <li>Unit labels #116 and #118 (Blk 437A) follow the numbering pattern of the other blocks; the brochure digits are illegible. Flat types are certain.</li>
+    <li>Which Blk 438A tower holds the 1-Room vs the 2-Room rental flats isn't stated.</li>
+    <li>Neighbouring reserved sites are shown flat; buildings planned there could change views and sun.</li>
+    <li>The brochure notes the estate is close to a heavy vehicle park (possible noise); its location is pinned, its extent is not shown on the plan.</li>
+    <li>True north is taken from the brochure's north arrow. The latitude/longitude used for the sun is approximate (Sembawang).</li>
+  </ul>
+  <p class="muted">Data check: <span id="dataCheck"></span>. Version <span>1.0.0</span>.</p>
+</dialog>
+<dialog id="help">
+  <button class="close icon" type="button" aria-label="Close">×</button>
+  <h2>Controls</h2>
+  <ul>
+    <li><b>Orbit</b> drag · <b>Pan</b> right-drag / two-finger drag · <b>Zoom</b> wheel / pinch</li>
+    <li><b>Select</b> tap a block (tapping a facade also picks the stack under your finger), a pin, a road or a reserved site</li>
+    <li><b>Views</b> buttons at the bottom, or keys <kbd>1</kbd>–<kbd>7</kbd>; <kbd>R</kbd> reset; <kbd>F</kbd> focus selection; compass = face north</li>
+    <li><b>Search</b> <kbd>/</kbd>: "437B", "#120", "#12-160", "4-room", "playground", "Admiralty"</li>
+    <li><b>Measure</b> <kbd>M</kbd>: tap two points; <kbd>Esc</kbd> to finish</li>
+    <li><b>Walk</b>: drag to look, <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>/arrows to move, <kbd>Shift</kbd> faster; on phones use the left pad</li>
+    <li><b>Sun</b>: pick a date and time (Singapore time), or play the day</li>
+  </ul>
+</dialog>
+<dialog id="saveDlg">
+  <button class="close icon" type="button" aria-label="Close">×</button>
+  <h2 id="saveTitle">Save</h2><p class="note" id="saveNote"></p><div id="saveBody" class="savebody"></div>
+</dialog>
+<div id="toast" role="status" hidden></div>
+<div id="fatal" hidden><b>WebGL isn't available</b><p>This 3D model needs WebGL. Try a recent version of Safari, Chrome or Edge.</p></div>
+<script type="module">/*__JS__*/</script>
+</body>
+</html>

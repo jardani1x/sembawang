@@ -1,0 +1,3989 @@
+{
+ "source": "11_site_plan_IMG1991.jpg (HDB sales brochure pp.15-16 'Site Plan', SB N4 C19), 1290x921 px screenshot",
+ "scale": {
+  "m_per_px": 0.70671,
+  "px_per_m": 1.415,
+  "method": "scale bar read as 0-200 metres, 20 x 10 m segments; ends at px x=494 and x=777 (dark-pixel scan, \u00b10.5 px \u2192 \u00b10.2%)",
+  "crossCheck": "4R pairs 24.4x7.9 m \u2192 96 m2/unit vs HDB nominal ~93 m2; 5R pairs 29.0x7.9 m \u2192 115 vs ~113; 2RF-T2 pair 11.7x8.5 \u2192 50 vs ~47 m2. Implied linear scale error \u2264 ~2-3% (assumes plan icons drawn to scale)",
+  "conf": "[Measured]"
+ },
+ "north": {
+  "imageUpIsNorth": true,
+  "method": "north arrow's thick needle vertical (\u00b11 deg); scale bar row perfectly horizontal \u2192 screenshot not rotated",
+  "conf": "[Measured]"
+ },
+ "frame": {
+  "origin": "O = centreline intersection of the two Hough-fitted linkways at the SW outer corner of Blk 436 (Admiralty Lane side x canal side)",
+  "originPx": [
+   221.7,
+   422.4
+  ],
+  "axes": "+X east, +Z south, +Y up (Three.js right-handed); metres",
+  "localGrid": "u = (cos25.5, -sin25.5) in (X,Z) [bearing 64.5 deg, block long axis]; v = (sin25.5, cos25.5) [bearing 154.5 deg, toward Admiralty Lane]",
+  "estateGridAngle_deg": 25.5,
+  "angleConf": "[Measured: linkway Hough 25.4/25.6, canal 24.7-25.3, unit pads median ~26 \u2192 25.5 \u00b11]",
+  "pxToWorld": "X = (px - 221.7) * 0.70671, Z = (py - 422.4) * 0.70671"
+ },
+ "buildings": [
+  {
+   "id": "437A",
+   "function": "residential (HDB sale)",
+   "storeys": 30,
+   "storeysConf": "[Read: table]",
+   "residentialFloors": "2-30 (29 floors)",
+   "residentialFloorsConf": "[Inferred: 290 units / 10 per floor = 29]",
+   "unitsPerFloor": 10,
+   "unitRange": "100-118 (even)",
+   "pads": [
+    {
+     "units": [
+      "104",
+      "106"
+     ],
+     "flatType": "4R",
+     "centrePx": [
+      186.5,
+      251.6
+     ],
+     "centreWorld": [
+      -24.88,
+      -120.71
+     ],
+     "centreLocal": [
+      29.51,
+      -119.66
+     ],
+     "sizeLocal_uv_m": [
+      24.4,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       -37.59,
+       -119.02
+      ],
+      [
+       -15.57,
+       -129.53
+      ],
+      [
+       -12.17,
+       -122.39
+      ],
+      [
+       -34.19,
+       -111.89
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "100",
+      "102"
+     ],
+     "flatType": "4R",
+     "centrePx": [
+      197.9,
+      275.3
+     ],
+     "centreWorld": [
+      -16.82,
+      -103.96
+     ],
+     "centreLocal": [
+      29.57,
+      -101.07
+     ],
+     "sizeLocal_uv_m": [
+      24.3,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       -29.49,
+       -102.29
+      ],
+      [
+       -7.56,
+       -112.75
+      ],
+      [
+       -4.16,
+       -105.62
+      ],
+      [
+       -26.09,
+       -95.16
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "108",
+      "110"
+     ],
+     "flatType": "2RF-T1",
+     "centrePx": [
+      213.5,
+      240.5
+     ],
+     "centreWorld": [
+      -5.8,
+      -128.55
+     ],
+     "centreLocal": [
+      50.11,
+      -118.52
+     ],
+     "sizeLocal_uv_m": [
+      11.0,
+      6.5
+     ],
+     "cornersWorld": [
+      [
+       -12.16,
+       -129.11
+      ],
+      [
+       -2.23,
+       -133.85
+      ],
+      [
+       0.57,
+       -127.98
+      ],
+      [
+       -9.36,
+       -123.25
+      ]
+     ],
+     "conf": "[Measured-manual from 5px grid, \u00b11.5 m]",
+     "note": "salmon fill not segmentable; read manually"
+    },
+    {
+     "units": [
+      "112",
+      "114"
+     ],
+     "flatType": "5R",
+     "centrePx": [
+      246.2,
+      226.9
+     ],
+     "centreWorld": [
+      17.31,
+      -138.16
+     ],
+     "centreLocal": [
+      75.11,
+      -117.25
+     ],
+     "sizeLocal_uv_m": [
+      28.8,
+      8.0
+     ],
+     "cornersWorld": [
+      [
+       2.6,
+       -135.57
+      ],
+      [
+       28.59,
+       -147.97
+      ],
+      [
+       32.04,
+       -140.75
+      ],
+      [
+       6.04,
+       -128.35
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "116"
+     ],
+     "flatType": "5R",
+     "centrePx": [
+      250.1,
+      254.2
+     ],
+     "centreWorld": [
+      20.07,
+      -118.87
+     ],
+     "centreLocal": [
+      69.29,
+      -98.65
+     ],
+     "sizeLocal_uv_m": [
+      13.9,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       12.1,
+       -119.44
+      ],
+      [
+       24.64,
+       -125.43
+      ],
+      [
+       28.04,
+       -118.3
+      ],
+      [
+       15.5,
+       -112.31
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "118"
+     ],
+     "flatType": "3R",
+     "centrePx": [
+      266.5,
+      247.0
+     ],
+     "centreWorld": [
+      31.66,
+      -123.96
+     ],
+     "centreLocal": [
+      81.94,
+      -98.25
+     ],
+     "sizeLocal_uv_m": [
+      8.2,
+      7.3
+     ],
+     "cornersWorld": [
+      [
+       26.39,
+       -125.48
+      ],
+      [
+       33.79,
+       -129.01
+      ],
+      [
+       36.93,
+       -122.43
+      ],
+      [
+       29.53,
+       -118.9
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    }
+   ],
+   "core": {
+    "centrePx": [
+     220.5,
+     252.0
+    ],
+    "centreWorld": [
+     -0.85,
+     -120.42
+    ],
+    "centreLocal": [
+     51.08,
+     -109.06
+    ],
+    "sizeLocal_uv_m": [
+     12,
+     8
+    ],
+    "cornersWorld": [
+     [
+      -7.99,
+      -121.45
+     ],
+     [
+      2.85,
+      -126.62
+     ],
+     [
+      6.29,
+      -119.4
+     ],
+     [
+      -4.54,
+      -114.23
+     ]
+    ],
+    "conf": "[Measured-manual \u00b11.5 m]"
+   },
+   "extentLocal_m": {
+    "u": [
+     17.3,
+     89.5
+    ],
+    "v": [
+     -123.6,
+     -94.6
+    ],
+    "length_u": 72.2,
+    "depth_v": 29.0
+   },
+   "rotationY_rad": 0.4451,
+   "rotationNote": "Three.js: mesh.rotation.y = +0.445 rad aligns local +X with the block long axis (ENE); per-block measured 23-27 deg"
+  },
+  {
+   "id": "437B",
+   "function": "residential (HDB sale)",
+   "storeys": 30,
+   "storeysConf": "[Read: table]",
+   "residentialFloors": "2-30",
+   "residentialFloorsConf": "[Inferred: 261/9 = 29]",
+   "unitsPerFloor": 9,
+   "unitRange": "120-136 (even)",
+   "pads": [
+    {
+     "units": [
+      "124",
+      "126"
+     ],
+     "flatType": "5R",
+     "centrePx": [
+      292.6,
+      285.8
+     ],
+     "centreWorld": [
+      50.11,
+      -96.54
+     ],
+     "centreLocal": [
+      86.79,
+      -65.56
+     ],
+     "sizeLocal_uv_m": [
+      28.8,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       35.41,
+       -93.9
+      ],
+      [
+       61.41,
+       -106.3
+      ],
+      [
+       64.81,
+       -99.17
+      ],
+      [
+       38.81,
+       -86.77
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "120",
+      "122"
+     ],
+     "flatType": "5R",
+     "centrePx": [
+      300.7,
+      311.4
+     ],
+     "centreWorld": [
+      55.83,
+      -78.45
+     ],
+     "centreLocal": [
+      84.16,
+      -46.77
+     ],
+     "sizeLocal_uv_m": [
+      29.1,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       40.99,
+       -75.75
+      ],
+      [
+       67.26,
+       -88.27
+      ],
+      [
+       70.66,
+       -81.14
+      ],
+      [
+       44.39,
+       -68.62
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "128",
+      "130"
+     ],
+     "flatType": "2RF-T2",
+     "centrePx": [
+      324.5,
+      282.5
+     ],
+     "centreWorld": [
+      72.65,
+      -98.87
+     ],
+     "centreLocal": [
+      108.14,
+      -57.96
+     ],
+     "sizeLocal_uv_m": [
+      11.7,
+      8.5
+     ],
+     "cornersWorld": [
+      [
+       65.54,
+       -100.19
+      ],
+      [
+       76.1,
+       -105.22
+      ],
+      [
+       79.76,
+       -97.55
+      ],
+      [
+       69.2,
+       -92.51
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "132",
+      "134"
+     ],
+     "flatType": "4R",
+     "centrePx": [
+      355.5,
+      265.7
+     ],
+     "centreWorld": [
+      94.56,
+      -110.74
+     ],
+     "centreLocal": [
+      133.02,
+      -59.25
+     ],
+     "sizeLocal_uv_m": [
+      24.3,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       81.89,
+       -109.08
+      ],
+      [
+       103.82,
+       -119.54
+      ],
+      [
+       107.22,
+       -112.41
+      ],
+      [
+       85.29,
+       -101.95
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "136"
+     ],
+     "flatType": "3GEN",
+     "centrePx": [
+      357.8,
+      282.9
+     ],
+     "centreWorld": [
+      96.18,
+      -98.59
+     ],
+     "centreLocal": [
+      129.26,
+      -47.57
+     ],
+     "sizeLocal_uv_m": [
+      13.9,
+      7.5
+     ],
+     "cornersWorld": [
+      [
+       88.3,
+       -98.98
+      ],
+      [
+       100.85,
+       -104.96
+      ],
+      [
+       104.08,
+       -98.19
+      ],
+      [
+       91.53,
+       -92.21
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    }
+   ],
+   "core": {
+    "centrePx": [
+     327.0,
+     290.5
+    ],
+    "centreWorld": [
+     74.42,
+     -93.22
+    ],
+    "centreLocal": [
+     107.3,
+     -52.1
+    ],
+    "sizeLocal_uv_m": [
+     10,
+     7
+    ],
+    "cornersWorld": [
+     [
+      68.4,
+      -94.23
+     ],
+     [
+      77.42,
+      -98.53
+     ],
+     [
+      80.44,
+      -92.21
+     ],
+     [
+      71.41,
+      -87.91
+     ]
+    ],
+    "conf": "[Measured-manual \u00b11.5 m]"
+   },
+   "extentLocal_m": {
+    "u": [
+     69.6,
+     145.2
+    ],
+    "v": [
+     -69.5,
+     -42.8
+    ],
+    "length_u": 75.6,
+    "depth_v": 26.7
+   },
+   "rotationY_rad": 0.4451,
+   "rotationNote": "Three.js: mesh.rotation.y = +0.445 rad aligns local +X with the block long axis (ENE); per-block measured 23-27 deg"
+  },
+  {
+   "id": "438A",
+   "function": "rental (1-room x4 + 2-room x4 per floor)",
+   "storeys": 26,
+   "storeysConf": "[Read: table]",
+   "residentialFloors": "2-26",
+   "residentialFloorsConf": "[Inferred: 200/8 = 25]",
+   "unitsPerFloor": 8,
+   "unitRange": "138-152 (even) [Inferred from numbering sequence; not printed on plan]",
+   "pads": [
+    {
+     "units": [
+      "4 units (W tower)"
+     ],
+     "flatType": "RENTAL",
+     "centrePx": [
+      396.3,
+      316.8
+     ],
+     "centreWorld": [
+      123.39,
+      -74.63
+     ],
+     "centreLocal": [
+      143.5,
+      -14.24
+     ],
+     "sizeLocal_uv_m": [
+      12.1,
+      19.0
+     ],
+     "cornersWorld": [
+      [
+       113.84,
+       -80.6
+      ],
+      [
+       124.76,
+       -85.81
+      ],
+      [
+       132.94,
+       -68.66
+      ],
+      [
+       122.02,
+       -63.45
+      ]
+     ],
+     "conf": "[Measured: segmented cluster, \u00b11.5 m]",
+     "note": "two N + two S of corridor; tower long axis along v"
+    },
+    {
+     "units": [
+      "4 units (E tower)"
+     ],
+     "flatType": "RENTAL",
+     "centrePx": [
+      430.5,
+      298.0
+     ],
+     "centreWorld": [
+      147.56,
+      -87.92
+     ],
+     "centreLocal": [
+      171.04,
+      -15.82
+     ],
+     "sizeLocal_uv_m": [
+      12.0,
+      18.0
+     ],
+     "cornersWorld": [
+      [
+       138.28,
+       -93.45
+      ],
+      [
+       149.11,
+       -98.62
+      ],
+      [
+       156.86,
+       -82.37
+      ],
+      [
+       146.03,
+       -77.21
+      ]
+     ],
+     "conf": "[Measured: partial segmentation, \u00b12 m]",
+     "note": "assumed same as W tower"
+    }
+   ],
+   "core": {
+    "centrePx": [
+     413.0,
+     309.0
+    ],
+    "centreWorld": [
+     135.19,
+     -80.14
+    ],
+    "centreLocal": [
+     156.53,
+     -14.13
+    ],
+    "sizeLocal_uv_m": [
+     10,
+     8
+    ],
+    "cornersWorld": [
+     [
+      128.96,
+      -81.6
+     ],
+     [
+      137.99,
+      -85.9
+     ],
+     [
+      141.43,
+      -78.68
+     ],
+     [
+      132.41,
+      -74.38
+     ]
+    ],
+    "conf": "[Measured-manual \u00b11.5 m]"
+   },
+   "extentLocal_m": {
+    "u": [
+     137.4,
+     177.0
+    ],
+    "v": [
+     -24.8,
+     -4.7
+    ],
+    "length_u": 39.6,
+    "depth_v": 20.1
+   },
+   "rotationY_rad": 0.4451,
+   "rotationNote": "Three.js: mesh.rotation.y = +0.445 rad aligns local +X with the block long axis (ENE); per-block measured 23-27 deg"
+  },
+  {
+   "id": "439A",
+   "function": "residential (HDB sale)",
+   "storeys": 30,
+   "storeysConf": "[Read: table]",
+   "residentialFloors": "2-30",
+   "residentialFloorsConf": "[Inferred: 290/10 = 29]",
+   "unitsPerFloor": 10,
+   "unitRange": "154-172 (even)",
+   "pads": [
+    {
+     "units": [
+      "158",
+      "160"
+     ],
+     "flatType": "5R",
+     "centrePx": [
+      489.1,
+      276.2
+     ],
+     "centreWorld": [
+      188.98,
+      -103.32
+     ],
+     "centreLocal": [
+      215.05,
+      -11.9
+     ],
+     "sizeLocal_uv_m": [
+      29.1,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       174.14,
+       -100.62
+      ],
+      [
+       200.41,
+       -113.15
+      ],
+      [
+       203.81,
+       -106.02
+      ],
+      [
+       177.55,
+       -93.49
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "154",
+      "156"
+     ],
+     "flatType": "4R",
+     "centrePx": [
+      502.7,
+      298.4
+     ],
+     "centreWorld": [
+      198.59,
+      -87.63
+     ],
+     "centreLocal": [
+      216.97,
+      6.4
+     ],
+     "sizeLocal_uv_m": [
+      24.7,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       185.74,
+       -85.88
+      ],
+      [
+       208.04,
+       -96.51
+      ],
+      [
+       211.44,
+       -89.38
+      ],
+      [
+       189.14,
+       -78.75
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "162",
+      "164"
+     ],
+     "flatType": "2RF-T2",
+     "centrePx": [
+      522.4,
+      271.8
+     ],
+     "centreWorld": [
+      212.51,
+      -106.43
+     ],
+     "centreLocal": [
+      237.63,
+      -4.58
+     ],
+     "sizeLocal_uv_m": [
+      12.5,
+      8.0
+     ],
+     "cornersWorld": [
+      [
+       205.15,
+       -107.36
+      ],
+      [
+       216.43,
+       -112.74
+      ],
+      [
+       219.87,
+       -105.52
+      ],
+      [
+       208.59,
+       -100.14
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "166",
+      "168"
+     ],
+     "flatType": "3R",
+     "centrePx": [
+      548.0,
+      259.5
+     ],
+     "centreWorld": [
+      230.6,
+      -115.12
+     ],
+     "centreLocal": [
+      257.7,
+      -4.63
+     ],
+     "sizeLocal_uv_m": [
+      16.4,
+      7.3
+     ],
+     "cornersWorld": [
+      [
+       221.63,
+       -114.89
+      ],
+      [
+       236.43,
+       -121.95
+      ],
+      [
+       239.58,
+       -115.36
+      ],
+      [
+       224.77,
+       -108.3
+      ]
+     ],
+     "conf": "[Measured-manual; segmentation noisy, \u00b12 m]"
+    },
+    {
+     "units": [
+      "170",
+      "172"
+     ],
+     "flatType": "5R",
+     "centrePx": [
+      563.3,
+      282.6
+     ],
+     "centreWorld": [
+      241.41,
+      -98.8
+     ],
+     "centreLocal": [
+      260.43,
+      14.76
+     ],
+     "sizeLocal_uv_m": [
+      29.1,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       226.58,
+       -96.1
+      ],
+      [
+       252.85,
+       -108.62
+      ],
+      [
+       256.25,
+       -101.49
+      ],
+      [
+       229.98,
+       -88.97
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    }
+   ],
+   "core": {
+    "centrePx": [
+     528.5,
+     282.0
+    ],
+    "centreWorld": [
+     216.82,
+     -99.22
+    ],
+    "centreLocal": [
+     238.41,
+     3.79
+    ],
+    "sizeLocal_uv_m": [
+     10,
+     7
+    ],
+    "cornersWorld": [
+     [
+      210.8,
+      -100.22
+     ],
+     [
+      219.82,
+      -104.53
+     ],
+     [
+      222.84,
+      -98.21
+     ],
+     [
+      213.81,
+      -93.91
+     ]
+    ],
+    "conf": "[Measured-manual \u00b11.5 m]"
+   },
+   "extentLocal_m": {
+    "u": [
+     200.5,
+     275.0
+    ],
+    "v": [
+     -15.9,
+     18.7
+    ],
+    "length_u": 74.5,
+    "depth_v": 34.6
+   },
+   "rotationY_rad": 0.4451,
+   "rotationNote": "Three.js: mesh.rotation.y = +0.445 rad aligns local +X with the block long axis (ENE); per-block measured 23-27 deg"
+  },
+  {
+   "id": "440A",
+   "function": "residential (HDB sale)",
+   "storeys": 30,
+   "storeysConf": "[Read: table]",
+   "residentialFloors": "2-30",
+   "residentialFloorsConf": "[Inferred: 319/11 = 29]",
+   "unitsPerFloor": 11,
+   "unitRange": "174-194 (even)",
+   "pads": [
+    {
+     "units": [
+      "174",
+      "176"
+     ],
+     "flatType": "4R",
+     "centrePx": [
+      689.1,
+      268.2
+     ],
+     "centreWorld": [
+      330.32,
+      -108.98
+     ],
+     "centreLocal": [
+      345.06,
+      43.85
+     ],
+     "sizeLocal_uv_m": [
+      24.7,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       317.48,
+       -107.22
+      ],
+      [
+       339.77,
+       -117.86
+      ],
+      [
+       343.17,
+       -110.73
+      ],
+      [
+       320.88,
+       -100.09
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "178"
+     ],
+     "flatType": "2RF-T2",
+     "centrePx": [
+      710.3,
+      279.6
+     ],
+     "centreWorld": [
+      345.3,
+      -100.92
+     ],
+     "centreLocal": [
+      355.11,
+      57.57
+     ],
+     "sizeLocal_uv_m": [
+      6.2,
+      8.0
+     ],
+     "cornersWorld": [
+      [
+       340.78,
+       -103.19
+      ],
+      [
+       346.38,
+       -105.86
+      ],
+      [
+       349.82,
+       -98.64
+      ],
+      [
+       344.23,
+       -95.97
+      ]
+     ],
+     "conf": "[Measured-partial; width assumed from 2RF-T2 pair/2, \u00b11.5 m]"
+    },
+    {
+     "units": [
+      "180",
+      "182"
+     ],
+     "flatType": "4R",
+     "centrePx": [
+      705.7,
+      294.2
+     ],
+     "centreWorld": [
+      342.05,
+      -90.6
+     ],
+     "centreLocal": [
+      347.73,
+      65.48
+     ],
+     "sizeLocal_uv_m": [
+      24.7,
+      8.0
+     ],
+     "cornersWorld": [
+      [
+       329.18,
+       -88.89
+      ],
+      [
+       351.47,
+       -99.53
+      ],
+      [
+       354.91,
+       -92.31
+      ],
+      [
+       332.62,
+       -81.67
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "184",
+      "186"
+     ],
+     "flatType": "2RF-T2",
+     "centrePx": [
+      676.7,
+      308.1
+     ],
+     "centreWorld": [
+      321.55,
+      -80.78
+     ],
+     "centreLocal": [
+      325.01,
+      65.52
+     ],
+     "sizeLocal_uv_m": [
+      12.3,
+      8.5
+     ],
+     "cornersWorld": [
+      [
+       314.18,
+       -81.97
+      ],
+      [
+       325.28,
+       -87.27
+      ],
+      [
+       328.94,
+       -79.59
+      ],
+      [
+       317.84,
+       -74.3
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "192",
+      "194"
+     ],
+     "flatType": "4R",
+     "centrePx": [
+      645.0,
+      306.8
+     ],
+     "centreWorld": [
+      299.15,
+      -81.7
+     ],
+     "centreLocal": [
+      305.18,
+      55.05
+     ],
+     "sizeLocal_uv_m": [
+      24.4,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       286.44,
+       -80.01
+      ],
+      [
+       308.46,
+       -90.51
+      ],
+      [
+       311.86,
+       -83.38
+      ],
+      [
+       289.84,
+       -72.88
+      ]
+     ],
+     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+    },
+    {
+     "units": [
+      "188",
+      "190"
+     ],
+     "flatType": "4R",
+     "centrePx": [
+      655.8,
+      331.1
+     ],
+     "centreWorld": [
+      306.78,
+      -64.52
+     ],
+     "centreLocal": [
+      304.68,
+      73.84
+     ],
+     "sizeLocal_uv_m": [
+      24.4,
+      7.9
+     ],
+     "cornersWorld": [
+      [
+       294.08,
+       -62.83
+      ],
+      [
+       316.1,
+       -73.34
+      ],
+      [
+       319.5,
+       -66.21
+      ],
+      [
+       297.48,
+       -55.7
+      ]
+     ],
+     "conf": "[Measured-partial; size assumed = other 4R pairs, \u00b11.5 m]",
+     "note": "a facility marker is printed on this pad"
+    }
+   ],
+   "core": {
+    "centrePx": [
+     671.0,
+     291.0
+    ],
+    "centreWorld": [
+     317.53,
+     -92.86
+    ],
+    "centreLocal": [
+     326.57,
+     52.88
+    ],
+    "sizeLocal_uv_m": [
+     10,
+     8
+    ],
+    "cornersWorld": [
+     [
+      311.29,
+      -94.32
+     ],
+     [
+      320.31,
+      -98.63
+     ],
+     [
+      323.76,
+      -91.41
+     ],
+     [
+      314.73,
+      -87.1
+     ]
+    ],
+    "conf": "[Measured-manual \u00b11.5 m]"
+   },
+   "extentLocal_m": {
+    "u": [
+     292.5,
+     360.1
+    ],
+    "v": [
+     39.9,
+     77.8
+    ],
+    "length_u": 67.6,
+    "depth_v": 37.9
+   },
+   "rotationY_rad": 0.4451,
+   "rotationNote": "Three.js: mesh.rotation.y = +0.445 rad aligns local +X with the block long axis (ENE); per-block measured 23-27 deg"
+  },
+  {
+   "id": "436",
+   "function": "8-storey multi-storey carpark with accessible roof garden; 1st storey: preschool (9), ESS, bin centre (PWCS); 2nd storey: preschool (9) + future amenities (10)",
+   "functionConf": "[Read: plan label text + Block 436 1st/2nd storey mini-plans; '8 storey' also legible on model photo IMG_1985]",
+   "storeys": 8,
+   "storeysConf": "[Read]",
+   "outlineLocal_uv_m": [
+    [
+     2.0,
+     -2.0
+    ],
+    [
+     107.5,
+     -2.0
+    ],
+    [
+     107.5,
+     -19.7
+    ],
+    [
+     38.7,
+     -19.7
+    ],
+    [
+     38.7,
+     -81.0
+    ],
+    [
+     2.0,
+     -81.0
+    ]
+   ],
+   "outlineWorld": [
+    [
+     0.94,
+     -2.67
+    ],
+    [
+     96.17,
+     -48.09
+    ],
+    [
+     88.55,
+     -64.06
+    ],
+    [
+     26.45,
+     -34.44
+    ],
+    [
+     0.06,
+     -89.77
+    ],
+    [
+     -33.07,
+     -73.97
+    ]
+   ],
+   "rampCircle": {
+    "centrePx": [
+     346.9,
+     331.6
+    ],
+    "centreWorld": [
+     88.48,
+     -64.17
+    ],
+    "centreLocal": [
+     107.49,
+     -19.83
+    ],
+    "radius_m": 12.7,
+    "conf": "[Measured: white-centre centroid + green ring extent, r \u00b11.5 m]",
+    "note": "circle centre sits on the inner (north) face line of the south wing \u2014 confirmed independently on the 1st-storey mini-plan"
+   },
+   "westWing_m": "u 2.0-38.7 (36.7 wide), v -81.0 to -2.0 (79 long)",
+   "southWing_m": "u 38.7-107.5, v -19.7 to -2.0 (17.7 wide)",
+   "conf": "[Measured: faces placed 2 m inside the Hough-fitted linkway centrelines; inner faces from roof-garden/courtyard colour edge. West-wing length/width ratio 2.15 here vs 2.4 on the mini-plan \u2192 \u00b18 m on length]",
+   "rotationY_rad": 0.4451
+  },
+  {
+   "id": "437",
+   "function": "precinct pavilion (5)",
+   "centrePx": [
+    172.5,
+    295.5
+   ],
+   "centreWorld": [
+    -34.77,
+    -89.68
+   ],
+   "centreLocal": [
+    7.23,
+    -95.91
+   ],
+   "sizeLocal_uv_m": [
+    16,
+    16
+   ],
+   "cornersWorld": [
+    [
+     -45.43,
+     -93.46
+    ],
+    [
+     -30.99,
+     -100.34
+    ],
+    [
+     -24.1,
+     -85.9
+    ],
+    [
+     -38.54,
+     -79.01
+    ]
+   ],
+   "conf": "[Measured: solid-brown blob \u00b12 m; marker '5' legible; model photo IMG_1988 label 'PRECINCT PAVILION']",
+   "rotationY_rad": 0.4451,
+   "markers": [
+    5
+   ]
+  },
+  {
+   "id": "(437B porch)",
+   "function": "drop-off porch (6) \u2014 unlabelled brown roof beside 437B/436 courtyard",
+   "centrePx": [
+    253.5,
+    290.0
+   ],
+   "centreWorld": [
+    22.47,
+    -93.57
+   ],
+   "centreLocal": [
+    60.57,
+    -74.78
+   ],
+   "sizeLocal_uv_m": [
+    17,
+    17
+   ],
+   "cornersWorld": [
+    [
+     11.14,
+     -97.58
+    ],
+    [
+     26.49,
+     -104.9
+    ],
+    [
+     33.81,
+     -89.56
+    ],
+    [
+     18.46,
+     -82.24
+    ]
+   ],
+   "conf": "[Measured \u00b12 m; marker number not legible; IMG_1985 shows 'DROP-OFF PORCH' here \u2192 Inferred]",
+   "rotationY_rad": 0.4451,
+   "markers": [
+    6
+   ]
+  },
+  {
+   "id": "438",
+   "function": "precinct pavilion (5)",
+   "centrePx": [
+    456.0,
+    293.0
+   ],
+   "centreWorld": [
+    165.58,
+    -91.45
+   ],
+   "centreLocal": [
+    188.82,
+    -11.25
+   ],
+   "sizeLocal_uv_m": [
+    15,
+    19
+   ],
+   "cornersWorld": [
+    [
+     154.72,
+     -96.79
+    ],
+    [
+     168.26,
+     -103.25
+    ],
+    [
+     176.44,
+     -86.1
+    ],
+    [
+     162.9,
+     -79.64
+    ]
+   ],
+   "conf": "[Measured \u00b12 m; marker '5' legible]",
+   "rotationY_rad": 0.4451,
+   "markers": [
+    5
+   ]
+  },
+  {
+   "id": "439",
+   "function": "precinct pavilion (5) + drop-off porch (6?)",
+   "centrePx": [
+    600.0,
+    252.0
+   ],
+   "centreWorld": [
+    267.35,
+    -120.42
+   ],
+   "centreLocal": [
+    293.15,
+    6.4
+   ],
+   "sizeLocal_uv_m": [
+    30,
+    27
+   ],
+   "cornersWorld": [
+    [
+     248.0,
+     -126.16
+    ],
+    [
+     275.08,
+     -139.07
+    ],
+    [
+     286.7,
+     -114.7
+    ],
+    [
+     259.62,
+     -101.79
+    ]
+   ],
+   "conf": "[Measured \u00b13 m, irregular brown shape; '5' legible, second marker likely '6' (low confidence)]",
+   "rotationY_rad": 0.4451,
+   "markers": [
+    5,
+    6
+   ]
+  },
+  {
+   "id": "440",
+   "function": "commercial: eating house (11?), shops (12?), mini-mart (13?) at 1st storey",
+   "conf": "[Measured: dark-grey segmentation polygons; marker digits not legible \u2014 assignment by legend order is Unverified]",
+   "partsWorld": {
+    "west_part_marker_at(572,317)": [
+     [
+      234.84,
+      -75.19
+     ],
+     [
+      244.03,
+      -80.14
+     ],
+     [
+      258.87,
+      -86.5
+     ],
+     [
+      260.99,
+      -82.97
+     ],
+     [
+      253.92,
+      -79.43
+     ],
+     [
+      256.75,
+      -72.37
+     ],
+     [
+      256.04,
+      -68.83
+     ],
+     [
+      239.79,
+      -69.54
+     ]
+    ],
+    "east_part_markers_at(606,310)&(620,331)": [
+     [
+      268.06,
+      -85.09
+     ],
+     [
+      273.0,
+      -85.8
+     ],
+     [
+      279.36,
+      -73.07
+     ],
+     [
+      284.31,
+      -68.83
+     ],
+     [
+      287.84,
+      -60.35
+     ],
+     [
+      273.71,
+      -65.3
+     ],
+     [
+      267.35,
+      -79.43
+     ]
+    ]
+   },
+   "note": "label '440' sits on a long light-grey strip (548,305)->(630,262) which matches the internal-road colour \u2192 treated as service road, Unverified"
+  },
+  {
+   "id": "441",
+   "function": "ESS (electrical sub-station, 1st storey) + adjacent light-grey rectangle (service yard or low roof \u2014 Unverified)",
+   "essWorld": [
+    [
+     285.02,
+     -121.13
+    ],
+    [
+     303.39,
+     -129.61
+    ],
+    [
+     311.17,
+     -131.73
+    ],
+    [
+     313.99,
+     -128.9
+    ],
+    [
+     314.7,
+     -125.37
+    ],
+    [
+     289.96,
+     -113.36
+    ],
+    [
+     287.14,
+     -114.06
+    ],
+    [
+     285.02,
+     -118.3
+    ]
+   ],
+   "adjacentLightGreyWorld": [
+    [
+     289.26,
+     -112.65
+    ],
+    [
+     320.35,
+     -126.78
+    ],
+    [
+     321.06,
+     -122.54
+    ],
+    [
+     318.94,
+     -111.24
+    ],
+    [
+     315.41,
+     -104.17
+    ],
+    [
+     297.03,
+     -95.69
+    ]
+   ],
+   "conf": "[Measured: grey segmentation; 'ESS' text Read]"
+  }
+ ],
+ "roads": [
+  {
+   "name": "Admiralty Street",
+   "status": "existing",
+   "centrelinePx": [
+    [
+     210,
+     184
+    ],
+    [
+     300,
+     146
+    ],
+    [
+     400,
+     106
+    ],
+    [
+     450,
+     86
+    ]
+   ],
+   "width_m": 25,
+   "conf": "[Measured \u00b14 m width, \u00b13 px line; west of px x=200 the alignment is Unverified]",
+   "centrelineWorld": [
+    [
+     -8.27,
+     -168.48
+    ],
+    [
+     55.34,
+     -195.34
+    ],
+    [
+     126.01,
+     -223.6
+    ],
+    [
+     161.34,
+     -237.74
+    ]
+   ]
+  },
+  {
+   "name": "Admiralty Close (future road)",
+   "status": "future",
+   "centrelinePx": [
+    [
+     388,
+     112
+    ],
+    [
+     394,
+     150
+    ],
+    [
+     402,
+     190
+    ],
+    [
+     410,
+     230
+    ],
+    [
+     398,
+     262
+    ]
+   ],
+   "width_m": 15,
+   "conf": "[Measured line \u00b14 px; width Inferred]",
+   "note": "ends at the estate as a turning head near 437B/438A; internal driveway continues SW to the Blk 436 courtyard and ramp",
+   "centrelineWorld": [
+    [
+     117.53,
+     -219.36
+    ],
+    [
+     121.77,
+     -192.51
+    ],
+    [
+     127.42,
+     -164.24
+    ],
+    [
+     133.07,
+     -135.97
+    ],
+    [
+     124.59,
+     -113.36
+    ]
+   ]
+  },
+  {
+   "name": "Internal driveway (Admiralty Close end \u2192 Blk 436 courtyard / drop-off)",
+   "status": "future",
+   "centrelinePx": [
+    [
+     398,
+     262
+    ],
+    [
+     372,
+     285
+    ],
+    [
+     352,
+     305
+    ],
+    [
+     300,
+     330
+    ],
+    [
+     262,
+     340
+    ]
+   ],
+   "width_m": 7,
+   "conf": "[Inferred from light-grey fill]",
+   "centrelineWorld": [
+    [
+     124.59,
+     -113.36
+    ],
+    [
+     106.22,
+     -97.1
+    ],
+    [
+     92.08,
+     -82.97
+    ],
+    [
+     55.34,
+     -65.3
+    ],
+    [
+     28.48,
+     -58.23
+    ]
+   ]
+  },
+  {
+   "name": "Internal service road (behind 438A/439A \u2192 440/441)",
+   "status": "future",
+   "centrelinePx": [
+    [
+     440,
+     330
+    ],
+    [
+     500,
+     315
+    ],
+    [
+     548,
+     305
+    ],
+    [
+     630,
+     265
+    ]
+   ],
+   "width_m": 6,
+   "conf": "[Unverified: light-grey strip]",
+   "centrelineWorld": [
+    [
+     154.28,
+     -65.3
+    ],
+    [
+     196.68,
+     -75.9
+    ],
+    [
+     230.6,
+     -82.97
+    ],
+    [
+     288.55,
+     -111.24
+    ]
+   ]
+  },
+  {
+   "name": "Admiralty Lane (future road)",
+   "status": "future",
+   "centrelinePx": [
+    [
+     220,
+     488
+    ],
+    [
+     300,
+     446
+    ],
+    [
+     400,
+     392
+    ],
+    [
+     480,
+     381
+    ],
+    [
+     540,
+     381
+    ],
+    [
+     600,
+     388
+    ],
+    [
+     660,
+     404
+    ],
+    [
+     722,
+     432
+    ]
+   ],
+   "width_m": 20,
+   "conf": "[Measured line \u00b14 px; width 18-33 m varies with slip lanes \u2192 20 Inferred]",
+   "centrelineWorld": [
+    [
+     -1.2,
+     46.36
+    ],
+    [
+     55.34,
+     16.68
+    ],
+    [
+     126.01,
+     -21.48
+    ],
+    [
+     182.54,
+     -29.26
+    ],
+    [
+     224.95,
+     -29.26
+    ],
+    [
+     267.35,
+     -24.31
+    ],
+    [
+     309.75,
+     -13.0
+    ],
+    [
+     353.57,
+     6.78
+    ]
+   ]
+  },
+  {
+   "name": "Sembawang Drive",
+   "status": "existing",
+   "centrelinePx": [
+    [
+     705,
+     480
+    ],
+    [
+     722,
+     432
+    ],
+    [
+     745,
+     335
+    ],
+    [
+     770,
+     230
+    ],
+    [
+     795,
+     120
+    ]
+   ],
+   "width_m": 25,
+   "conf": "[Measured \u00b14 m]",
+   "centrelineWorld": [
+    [
+     341.55,
+     40.71
+    ],
+    [
+     353.57,
+     6.78
+    ],
+    [
+     369.82,
+     -61.77
+    ],
+    [
+     387.49,
+     -135.97
+    ],
+    [
+     405.16,
+     -213.71
+    ]
+   ]
+  },
+  {
+   "name": "Admiralty Lane (existing, east of Sembawang Drive)",
+   "status": "existing",
+   "centrelinePx": [
+    [
+     722,
+     432
+    ],
+    [
+     790,
+     452
+    ],
+    [
+     855,
+     478
+    ]
+   ],
+   "width_m": 18,
+   "conf": "[Measured line; width Inferred]",
+   "centrelineWorld": [
+    [
+     353.57,
+     6.78
+    ],
+    [
+     401.63,
+     20.92
+    ],
+    [
+     447.56,
+     39.29
+    ]
+   ]
+  },
+  {
+   "name": "Woodlands Avenue 10",
+   "status": "existing",
+   "centrelinePx": [
+    [
+     45,
+     230
+    ],
+    [
+     80,
+     320
+    ],
+    [
+     115,
+     430
+    ],
+    [
+     150,
+     540
+    ]
+   ],
+   "width_m": 30,
+   "conf": "[Inferred: largely out of frame]",
+   "centrelineWorld": [
+    [
+     -124.88,
+     -135.97
+    ],
+    [
+     -100.14,
+     -72.37
+    ],
+    [
+     -75.41,
+     5.37
+    ],
+    [
+     -50.67,
+     83.11
+    ]
+   ]
+  },
+  {
+   "name": "Unnamed road south from Admiralty Lane (between Sembawang Portico site and SE high-rise site)",
+   "status": "unknown",
+   "centrelinePx": [
+    [
+     655,
+     410
+    ],
+    [
+     648,
+     540
+    ]
+   ],
+   "width_m": 15,
+   "conf": "[Unverified]",
+   "centrelineWorld": [
+    [
+     306.22,
+     -8.76
+    ],
+    [
+     301.27,
+     83.11
+    ]
+   ]
+  }
+ ],
+ "water": [
+  {
+   "name": "Sungei Sembawang (canal)",
+   "eastBankPx": [
+    [
+     114,
+     250
+    ],
+    [
+     127,
+     275
+    ],
+    [
+     176,
+     380
+    ],
+    [
+     203,
+     440
+    ],
+    [
+     215,
+     470
+    ]
+   ],
+   "westBankPx": [
+    [
+     74,
+     250
+    ],
+    [
+     80,
+     275
+    ],
+    [
+     140,
+     380
+    ],
+    [
+     170,
+     440
+    ],
+    [
+     185,
+     470
+    ]
+   ],
+   "width_m": 23,
+   "conf": "[Measured: blue-pixel runs per row; east bank angle 24.7-25.3 deg from N-S; width 21-26 m]",
+   "eastBankWorld": [
+    [
+     -76.11,
+     -121.84
+    ],
+    [
+     -66.93,
+     -104.17
+    ],
+    [
+     -32.3,
+     -29.96
+    ],
+    [
+     -13.22,
+     12.44
+    ],
+    [
+     -4.73,
+     33.64
+    ]
+   ],
+   "westBankWorld": [
+    [
+     -104.38,
+     -121.84
+    ],
+    [
+     -100.14,
+     -104.17
+    ],
+    [
+     -57.74,
+     -29.96
+    ],
+    [
+     -36.54,
+     12.44
+    ],
+    [
+     -25.94,
+     33.64
+    ]
+   ]
+  },
+  {
+   "name": "Drainage reserve (covered)",
+   "polygonPx": [
+    [
+     120,
+     240
+    ],
+    [
+     205,
+     203
+    ],
+    [
+     210,
+     212
+    ],
+    [
+     127,
+     252
+    ]
+   ],
+   "conf": "[Measured \u00b12 px]",
+   "polygonWorld": [
+    [
+     -71.87,
+     -128.9
+    ],
+    [
+     -11.8,
+     -155.05
+    ],
+    [
+     -8.27,
+     -148.69
+    ],
+    [
+     -66.93,
+     -120.42
+    ]
+   ]
+  }
+ ],
+ "boundary": {
+  "polygonPx": [
+   [
+    222,
+    462
+   ],
+   [
+    127,
+    251
+   ],
+   [
+    217,
+    210
+   ],
+   [
+    290,
+    180
+   ],
+   [
+    320,
+    253
+   ],
+   [
+    377,
+    235
+   ],
+   [
+    390,
+    268
+   ],
+   [
+    410,
+    260
+   ],
+   [
+    440,
+    243
+   ],
+   [
+    520,
+    228
+   ],
+   [
+    570,
+    224
+   ],
+   [
+    620,
+    224
+   ],
+   [
+    687,
+    233
+   ],
+   [
+    730,
+    243
+   ],
+   [
+    760,
+    255
+   ],
+   [
+    740,
+    310
+   ],
+   [
+    720,
+    340
+   ],
+   [
+    700,
+    363
+   ],
+   [
+    653,
+    358
+   ],
+   [
+    607,
+    342
+   ],
+   [
+    553,
+    333
+   ],
+   [
+    487,
+    337
+   ],
+   [
+    440,
+    348
+   ],
+   [
+    395,
+    372
+   ],
+   [
+    334,
+    393
+   ]
+  ],
+  "polygonWorld": [
+   [
+    0.21,
+    27.99
+   ],
+   [
+    -66.93,
+    -121.13
+   ],
+   [
+    -3.32,
+    -150.11
+   ],
+   [
+    48.27,
+    -171.31
+   ],
+   [
+    69.47,
+    -119.72
+   ],
+   [
+    109.75,
+    -132.44
+   ],
+   [
+    118.94,
+    -109.12
+   ],
+   [
+    133.07,
+    -114.77
+   ],
+   [
+    154.28,
+    -126.78
+   ],
+   [
+    210.81,
+    -137.39
+   ],
+   [
+    246.15,
+    -140.21
+   ],
+   [
+    281.48,
+    -140.21
+   ],
+   [
+    328.83,
+    -133.85
+   ],
+   [
+    359.22,
+    -126.78
+   ],
+   [
+    380.42,
+    -118.3
+   ],
+   [
+    366.29,
+    -79.43
+   ],
+   [
+    352.16,
+    -58.23
+   ],
+   [
+    338.02,
+    -41.98
+   ],
+   [
+    304.81,
+    -45.51
+   ],
+   [
+    272.3,
+    -56.82
+   ],
+   [
+    234.13,
+    -63.18
+   ],
+   [
+    187.49,
+    -60.35
+   ],
+   [
+    154.28,
+    -52.58
+   ],
+   [
+    122.47,
+    -35.62
+   ],
+   [
+    79.36,
+    -20.78
+   ]
+  ],
+  "conf": "[Measured-manual from 10px grids, \u00b13 px (\u00b12 m); the edge around the Admiralty Close turning head (377-410 px) is the least certain]"
+ },
+ "linkways": [
+  {
+   "name": "Admiralty Lane spine (W)",
+   "polylinePx": [
+    [
+     212,
+     428
+    ],
+    [
+     480,
+     295
+    ]
+   ],
+   "polylineWorld": [
+    [
+     -6.86,
+     3.96
+    ],
+    [
+     182.54,
+     -90.04
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+  },
+  {
+   "name": "Canal-side (436 west)",
+   "polylinePx": [
+    [
+     170,
+     316
+    ],
+    [
+     223,
+     425
+    ]
+   ],
+   "polylineWorld": [
+    [
+     -36.54,
+     -75.19
+    ],
+    [
+     0.92,
+     1.84
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+  },
+  {
+   "name": "436 north / 437 pavilion",
+   "polylinePx": [
+    [
+     165,
+     305
+    ],
+    [
+     199,
+     305
+    ],
+    [
+     228,
+     290
+    ]
+   ],
+   "polylineWorld": [
+    [
+     -40.07,
+     -82.97
+    ],
+    [
+     -16.04,
+     -82.97
+    ],
+    [
+     4.45,
+     -93.57
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured-manual \u00b13 px]"
+  },
+  {
+   "name": "437A drop-off link",
+   "polylinePx": [
+    [
+     226,
+     287
+    ],
+    [
+     263,
+     289
+    ]
+   ],
+   "polylineWorld": [
+    [
+     3.04,
+     -95.69
+    ],
+    [
+     29.19,
+     -94.28
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+  },
+  {
+   "name": "Admiralty St bus bay \u2192 437A east \u2192 spine",
+   "polylinePx": [
+    [
+     272,
+     192
+    ],
+    [
+     285,
+     201
+    ],
+    [
+     319,
+     260
+    ],
+    [
+     339,
+     285
+    ],
+    [
+     361,
+     319
+    ]
+   ],
+   "polylineWorld": [
+    [
+     35.55,
+     -162.83
+    ],
+    [
+     44.73,
+     -156.47
+    ],
+    [
+     68.76,
+     -114.77
+    ],
+    [
+     82.9,
+     -97.1
+    ],
+    [
+     98.45,
+     -73.07
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured: Hough segments joined manually]"
+  },
+  {
+   "name": "438A south",
+   "polylinePx": [
+    [
+     395,
+     334
+    ],
+    [
+     436,
+     328
+    ]
+   ],
+   "polylineWorld": [
+    [
+     122.47,
+     -62.47
+    ],
+    [
+     151.45,
+     -66.71
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+  },
+  {
+   "name": "439A south",
+   "polylinePx": [
+    [
+     485,
+     316
+    ],
+    [
+     539,
+     290
+    ]
+   ],
+   "polylineWorld": [
+    [
+     186.08,
+     -75.19
+    ],
+    [
+     224.24,
+     -93.57
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+  },
+  {
+   "name": "439A\u2013439\u2013441 spine",
+   "polylinePx": [
+    [
+     541,
+     300
+    ],
+    [
+     626,
+     260
+    ]
+   ],
+   "polylineWorld": [
+    [
+     225.65,
+     -86.5
+    ],
+    [
+     285.72,
+     -114.77
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+  },
+  {
+   "name": "439 links",
+   "polylinePx": [
+    [
+     577,
+     250
+    ],
+    [
+     624,
+     256
+    ]
+   ],
+   "polylineWorld": [
+    [
+     251.1,
+     -121.84
+    ],
+    [
+     284.31,
+     -117.6
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+  },
+  {
+   "name": "441 west",
+   "polylinePx": [
+    [
+     616,
+     245
+    ],
+    [
+     639,
+     289
+    ]
+   ],
+   "polylineWorld": [
+    [
+     278.66,
+     -125.37
+    ],
+    [
+     294.91,
+     -94.28
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+  },
+  {
+   "name": "440 south",
+   "polylinePx": [
+    [
+     537,
+     327
+    ],
+    [
+     616,
+     335
+    ],
+    [
+     652,
+     344
+    ]
+   ],
+   "polylineWorld": [
+    [
+     222.83,
+     -67.42
+    ],
+    [
+     278.66,
+     -61.77
+    ],
+    [
+     304.1,
+     -55.41
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+  },
+  {
+   "name": "440A south \u2192 Sembawang Dr bus bay",
+   "polylinePx": [
+    [
+     628,
+     340
+    ],
+    [
+     725,
+     300
+    ],
+    [
+     750,
+     318
+    ]
+   ],
+   "polylineWorld": [
+    [
+     287.14,
+     -58.23
+    ],
+    [
+     355.69,
+     -86.5
+    ],
+    [
+     373.36,
+     -73.78
+    ]
+   ],
+   "width_m": 4,
+   "conf": "[Measured-manual \u00b13 px]"
+  }
+ ],
+ "facilities": [
+  {
+   "marker": 2,
+   "name": "adult fitness station",
+   "px": [
+    286,
+    224
+   ],
+   "world": [
+    45.44,
+    -140.21
+   ],
+   "where": "437A/437B courtyard",
+   "conf": "[marker low-res; order matches IMG_1983 labels \u2192 Inferred]"
+  },
+  {
+   "marker": 1,
+   "name": "children playground",
+   "px": [
+    297,
+    250
+   ],
+   "world": [
+    53.22,
+    -121.84
+   ],
+   "where": "437A/437B courtyard",
+   "conf": "[Inferred, as above]"
+  },
+  {
+   "marker": 3,
+   "name": "elderly fitness station",
+   "px": [
+    279,
+    266
+   ],
+   "world": [
+    40.49,
+    -110.53
+   ],
+   "where": "437A/437B courtyard",
+   "conf": "[Inferred, as above]"
+  },
+  {
+   "marker": 5,
+   "name": "precinct pavilion",
+   "px": [
+    172.5,
+    295.5
+   ],
+   "world": [
+    -34.77,
+    -89.68
+   ],
+   "where": "Blk 437",
+   "conf": "[Read '5' + photo label]"
+  },
+  {
+   "marker": 6,
+   "name": "drop-off porch",
+   "px": [
+    253.5,
+    290
+   ],
+   "world": [
+    22.47,
+    -93.57
+   ],
+   "where": "beside 437B, 436 courtyard",
+   "conf": "[Inferred from IMG_1985 label]"
+  },
+  {
+   "marker": 2,
+   "name": "adult fitness station (?)",
+   "px": [
+    205,
+    359
+   ],
+   "world": [
+    -11.8,
+    -44.81
+   ],
+   "where": "Blk 436 roof, west wing",
+   "conf": "[Unverified digit]"
+  },
+  {
+   "marker": 1,
+   "name": "children playground",
+   "px": [
+    240,
+    366
+   ],
+   "world": [
+    12.93,
+    -39.86
+   ],
+   "where": "Blk 436 roof, west wing",
+   "conf": "[Inferred: IMG_1985 shows children playground on 436 west-wing roof]"
+  },
+  {
+   "marker": 3,
+   "name": "elderly fitness station",
+   "px": [
+    305,
+    372
+   ],
+   "world": [
+    58.87,
+    -35.62
+   ],
+   "where": "Blk 436 roof, south wing",
+   "conf": "[Inferred: IMG_1985 'ELDERLY FITNESS STATION' on south-wing roof]"
+  },
+  {
+   "marker": 1,
+   "name": "children playground",
+   "px": [
+    279,
+    407
+   ],
+   "world": [
+    40.49,
+    -10.88
+   ],
+   "where": "ground, south of 436",
+   "conf": "[Inferred: IMG_1985 'CHILDREN PLAYGROUND' at ground south of 436]"
+  },
+  {
+   "marker": null,
+   "name": "unidentified (2 or 3)",
+   "px": [
+    262,
+    415
+   ],
+   "world": [
+    28.48,
+    -5.23
+   ],
+   "where": "ground, south of 436",
+   "conf": "[Unverified]"
+  },
+  {
+   "marker": 5,
+   "name": "precinct pavilion",
+   "px": [
+    456,
+    293
+   ],
+   "world": [
+    165.58,
+    -91.45
+   ],
+   "where": "Blk 438",
+   "conf": "[Read '5']"
+  },
+  {
+   "marker": 5,
+   "name": "precinct pavilion",
+   "px": [
+    588,
+    246
+   ],
+   "world": [
+    258.87,
+    -124.66
+   ],
+   "where": "Blk 439",
+   "conf": "[Read '5']"
+  },
+  {
+   "marker": 6,
+   "name": "drop-off porch",
+   "px": [
+    601,
+    262
+   ],
+   "world": [
+    268.06,
+    -113.36
+   ],
+   "where": "Blk 439",
+   "conf": "[Unverified digit]"
+  },
+  {
+   "marker": 11,
+   "name": "eating house at 1st storey",
+   "px": [
+    572,
+    317
+   ],
+   "world": [
+    247.56,
+    -74.49
+   ],
+   "where": "Blk 440",
+   "conf": "[Unverified: two-digit marker]"
+  },
+  {
+   "marker": 12,
+   "name": "shops at 1st storey",
+   "px": [
+    606,
+    310
+   ],
+   "world": [
+    271.59,
+    -79.43
+   ],
+   "where": "Blk 440",
+   "conf": "[Unverified]"
+  },
+  {
+   "marker": 13,
+   "name": "mini-mart at 1st storey",
+   "px": [
+    620,
+    331
+   ],
+   "world": [
+    281.48,
+    -64.59
+   ],
+   "where": "Blk 440",
+   "conf": "[Unverified]"
+  },
+  {
+   "marker": null,
+   "name": "marker printed on 440A units 188/190 \u2014 likely 8 (RNC at 1st storey)",
+   "px": [
+    656,
+    331
+   ],
+   "world": [
+    306.93,
+    -64.59
+   ],
+   "where": "Blk 440A",
+   "conf": "[Unverified]"
+  },
+  {
+   "marker": 2,
+   "name": "adult fitness station",
+   "px": [
+    706,
+    312
+   ],
+   "world": [
+    342.26,
+    -78.02
+   ],
+   "where": "440A garden",
+   "conf": "[Unverified digit]"
+  },
+  {
+   "marker": 1,
+   "name": "children playground",
+   "px": [
+    696,
+    332
+   ],
+   "world": [
+    335.19,
+    -63.89
+   ],
+   "where": "440A garden",
+   "conf": "[Unverified digit]"
+  },
+  {
+   "marker": 4,
+   "name": "hardcourt (?)",
+   "px": [
+    668,
+    344
+   ],
+   "world": [
+    315.41,
+    -55.41
+   ],
+   "where": "440A garden",
+   "conf": "[Unverified digit]"
+  },
+  {
+   "marker": 3,
+   "name": "elderly fitness station",
+   "px": [
+    682,
+    349
+   ],
+   "world": [
+    325.3,
+    -51.87
+   ],
+   "where": "440A garden",
+   "conf": "[Unverified digit]"
+  },
+  {
+   "marker": 7,
+   "name": "space reserved for future community use",
+   "px": [
+    734,
+    266
+   ],
+   "world": [
+    362.05,
+    -110.53
+   ],
+   "where": "east tip near Sembawang Drive",
+   "conf": "[Unverified digit; grey pad ~ 11x16 m]"
+  },
+  {
+   "marker": 9,
+   "name": "preschool at 1st and 2nd storey",
+   "px": null,
+   "world": null,
+   "where": "Blk 436 west wing, 1st & 2nd storey",
+   "conf": "[Read: mini-plan]"
+  }
+ ],
+ "busBays": [
+  {
+   "name": "future bus bay & shelter",
+   "px": [
+    268,
+    192
+   ],
+   "world": [
+    32.72,
+    -162.83
+   ],
+   "road": "Admiralty Street",
+   "conf": "[Read label; position \u00b14 px]"
+  },
+  {
+   "name": "future bus bay & shelter",
+   "px": [
+    490,
+    343
+   ],
+   "world": [
+    189.61,
+    -56.11
+   ],
+   "road": "Admiralty Lane (N side)",
+   "conf": "[Read label; position \u00b14 px]"
+  },
+  {
+   "name": "future bus bay & shelter",
+   "px": [
+    520,
+    372
+   ],
+   "world": [
+    210.81,
+    -35.62
+   ],
+   "road": "Admiralty Lane (S side)",
+   "conf": "[Read label; position \u00b14 px]"
+  },
+  {
+   "name": "future bus bay & shelter",
+   "px": [
+    765,
+    305
+   ],
+   "world": [
+    383.96,
+    -82.97
+   ],
+   "road": "Sembawang Drive",
+   "conf": "[Read label; position \u00b14 px]"
+  },
+  {
+   "name": "future bus bay & shelter",
+   "px": [
+    645,
+    520
+   ],
+   "world": [
+    299.15,
+    68.98
+   ],
+   "road": "unnamed south road",
+   "conf": "[Read label; position \u00b14 px]"
+  }
+ ],
+ "reservedSites": [
+  {
+   "name": "Site reserved for church",
+   "polygonPx": [
+    [
+     292,
+     175
+    ],
+    [
+     365,
+     140
+    ],
+    [
+     372,
+     236
+    ],
+    [
+     321,
+     253
+    ]
+   ],
+   "polygonWorld": [
+    [
+     49.68,
+     -174.84
+    ],
+    [
+     101.27,
+     -199.58
+    ],
+    [
+     106.22,
+     -131.73
+    ],
+    [
+     70.18,
+     -119.72
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "Site reserved for school",
+   "polygonPx": [
+    [
+     420,
+     105
+    ],
+    [
+     600,
+     92
+    ],
+    [
+     700,
+     92
+    ],
+    [
+     757,
+     255
+    ],
+    [
+     687,
+     233
+    ],
+    [
+     620,
+     224
+    ],
+    [
+     520,
+     228
+    ],
+    [
+     440,
+     243
+    ],
+    [
+     415,
+     232
+    ]
+   ],
+   "polygonWorld": [
+    [
+     140.14,
+     -224.31
+    ],
+    [
+     267.35,
+     -233.5
+    ],
+    [
+     338.02,
+     -233.5
+    ],
+    [
+     378.3,
+     -118.3
+    ],
+    [
+     328.83,
+     -133.85
+    ],
+    [
+     281.48,
+     -140.21
+    ],
+    [
+     210.81,
+     -137.39
+    ],
+    [
+     154.28,
+     -126.78
+    ],
+    [
+     136.61,
+     -134.56
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "Heavy vehicle park (label + dot at px 735,113; extent not drawn)",
+   "polygonPx": [
+    [
+     700,
+     92
+    ],
+    [
+     790,
+     92
+    ],
+    [
+     790,
+     200
+    ],
+    [
+     757,
+     255
+    ]
+   ],
+   "polygonWorld": [
+    [
+     338.02,
+     -233.5
+    ],
+    [
+     401.63,
+     -233.5
+    ],
+    [
+     401.63,
+     -157.17
+    ],
+    [
+     378.3,
+     -118.3
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "Acacia Home",
+   "polygonPx": [
+    [
+     95,
+     165
+    ],
+    [
+     190,
+     140
+    ],
+    [
+     205,
+     203
+    ],
+    [
+     120,
+     240
+    ]
+   ],
+   "polygonWorld": [
+    [
+     -89.54,
+     -181.91
+    ],
+    [
+     -22.4,
+     -199.58
+    ],
+    [
+     -11.8,
+     -155.05
+    ],
+    [
+     -71.87,
+     -128.9
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "Chinese temple",
+   "polygonPx": [
+    [
+     80,
+     125
+    ],
+    [
+     175,
+     100
+    ],
+    [
+     190,
+     140
+    ],
+    [
+     95,
+     165
+    ]
+   ],
+   "polygonWorld": [
+    [
+     -100.14,
+     -210.18
+    ],
+    [
+     -33.0,
+     -227.84
+    ],
+    [
+     -22.4,
+     -199.58
+    ],
+    [
+     -89.54,
+     -181.91
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "Site reserved for Chinese temple",
+   "polygonPx": [
+    [
+     70,
+     85
+    ],
+    [
+     160,
+     82
+    ],
+    [
+     175,
+     100
+    ],
+    [
+     80,
+     125
+    ]
+   ],
+   "polygonWorld": [
+    [
+     -107.21,
+     -238.45
+    ],
+    [
+     -43.6,
+     -240.57
+    ],
+    [
+     -33.0,
+     -227.84
+    ],
+    [
+     -100.14,
+     -210.18
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "North Link Building",
+   "polygonPx": [
+    [
+     180,
+     85
+    ],
+    [
+     330,
+     85
+    ],
+    [
+     330,
+     108
+    ],
+    [
+     205,
+     128
+    ]
+   ],
+   "polygonWorld": [
+    [
+     -29.47,
+     -238.45
+    ],
+    [
+     76.54,
+     -238.45
+    ],
+    [
+     76.54,
+     -222.19
+    ],
+    [
+     -11.8,
+     -208.06
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "Site reserved for public housing (incl. rental) under BTO (Sembawang Portico)",
+   "polygonPx": [
+    [
+     330,
+     452
+    ],
+    [
+     420,
+     410
+    ],
+    [
+     560,
+     400
+    ],
+    [
+     640,
+     420
+    ],
+    [
+     640,
+     540
+    ],
+    [
+     360,
+     540
+    ]
+   ],
+   "polygonWorld": [
+    [
+     76.54,
+     20.92
+    ],
+    [
+     140.14,
+     -8.76
+    ],
+    [
+     239.08,
+     -15.83
+    ],
+    [
+     295.62,
+     -1.7
+    ],
+    [
+     295.62,
+     83.11
+    ],
+    [
+     97.74,
+     83.11
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "Site reserved for future high-rise residential development (SW)",
+   "polygonPx": [
+    [
+     232,
+     500
+    ],
+    [
+     350,
+     470
+    ],
+    [
+     350,
+     540
+    ],
+    [
+     245,
+     540
+    ]
+   ],
+   "polygonWorld": [
+    [
+     7.28,
+     54.84
+    ],
+    [
+     90.67,
+     33.64
+    ],
+    [
+     90.67,
+     83.11
+    ],
+    [
+     16.47,
+     83.11
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "Site reserved for future high-rise residential development (SE)",
+   "polygonPx": [
+    [
+     690,
+     480
+    ],
+    [
+     840,
+     500
+    ],
+    [
+     840,
+     540
+    ],
+    [
+     690,
+     540
+    ]
+   ],
+   "polygonWorld": [
+    [
+     330.95,
+     40.71
+    ],
+    [
+     436.96,
+     54.84
+    ],
+    [
+     436.96,
+     83.11
+    ],
+    [
+     330.95,
+     83.11
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "Site reserved for future high-rise industrial development (W of Woodlands Ave 10, partly out of frame)",
+   "polygonPx": [
+    [
+     20,
+     420
+    ],
+    [
+     60,
+     440
+    ],
+    [
+     60,
+     480
+    ],
+    [
+     20,
+     480
+    ]
+   ],
+   "polygonWorld": [
+    [
+     -142.54,
+     -1.7
+    ],
+    [
+     -114.28,
+     12.44
+    ],
+    [
+     -114.28,
+     40.71
+    ],
+    [
+     -142.54,
+     40.71
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "Site reserved for civic & community institution (W of Woodlands Ave 10, partly out of frame)",
+   "polygonPx": [
+    [
+     20,
+     490
+    ],
+    [
+     70,
+     490
+    ],
+    [
+     70,
+     540
+    ],
+    [
+     20,
+     540
+    ]
+   ],
+   "polygonWorld": [
+    [
+     -142.54,
+     47.77
+    ],
+    [
+     -107.21,
+     47.77
+    ],
+    [
+     -107.21,
+     83.11
+    ],
+    [
+     -142.54,
+     83.11
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  },
+  {
+   "name": "Public housing (inclusive of rental) (U/C) \u2014 Blks 443, 443B, E of Sembawang Drive",
+   "polygonPx": [
+    [
+     800,
+     250
+    ],
+    [
+     855,
+     250
+    ],
+    [
+     855,
+     420
+    ],
+    [
+     800,
+     420
+    ]
+   ],
+   "polygonWorld": [
+    [
+     408.69,
+     -121.84
+    ],
+    [
+     447.56,
+     -121.84
+    ],
+    [
+     447.56,
+     -1.7
+    ],
+    [
+     408.69,
+     -1.7
+    ]
+   ],
+   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+  }
+ ],
+ "unitTable": {
+  "columns": [
+   "block",
+   "storeys",
+   "rental_1R",
+   "rental_2R",
+   "2RF_T1",
+   "2RF_T2",
+   "3R",
+   "4R",
+   "5R",
+   "3GEN",
+   "total"
+  ],
+  "rows": [
+   [
+    "437A",
+    30,
+    0,
+    0,
+    58,
+    0,
+    29,
+    116,
+    87,
+    0,
+    290
+   ],
+   [
+    "437B",
+    30,
+    0,
+    0,
+    0,
+    58,
+    0,
+    58,
+    116,
+    29,
+    261
+   ],
+   [
+    "438A",
+    26,
+    100,
+    100,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    200
+   ],
+   [
+    "439A",
+    30,
+    0,
+    0,
+    0,
+    58,
+    58,
+    58,
+    116,
+    0,
+    290
+   ],
+   [
+    "440A",
+    30,
+    0,
+    0,
+    0,
+    87,
+    0,
+    232,
+    0,
+    0,
+    319
+   ]
+  ],
+  "totals": [
+   null,
+   null,
+   100,
+   100,
+   58,
+   203,
+   87,
+   464,
+   319,
+   29,
+   1360
+  ],
+  "conf": "[Read: table]",
+  "checks": "all 5 row sums and all 9 column totals verified in code; no mismatches. Brochure model plaque (IMG_1989) '261 units of 2-room Flexi' = 58 T1 + 203 T2 \u2713"
+ },
+ "legendColours_rgb": {
+  "2RF_T1": [
+   226,
+   181,
+   150
+  ],
+  "2RF_T2": [
+   204,
+   136,
+   115
+  ],
+  "3R": [
+   173,
+   197,
+   136
+  ],
+  "4R": [
+   232,
+   229,
+   128
+  ],
+  "5R": [
+   240,
+   206,
+   130
+  ],
+  "3GEN": [
+   215,
+   210,
+   204
+  ],
+  "RENTAL": [
+   242,
+   235,
+   188
+  ],
+  "linkway": [
+   128,
+   108,
+   81
+  ],
+  "service": [
+   191,
+   189,
+   190
+  ]
+ },
+ "cropsUsed": [
+  "sp_scalebar.png",
+  "sp_north.png",
+  "sp_table.png",
+  "sp_legend.png",
+  "g_legend_top.png",
+  "sp_legend_others.png",
+  "sp_full_plan.png",
+  "g_overview.png",
+  "g_west.png",
+  "g_437A.png",
+  "g_437B.png",
+  "g_core437A.png",
+  "g_core437B.png",
+  "g_438A.png",
+  "g_mid.png",
+  "g_east.png",
+  "g_436.png",
+  "g_436mini.png",
+  "sp_436_mini.png",
+  "g_north.png",
+  "g_south.png",
+  "g_westroads.png",
+  "g_bnd_w.png",
+  "g_bnd_e.png",
+  "seg_units.png",
+  "seg_rects.png",
+  "seg_438A.png",
+  "seg_brown.png",
+  "seg_436green.png",
+  "seg_east_grey.png",
+  "mk_439.png",
+  "mk_440.png",
+  "mk_440A.png",
+  "mk_436.png",
+  "mk_438_drop.png"
+ ]
+}

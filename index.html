@@ -1,0 +1,2511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Interactive 3D model of the Sembawang Brook HDB BTO estate, reconstructed from the brochure site plan and the sales model.">
+<title>Sembawang Brook · 3D estate model</title>
+<style>:root{
+  --bg:#E3E9EE; --panel:rgba(255,255,255,.88); --line:rgba(0,0,0,.08); --text:#1d1d1f; --muted:#6e6e73;
+  --accent:#0A84FF; --mine:#D6247E; --radius:14px; --shadow:0 8px 30px rgba(0,0,0,.12);
+  --top:56px; --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font:14px/1.4 var(--font);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* top bar */
+#topbar{position:fixed;top:0;left:0;right:0;height:var(--top);display:flex;align-items:center;gap:12px;padding:0 12px;background:rgba(250,250,252,.9);backdrop-filter:saturate(1.6) blur(18px);-webkit-backdrop-filter:saturate(1.6) blur(18px);border-bottom:1px solid var(--line);z-index:20;padding-top:env(safe-area-inset-top)}
+.title{display:flex;flex-direction:column;line-height:1.15;min-width:0}
+.title b{font-size:15px;letter-spacing:-.01em}
+.title span{font-size:11.5px;color:var(--muted)}
+.search{position:relative;flex:1;max-width:460px;display:flex;align-items:center;margin-left:auto}
+.search svg{position:absolute;left:11px;color:var(--muted);pointer-events:none}
+#search{width:100%;height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 12px 0 32px;outline:none}
+#search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(10,132,255,.15)}
+#searchResults{position:absolute;top:42px;left:0;right:0;background:#fff;border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--line);overflow:hidden;max-height:60vh;overflow-y:auto}
+#searchResults button{display:grid;grid-template-columns:78px 1fr;grid-template-rows:auto auto;column-gap:8px;width:100%;text-align:left;border:0;background:none;padding:8px 12px;border-bottom:1px solid var(--line)}
+#searchResults button.cur,#searchResults button:hover{background:#F2F6FF}
+#searchResults .k{grid-row:1/3;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;align-self:center}
+#searchResults .l{font-weight:600}
+#searchResults .s{font-size:12px;color:var(--muted)}
+#searchResults .none{padding:12px;color:var(--muted)}
+.actions{display:flex;gap:4px}
+.actions button,.icon{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 10px;border-radius:10px;border:1px solid transparent;background:none}
+.actions button:hover,.icon:hover{background:rgba(0,0,0,.05)}
+.actions button[aria-pressed=true]{background:var(--accent);color:#fff}
+.icon{padding:0 8px;font-size:20px;line-height:1}
+#menu{position:absolute;right:12px;top:calc(var(--top) - 4px);background:#fff;border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--line);padding:6px;min-width:240px;z-index:30}
+#menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:8px}
+#menu button:hover{background:#F2F6FF}
+#menu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+
+/* viewport */
+#viewport{position:fixed;top:var(--top);left:0;right:0;bottom:0;touch-action:none}
+#gl{display:block;width:100%;height:100%;outline:none}
+#labels{position:absolute;inset:0;pointer-events:none}
+.lbl{pointer-events:auto;border:1px solid rgba(0,0,0,.1);background:rgba(255,255,255,.92);color:var(--text);padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.12);transform:translateY(-50%)}
+.lbl.blk{font-size:12.5px}
+.lbl.small{font-size:11px;font-weight:500;padding:2px 7px;opacity:.92}
+.lbl.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.lbl.mine{background:var(--mine);color:#fff;border-color:#fff;pointer-events:none}
+.lbl.occl,.pin.occl{opacity:.28}
+.lbl.measure{background:#FF2D55;color:#fff;border-color:#fff;display:flex;flex-direction:column;align-items:center;line-height:1.2;pointer-events:none}
+.lbl.measure small{font-weight:500;font-size:10.5px;opacity:.9}
+.pin{pointer-events:auto;width:20px;height:20px;border-radius:50%;border:2px solid #fff;background:#34C759;color:#fff;font-size:11px;line-height:16px;padding:0;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.pin.bus{background:#5856D6;font-weight:700;font-size:11px}
+.pin.ctx{background:#FF9500;font-weight:800}
+.hour{font-size:10px;color:#B56A00;font-weight:700;pointer-events:none}
+#compass{position:absolute;right:14px;top:14px;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--shadow);z-index:5;padding:0}
+#compass .dial{position:absolute;inset:0;display:block}
+#compass b{position:absolute;left:0;right:0;top:3px;text-align:center;font-size:11px;font-weight:800;color:#D70015;line-height:1}
+#compass .ndl{position:absolute;left:50%;top:50%;width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;margin-left:-5px}
+#compass .ndl.n{border-bottom:14px solid #D70015;margin-top:-14px}
+#compass .ndl.s{border-top:14px solid #9A9AA0}
+#toolHint{position:absolute;left:50%;top:14px;transform:translateX(-50%);display:flex;gap:10px;align-items:center;background:rgba(29,29,31,.86);color:#fff;border-radius:12px;padding:8px 8px 8px 14px;z-index:6;max-width:calc(100% - 100px);font-size:13px}
+#toolHint output{font-weight:600}
+#toolHint button{border:0;background:#fff;color:#000;border-radius:8px;padding:5px 10px;font-weight:600}
+#joy{position:absolute;left:24px;bottom:110px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid rgba(255,255,255,.7);z-index:6;touch-action:none}
+#joy i{position:absolute;left:35px;top:35px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(0,0,0,.2)}
+body[data-tool=measure] #gl{cursor:crosshair}
+body[data-tool=walk] #gl{cursor:grab}
+body[data-tool=measure] #labels *,body[data-tool=walk] #labels *{pointer-events:none!important}
+
+/* panels */
+.panel{position:fixed;top:calc(var(--top) + 12px);bottom:72px;width:320px;background:var(--panel);backdrop-filter:saturate(1.6) blur(20px);-webkit-backdrop-filter:saturate(1.6) blur(20px);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;z-index:10;transition:transform .25s ease,opacity .25s}
+#left{left:12px;transform:translateX(calc(-100% - 24px));opacity:0}
+#left.open{transform:none;opacity:1}
+#info{right:12px;transform:translateX(calc(100% + 24px));opacity:0;width:340px}
+#info.open{transform:none;opacity:1}
+.phead{display:flex;align-items:center;justify-content:space-between;padding:10px 10px 6px 16px}
+.phead b{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.pbody{overflow-y:auto;padding:0 16px 16px;flex:1;-webkit-overflow-scrolling:touch}
+details{border-top:1px solid var(--line);padding:8px 0}
+details:first-child{border-top:0}
+summary{font-weight:650;cursor:pointer;padding:4px 0;list-style:none;display:flex;justify-content:space-between}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"›";color:var(--muted);transform:rotate(90deg);transition:transform .2s}
+details:not([open]) summary::after{transform:none}
+h2{font-size:20px;margin:2px 0 2px;letter-spacing:-.01em}
+h3{font-size:13px;margin:16px 0 6px}
+h3 small,h4 small{font-weight:400;color:var(--muted)}
+h4{font-size:12.5px;margin:12px 0 4px}
+.sub{color:var(--muted);margin:0 0 10px}
+.muted{color:var(--muted)}
+.note{font-size:12px;color:var(--muted);margin:8px 0}
+.err{color:#D70015;font-size:12px;margin:4px 0 0;min-height:0}
+.err:empty{display:none}
+.kv{display:grid;grid-template-columns:92px 1fr;gap:6px 10px;margin:8px 0;font-size:13px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0}
+.tag{display:inline-block;font-size:10px;font-weight:600;color:#3A6EA5;background:#E7F0FA;border-radius:5px;padding:0 5px;margin-left:4px;vertical-align:1px}
+.t{width:100%;border-collapse:collapse;font-size:12.5px}
+.t th{font-weight:600;color:var(--muted);text-align:left;border-bottom:1px solid var(--line);padding:4px 4px}
+.t td{border-bottom:1px solid var(--line);padding:5px 4px}
+.t td small{display:block;color:var(--muted);font-size:10.5px}
+.t .n{text-align:right;font-variant-numeric:tabular-nums}
+.t.click tbody tr{cursor:pointer}
+.t.click tbody tr:hover{background:#F2F6FF}
+.t tr.on{background:#E3EEFF}
+.sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;border:1px solid rgba(0,0,0,.12)}
+.card{border-radius:12px;padding:10px 12px;margin:8px 0;background:#F5F5F7;font-size:13px}
+.card.accent{background:#EAF3FF}
+.card.mine{background:#FFF1E6}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.row.between{justify-content:space-between}
+.btn{border:0;border-radius:10px;background:var(--accent);color:#fff;padding:8px 14px;font-weight:600}
+.btn.ghost{background:rgba(0,0,0,.06);color:var(--text)}
+.btn.sm{padding:6px 11px;font-size:13px}
+.btn:hover{filter:brightness(1.05)}
+.link{border:0;background:none;color:var(--accent);padding:0}
+.form label{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:6px 0;font-size:13px}
+.form select,.form input{height:32px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 8px;min-width:0;flex:0 1 190px}
+.switch{display:flex;gap:8px;align-items:center;margin:6px 0;font-size:13px}
+.switch input,.layers input{accent-color:var(--accent);width:16px;height:16px}
+.layers{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:13px}
+.layers label{display:flex;gap:6px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px;font-size:12.5px}
+.chip.on{border-color:var(--accent);background:#EAF3FF;color:#0058C4;font-weight:600}
+.blist{display:grid;gap:6px;margin-top:6px}
+.blist button{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 10px}
+.blist button span{justify-self:end;align-self:center}
+.blist button small{grid-column:1/3;color:var(--muted)}
+.blist button.on{border-color:var(--accent);box-shadow:0 0 0 2px rgba(10,132,255,.2)}
+.blist button.dim{opacity:.45}
+input[type=range]{width:100%;accent-color:var(--accent)}
+
+/* bottom bar + sun bar */
+#bottombar{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:6px;align-items:center;background:var(--panel);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:14px;padding:6px;box-shadow:var(--shadow);z-index:9;max-width:calc(100% - 24px);padding-bottom:calc(6px + env(safe-area-inset-bottom)*.3)}
+.presets{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.presets::-webkit-scrollbar{display:none}
+.preset{border:0;background:none;border-radius:9px;padding:6px 10px;white-space:nowrap;font-size:13px}
+.preset:hover{background:rgba(0,0,0,.05)}
+.preset.on{background:#EAF3FF;color:#0058C4;font-weight:600}
+#sunbar{position:fixed;left:50%;bottom:66px;transform:translateX(-50%) translateY(20px);width:min(760px,calc(100% - 24px));background:var(--panel);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--line);border-radius:14px;padding:10px 14px;box-shadow:var(--shadow);z-index:9;opacity:0;pointer-events:none;transition:.2s}
+body.sun-open #sunbar{opacity:1;pointer-events:auto;transform:translateX(-50%)}
+.sunrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.sunrow label{display:flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
+.sunrow label.grow{flex:1;min-width:160px}
+.sunrow input[type=date],.sunrow select{height:30px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:0 6px;color:var(--text)}
+.sunread{margin-top:6px;font-size:13px}
+.sunread small{display:block;color:var(--muted)}
+#toast{position:fixed;left:50%;top:calc(var(--top) + 14px);transform:translateX(-50%);background:rgba(29,29,31,.9);color:#fff;padding:8px 14px;border-radius:10px;z-index:40;font-size:13px;max-width:90vw}
+#toast.bad{background:#D70015}
+#fatal{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);z-index:50;text-align:center;padding:24px}
+dialog{border:0;border-radius:16px;box-shadow:var(--shadow);max-width:min(560px,92vw);padding:20px 22px;color:var(--text)}
+dialog::backdrop{background:rgba(0,0,0,.25)}
+dialog .close{position:absolute;right:10px;top:10px}
+dialog ul{padding-left:18px}
+dialog li{margin:4px 0}
+kbd{font:600 11px var(--font);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:#fff}
+
+/* phones: panels become bottom sheets, labels on buttons hide */
+body.mobile{--top:52px;--panel:rgba(255,255,255,.96)}
+body.mobile .title span{display:none}
+body.mobile .title b{font-size:14px}
+body.mobile .actions span{display:none}
+body.mobile .actions button{padding:0 7px}
+body.mobile .search{max-width:none;position:static}
+body.mobile #searchResults{position:fixed;left:8px;right:8px;top:calc(var(--top) + 4px)}
+body.mobile #topbar{gap:6px;padding:0 6px}
+body.mobile .title{display:none}
+body.mobile #left,body.mobile #info{top:auto;bottom:0;left:0;right:0;width:auto;max-height:62vh;border-radius:16px 16px 0 0;transform:translateY(105%);opacity:1;padding-bottom:env(safe-area-inset-bottom)}
+body.mobile #left.open,body.mobile #info.open{transform:none}
+body.mobile #info{z-index:12}
+body.mobile #bottombar{bottom:8px;left:8px;right:8px;transform:none;max-width:none}
+body.mobile #sunbar{bottom:62px;width:calc(100% - 16px);padding:8px 10px}
+body.mobile .sunrow{gap:6px 8px}
+body.mobile .sunrow label.grow{flex-basis:100%;order:-1}
+body.mobile .sunrow label.grow input{flex:1}
+body.mobile .sunread{font-size:12px}
+body.mobile #compass{top:10px;right:10px}
+body.mobile .kv{grid-template-columns:84px 1fr}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.savebody textarea{width:100%;font:12px ui-monospace,Menlo,monospace;border:1px solid var(--line);border-radius:8px;padding:8px}
+.savebody img{max-width:100%;border-radius:10px;display:block}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body data-tool="orbit">
+<header id="topbar">
+  <button id="btnMenu" class="icon" type="button" aria-label="Show or hide the explore panel" title="Explore panel">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  <div class="title"><b>Sembawang Brook</b><span>3D estate model</span></div>
+  <div class="search">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <input id="search" type="search" placeholder="Search block, #unit, flat type, facility…" autocomplete="off" aria-label="Search" aria-controls="searchResults">
+    <div id="searchResults" role="listbox" hidden></div>
+  </div>
+  <nav class="actions" aria-label="Tools">
+    <button id="btnMeasure" type="button" aria-pressed="false" title="Measure (M)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 17L17 3l4 4L7 21z M7 13l2 2 M10 10l2 2 M13 7l2 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Measure</span></button>
+    <button id="btnWalk" type="button" aria-pressed="false" title="Walk at eye level"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="13" cy="4" r="2" fill="currentColor"/><path d="M10 22l2-7 3 3v6 M8 12l3-4 4 1 2 4 M12 8l-1 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Walk</span></button>
+    <button id="btnSun" type="button" aria-pressed="false" title="Sun & shadow study"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Sun</span></button>
+    <button id="btnShot" type="button" title="Save image (PNG)"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 6l1.5-2h5L16 6" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Image</span></button>
+    <button id="btnMore" type="button" aria-haspopup="menu" title="More"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg><span class="sr">More</span></button>
+  </nav>
+  <div id="menu" role="menu" hidden>
+    <button type="button" role="menuitem" data-act="export">Export settings + data (JSON)</button>
+    <button type="button" role="menuitem" data-act="import">Import JSON…</button>
+    <button type="button" role="menuitem" data-act="reset">Reset settings</button>
+    <hr>
+    <button type="button" role="menuitem" data-act="help">Controls &amp; shortcuts</button>
+    <button type="button" role="menuitem" data-act="about">About this model &amp; sources</button>
+  </div>
+</header>
+
+<div id="viewport">
+  <button id="compass" type="button" title="Tap to face north" aria-label="Compass: tap to face north"><span class="dial"><b>N</b><i class="ndl n"></i><i class="ndl s"></i></span></button>
+  <div id="toolHint" hidden><span></span><output id="measureOut"></output><button id="toolExit" type="button">Done</button></div>
+  <div id="joy" hidden aria-hidden="true"><i></i></div>
+</div>
+
+<aside id="left" class="panel open" aria-label="Explore">
+  <div class="phead"><b>Explore</b><button id="leftClose" class="icon" type="button" aria-label="Close panel">×</button></div>
+  <div class="pbody">
+    <details id="sec-mine" open><summary>My flat</summary>
+      <form id="muForm" class="form">
+        <label>Block<select id="muBlock"></select></label>
+        <label>Unit<select id="muUnit"></select></label>
+        <label>Storey<input id="muStorey" type="number" min="2" max="30" step="1" value="10" inputmode="numeric"></label>
+        <div class="row"><button class="btn" type="submit">Show my flat</button><button class="btn ghost" type="button" id="muClear">Clear</button></div>
+        <p id="muErr" class="err" role="alert"></p>
+      </form>
+      <div id="muOut"></div>
+    </details>
+    <details id="sec-blocks" open><summary>Blocks</summary><div id="blockList" class="blist"></div></details>
+    <details id="sec-types" open><summary>Flat types</summary>
+      <label class="switch"><input type="checkbox" id="colourByType"><span>Colour stacks by flat type</span></label>
+      <div id="typeChips" class="chips" aria-label="Filter by flat type"></div>
+      <div class="row between"><small id="typeSummary" class="muted"></small><button class="link" type="button" id="typeClear">Clear filter</button></div>
+    </details>
+    <details id="sec-storey"><summary>Storey highlight</summary>
+      <label class="switch"><input type="checkbox" id="storeyOn"><span>Highlight one storey on every block</span></label>
+      <input id="storeyN" type="range" min="2" max="30" step="1" value="10" aria-label="Storey">
+      <small id="storeyOut" class="muted"></small>
+    </details>
+    <details id="sec-layers"><summary>Layers</summary>
+      <div id="layers" class="layers">
+        <label><input type="checkbox" name="labels">Block labels</label>
+        <label><input type="checkbox" name="facilities">Facility pins</label>
+        <label><input type="checkbox" name="roads">Roads</label>
+        <label><input type="checkbox" name="canal">Canal</label>
+        <label><input type="checkbox" name="linkways">Covered linkways</label>
+        <label><input type="checkbox" name="landscape">Trees &amp; play areas</label>
+        <label><input type="checkbox" name="context">Neighbouring sites</label>
+        <label><input type="checkbox" name="shadows">Shadows</label>
+        <label><input type="checkbox" name="sunPath">Sun path</label>
+      </div>
+    </details>
+    <details id="sec-heights"><summary>Heights (assumed)</summary>
+      <form id="hForm" class="form">
+        <p class="note">The brochure gives storey counts but no heights. Defaults match the sales-model photos: storeys 2.7–2.9 m apart, void deck 3.2–4.6 m.</p>
+        <label>Floor-to-floor (m)<input id="hF2F" type="number" min="2.4" max="3.6" step="0.05" inputmode="decimal"></label>
+        <label>Void deck (m)<input id="hVD" type="number" min="2.4" max="6" step="0.1" inputmode="decimal"></label>
+        <div class="row"><button class="btn" type="submit">Apply</button><button class="btn ghost" type="button" id="hReset">Reset 2.8 / 3.6</button></div>
+        <p id="hErr" class="err" role="alert"></p>
+      </form>
+    </details>
+  </div>
+</aside>
+
+<aside id="info" class="panel" aria-label="Details" aria-live="polite">
+  <div class="phead"><b>Details</b><button id="infoClose" class="icon" type="button" aria-label="Close details">×</button></div>
+  <div id="infoBody" class="pbody"></div>
+</aside>
+
+<section id="sunbar" aria-label="Sun and shadow study">
+  <div class="sunrow">
+    <label>Date<input id="sunDate" type="date"></label>
+    <label class="grow">Time (SGT)<input id="sunTime" type="range" min="360" max="1200" step="5"></label>
+    <button id="sunPlay" class="btn sm" type="button" aria-pressed="false">Play day</button>
+    <select id="sunSpeed" aria-label="Playback speed"><option value="30">½ h/s</option><option value="60" selected>1 h/s</option><option value="180">3 h/s</option></select>
+    <button id="sunNow" class="btn sm ghost" type="button">Now</button>
+  </div>
+  <div id="sunRead" class="sunread"></div>
+</section>
+
+<footer id="bottombar">
+  <div id="presets" class="presets" role="toolbar" aria-label="Camera views"></div>
+  <button id="btnFocus" class="btn sm ghost" type="button" title="Focus selection (F)">Focus</button>
+  <button id="btnReset" class="btn sm ghost" type="button" title="Reset view (R)">Reset</button>
+</footer>
+
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+
+<dialog id="about">
+  <button class="close icon" type="button" aria-label="Close">×</button>
+  <h2>About this model</h2>
+  <p>A reconstruction of <b>Sembawang Brook</b> (HDB BTO 2026) from the brochure site plan and photos of HDB's 1:300 sales model. It is <b>not a survey</b>, and the brochure says layouts and facilities are subject to change.</p>
+  <h3>What is measured, read or estimated</h3>
+  <ul>
+    <li><b>Read:</b> storeys (30; 26 for 438A; 8 for the car park), the flat-mix table, unit numbers, labels, road names.</li>
+    <li><b>Measured:</b> block positions and footprints from the site plan (scale 0.708 m/px, checked three times, within 0.2%), the 25.5° estate grid, the canal, roads and linkways. Facade patterns and roof features come from the model photos.</li>
+    <li><b>Derived:</b> storey 1 is a void deck, because every block's flat count divides exactly by its residential floors (290 = 10 × 29 …).</li>
+    <li><b>Estimated:</b> 2.8 m floor-to-floor and a 3.6 m void deck (consistent with the model photos; editable under <i>Heights</i>), plus fixed estimates for the car-park height (~24 m) and the low-rise heights.</li>
+    <li><b>Representative:</b> trees, play equipment, shelters and roof-garden items are placed from the photos to look right. They are not surveyed.</li>
+  </ul>
+  <h3>Known uncertainties</h3>
+  <ul>
+    <li>Unit labels #116 and #118 (Blk 437A) follow the numbering pattern of the other blocks; the brochure digits are illegible. Flat types are certain.</li>
+    <li>Which Blk 438A tower holds the 1-Room vs the 2-Room rental flats isn't stated.</li>
+    <li>Neighbouring reserved sites are shown flat; buildings planned there could change views and sun.</li>
+    <li>The brochure notes the estate is close to a heavy vehicle park (possible noise); its location is pinned, its extent is not shown on the plan.</li>
+    <li>True north is taken from the brochure's north arrow. The latitude/longitude used for the sun is approximate (Sembawang).</li>
+  </ul>
+  <p class="muted">Data check: <span id="dataCheck"></span>. Version <span>1.0.0</span>.</p>
+</dialog>
+<dialog id="help">
+  <button class="close icon" type="button" aria-label="Close">×</button>
+  <h2>Controls</h2>
+  <ul>
+    <li><b>Orbit</b> drag · <b>Pan</b> right-drag / two-finger drag · <b>Zoom</b> wheel / pinch</li>
+    <li><b>Select</b> tap a block (tapping a facade also picks the stack under your finger), a pin, a road or a reserved site</li>
+    <li><b>Views</b> buttons at the bottom, or keys <kbd>1</kbd>–<kbd>7</kbd>; <kbd>R</kbd> reset; <kbd>F</kbd> focus selection; compass = face north</li>
+    <li><b>Search</b> <kbd>/</kbd>: "437B", "#120", "#12-160", "4-room", "playground", "Admiralty"</li>
+    <li><b>Measure</b> <kbd>M</kbd>: tap two points; <kbd>Esc</kbd> to finish</li>
+    <li><b>Walk</b>: drag to look, <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>/arrows to move, <kbd>Shift</kbd> faster; on phones use the left pad</li>
+    <li><b>Sun</b>: pick a date and time (Singapore time), or play the day</li>
+  </ul>
+</dialog>
+<dialog id="saveDlg">
+  <button class="close icon" type="button" aria-label="Close">×</button>
+  <h2 id="saveTitle">Save</h2><p class="note" id="saveNote"></p><div id="saveBody" class="savebody"></div>
+</dialog>
+<div id="toast" role="status" hidden></div>
+<div id="fatal" hidden><b>WebGL isn't available</b><p>This 3D model needs WebGL. Try a recent version of Safari, Chrome or Edge.</p></div>
+<script type="module">import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+/* =====================================================================
+   00 CORE — data, coordinate frames, geometry helpers, state, persistence
+   ===================================================================== */
+
+const SITE_DEFAULT = {"format":"sembawang-brook-site","version":1,"meta":{"name":"Sembawang Brook","programme":"HDB Build-To-Order 2026","scale_m_per_px":0.708,"gridDeg":25.5,"faceExtension_m":1.4,"origin":"SW outer corner of Blk 436 (canal side x Admiralty Lane side)","axes":"+X east, +Z south, +Y up (metres); buildings in local frame u (bearing 64.5) / v (bearing 154.5)","latlon":[1.447,103.811],"latlonConf":"approximate (Admiralty St / Woodlands Ave 10, Sembawang); used only for the sun path","sources":["HDB brochure site plan pp.15-16 (scale bar, north arrow, unit table)","HDB 1:300 sales model photos IMG_1981-1990 (massing, facades, roof garden)"],"disclaimer":"Brochure: developments and facilities are subject to change. This model is reconstructed from the brochure and sales model; it is not a survey."},"heights":{"floorToFloor":2.8,"voidDeck":3.6,"parapet":1.2,"conf":"2.8 m storey consistent with model photos (2.7-2.9 m); void deck 3.6 m within the photo range 3.2-4.6 m. Neither is printed in the brochure."},"flatTypes":{"2RF-T1":{"name":"2-Room Flexi (Type 1)","short":"2RF T1","rgb":[226,181,150]},"2RF-T2":{"name":"2-Room Flexi (Type 2)","short":"2RF T2","rgb":[204,136,115]},"3R":{"name":"3-Room","short":"3R","rgb":[150,190,105]},"4R":{"name":"4-Room","short":"4R","rgb":[232,222,96]},"5R":{"name":"5-Room","short":"5R","rgb":[240,178,80]},"3GEN":{"name":"3Gen","short":"3Gen","rgb":[176,170,162]},"1R-RENT":{"name":"1-Room (rental)","short":"1R rent","rgb":[242,235,188]},"2R-RENT":{"name":"2-Room (rental)","short":"2R rent","rgb":[242,235,188]}},"blocks":[{"id":"437A","storeys":30,"unitsPerFloor":10,"kind":"sale","mix":{"2RF-T1":58,"3R":29,"4R":116,"5R":87},"total":290,"core":{"u":51.17,"v":-109.26,"lu":12,"lv":8},"towers":[{"side":"W","scheme":"B","tanks":7,"rows":[{"face":"N","pads":[{"units":["104","106"],"unitsWE":["104","106"],"type":"4R","u":29.56,"v":-119.88,"lu":24.44,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["100","102"],"unitsWE":["102","100"],"type":"4R","u":29.62,"v":-101.25,"lu":24.34,"lv":7.91,"bays":8,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":6,"rows":[{"face":"N","pads":[{"units":["112","114"],"unitsWE":["112","114"],"type":"5R","u":75.25,"v":-117.46,"lu":28.85,"lv":8.01,"bays":9,"face":"N"}]},{"face":"S","pads":[{"units":["118"],"unitsWE":["118"],"type":"5R","u":69.42,"v":-98.83,"lu":13.93,"lv":7.91,"bays":5,"face":"S"},{"units":["116"],"unitsWE":["116"],"type":"3R","u":82.09,"v":-98.43,"lu":8.21,"lv":7.31,"bays":3,"face":"S"}]}]}],"link":[{"units":["108","110"],"unitsWE":["108","110"],"type":"2RF-T1","u":50.2,"v":-118.74,"lu":11.02,"lv":6.51,"bays":4,"face":"N"}],"notes":["Unit labels #116 (3-Room, east) and #118 (5-Room, west) follow the clockwise numbering used by every other block; the brochure digits are illegible at this resolution [Unverified]. Flat types and positions are certain.","2-Room Flexi link (#108/#110) is set back ~1.8 m from the west tower face [Measured]."]},{"id":"437B","storeys":30,"unitsPerFloor":9,"kind":"sale","mix":{"2RF-T2":58,"4R":58,"5R":116,"3GEN":29},"total":261,"core":{"u":107.5,"v":-52.2,"lu":10,"lv":7},"towers":[{"side":"W","scheme":"B","tanks":6,"rows":[{"face":"N","pads":[{"units":["124","126"],"unitsWE":["124","126"],"type":"5R","u":86.95,"v":-65.68,"lu":28.85,"lv":7.91,"bays":9,"face":"N"}]},{"face":"S","pads":[{"units":["120","122"],"unitsWE":["122","120"],"type":"5R","u":84.31,"v":-46.86,"lu":29.15,"lv":7.91,"bays":9,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":3,"rows":[{"face":"N","pads":[{"units":["132","134"],"unitsWE":["132","134"],"type":"4R","u":133.26,"v":-59.36,"lu":24.34,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["136"],"unitsWE":["136"],"type":"3GEN","u":129.5,"v":-47.66,"lu":13.93,"lv":7.51,"bays":5,"face":"S"}]}]}],"link":[{"units":["128","130"],"unitsWE":["128","130"],"type":"2RF-T2","u":108.34,"v":-58.07,"lu":11.72,"lv":8.52,"bays":4,"face":"N"}],"notes":["East tower is set back ~6 m behind the west tower and has a single 3Gen stack (#136) on its south side [Measured]."]},{"id":"438A","storeys":26,"unitsPerFloor":8,"kind":"rental","mix":{"1R-RENT":100,"2R-RENT":100},"total":200,"core":{"u":156.82,"v":-14.16,"lu":10,"lv":8},"points":[{"side":"W","scheme":"B","tanks":2,"u":143.76,"v":-14.27,"lu":12.12,"lv":19.03},{"side":"E","scheme":"A","tanks":1,"u":171.35,"v":-15.85,"lu":12.02,"lv":18.03}],"notes":["All 200 flats are rental (100 1-Room, 100 2-Room); the brochure does not say which tower holds which type, and unit numbers are not printed.","\"RENTAL\" is the west tower's roof label; both towers are rental."]},{"id":"439A","storeys":30,"unitsPerFloor":10,"kind":"sale","mix":{"2RF-T2":58,"3R":58,"4R":58,"5R":116},"total":290,"core":{"u":238.85,"v":3.8,"lu":10,"lv":7},"towers":[{"side":"W","scheme":"B","tanks":6,"rows":[{"face":"N","pads":[{"units":["158","160"],"unitsWE":["158","160"],"type":"5R","u":215.44,"v":-11.92,"lu":29.15,"lv":7.91,"bays":9,"face":"N"}]},{"face":"S","pads":[{"units":["154","156"],"unitsWE":["156","154"],"type":"4R","u":217.37,"v":6.41,"lu":24.75,"lv":7.91,"bays":8,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":5,"rows":[{"face":"N","pads":[{"units":["166","168"],"unitsWE":["166","168"],"type":"3R","u":258.17,"v":-4.64,"lu":16.43,"lv":7.31,"bays":6,"face":"N"}]},{"face":"S","pads":[{"units":["170","172"],"unitsWE":["172","170"],"type":"5R","u":260.91,"v":14.79,"lu":29.15,"lv":7.91,"bays":9,"face":"S"}]}]}],"link":[{"units":["162","164"],"unitsWE":["162","164"],"type":"2RF-T2","u":238.06,"v":-4.59,"lu":12.52,"lv":8.01,"bays":4,"face":"N"}],"notes":["East tower sits ~8 m south of the west tower [Measured].","3-Room pad #166/#168 position is +-2 m [Measured-manual]."]},{"id":"440A","storeys":30,"unitsPerFloor":11,"kind":"sale","mix":{"2RF-T2":87,"4R":232},"total":319,"core":{"u":327.17,"v":52.98,"lu":10,"lv":8},"towers":[{"side":"W","scheme":"B","tanks":6,"rows":[{"face":"N","pads":[{"units":["192","194"],"unitsWE":["192","194"],"type":"4R","u":305.74,"v":55.15,"lu":24.44,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["188","190"],"unitsWE":["190","188"],"type":"4R","u":305.24,"v":73.97,"lu":24.44,"lv":7.91,"bays":8,"face":"S"}]}]},{"side":"E","scheme":"A","tanks":4,"rows":[{"face":"N","pads":[{"units":["174","176"],"unitsWE":["174","176"],"type":"4R","u":345.69,"v":43.93,"lu":24.75,"lv":7.91,"bays":8,"face":"N"}]},{"face":"S","pads":[{"units":["180","182"],"unitsWE":["182","180"],"type":"4R","u":348.36,"v":65.6,"lu":24.75,"lv":8.01,"bays":8,"face":"S"}]}]}],"link":[{"units":["184","186"],"unitsWE":["186","184"],"type":"2RF-T2","u":325.6,"v":65.64,"lu":12.32,"lv":8.52,"bays":4,"face":"S"}],"tip":{"units":["178"],"unitsWE":["178"],"type":"2RF-T2","u":355.76,"v":57.68,"lu":6.21,"lv":8.01,"bays":2,"face":"E"},"notes":["East tower sits ~10 m north of the west tower [Measured].","2-Room Flexi #178 faces east at the tip; #184/#186 face south in the link."]}],"mscp":{"id":"436","storeys":8,"westWing":{"u0":2.0,"u1":38.77,"v0":-81.15,"v1":-2.0},"southWing":{"u0":38.77,"u1":120.41,"v0":-19.74,"v1":-2.0},"ramp":{"u":107.69,"v":-19.87,"r":12.72},"height":24.0,"uses":{"1":"Preschool, electrical sub-station (ESS), bin centre (pneumatic waste conveyance)","2":"Preschool, future amenities/facilities"},"notes":["8 storeys [Read]; roof-garden height ~24 m is an estimate (no heights in the brochure).","West-wing length is +-8 m (plan vs Blk 436 mini-plan disagree slightly).","Roof garden contents placed from model photo IMG_1985 - representative, not surveyed."]},"lowRise":[{"id":"437","use":"Precinct pavilion","u":7.24,"v":-96.09,"lu":16.03,"lv":16.03,"height":4.5,"storeys":1},{"id":"porch","use":"Drop-off porch","u":60.68,"v":-74.92,"lu":17.03,"lv":17.03,"height":4.5,"storeys":1},{"id":"438","use":"Precinct pavilion","u":189.16,"v":-11.27,"lu":15.03,"lv":19.03,"height":4.5,"storeys":1},{"id":"439","use":"Precinct pavilion + drop-off porch","u":293.69,"v":6.41,"lu":30.05,"lv":27.05,"height":4.5,"storeys":1}],"commercial440":{"id":"440","use":"Eating house, shops, mini-mart (1st storey)","polys":[[[235.27,-75.33],[244.48,-80.29],[259.34,-86.66],[261.47,-83.12],[254.38,-79.57],[257.22,-72.5],[256.51,-68.96],[240.23,-69.67]],[[268.55,-85.25],[273.5,-85.96],[279.87,-73.2],[284.83,-68.96],[288.37,-60.46],[274.21,-65.42],[267.84,-79.57]]],"height":9.0,"heightConf":"estimated ~2 storeys from model photo 08"},"ess441":{"id":"441","use":"Electrical sub-station","poly":[[285.54,-121.35],[303.94,-129.85],[311.74,-131.97],[314.56,-129.14],[315.27,-125.6],[290.49,-113.57],[287.66,-114.27],[285.54,-118.52]],"height":5.0,"heightConf":"estimated"},"roads":[{"name":"Admiralty Street","status":"existing","width":25,"line":[[-8.29,-168.79],[55.44,-195.7],[126.24,-224.01],[161.63,-238.17]],"conf":"[Measured \u00b14 m width, \u00b13 px line; west of px x=200 the alignment is Unverified]"},{"name":"Admiralty Close (future road)","status":"future","width":15,"line":[[117.74,-219.76],[121.99,-192.86],[127.65,-164.54],[133.31,-136.22],[124.82,-113.57]],"conf":"[Measured line \u00b14 px; width Inferred]"},{"name":"Internal driveway (Admiralty Close end \u2192 Blk 436 courtyard / drop-off)","status":"future","width":7,"line":[[124.82,-113.57],[106.41,-97.28],[92.25,-83.12],[55.44,-65.42],[28.53,-58.34]],"conf":"[Inferred from light-grey fill]"},{"name":"Internal service road (behind 438A/439A \u2192 440/441)","status":"future","width":6,"line":[[154.56,-65.42],[197.04,-76.04],[231.02,-83.12],[289.08,-111.44]],"conf":"[Unverified: light-grey strip]"},{"name":"Admiralty Lane (future road)","status":"future","width":20,"line":[[-1.2,46.44],[55.44,16.71],[126.24,-21.52],[182.87,-29.31],[225.36,-29.31],[267.84,-24.35],[310.32,-13.02],[354.22,6.79]],"conf":"[Measured line \u00b14 px; width 18-33 m varies with slip lanes \u2192 20 Inferred]"},{"name":"Sembawang Drive","status":"existing","width":25,"line":[[342.17,40.78],[354.22,6.79],[370.5,-61.88],[388.2,-136.22],[405.9,-214.1]],"conf":"[Measured \u00b14 m]"},{"name":"Admiralty Lane (existing, east of Sembawang Drive)","status":"existing","width":18,"line":[[354.22,6.79],[402.36,20.96],[448.38,39.36]],"conf":"[Measured line; width Inferred]"},{"name":"Woodlands Avenue 10","status":"existing","width":30,"line":[[-125.11,-136.22],[-100.32,-72.5],[-75.55,5.38],[-50.76,83.26]],"conf":"[Inferred: largely out of frame]"},{"name":"Unnamed road south from Admiralty Lane (between Sembawang Portico site and SE high-rise site)","status":"unknown","width":15,"line":[[306.78,-8.78],[301.82,83.26]],"conf":"[Unverified]"}],"canal":{"east":[[-76.25,-122.06],[-67.05,-104.36],[-32.36,-30.01],[-13.24,12.46],[-4.74,33.7]],"west":[[-104.57,-122.06],[-100.32,-104.36],[-57.85,-30.01],[-36.61,12.46],[-25.99,33.7]]},"drainage":[[-72.0,-129.14],[-11.82,-155.33],[-8.29,-148.96],[-67.05,-120.64]],"boundary":[[0.21,28.04],[-67.05,-121.35],[-3.33,-150.38],[48.36,-171.62],[69.6,-119.94],[109.95,-132.68],[119.16,-109.32],[133.31,-114.98],[154.56,-127.01],[211.19,-137.64],[246.6,-140.47],[281.99,-140.47],[329.43,-134.09],[359.88,-127.01],[381.11,-118.52],[366.96,-79.57],[352.8,-58.34],[338.64,-42.06],[305.37,-45.59],[272.8,-56.92],[234.56,-63.3],[187.83,-60.46],[154.56,-52.68],[122.69,-35.69],[79.5,-20.82]],"linkways":[{"name":"Admiralty Lane spine (W)","line":[[-6.87,3.97],[182.87,-90.2]],"width":4},{"name":"Canal-side (436 west)","line":[[-36.61,-75.33],[0.92,1.84]],"width":4},{"name":"436 north / 437 pavilion","line":[[-40.14,-83.12],[-16.07,-83.12],[4.46,-93.74]],"width":4},{"name":"437A drop-off link","line":[[3.05,-95.86],[29.24,-94.45]],"width":4},{"name":"Admiralty St bus bay \u2192 437A east \u2192 spine","line":[[35.61,-163.13],[44.81,-156.76],[68.89,-114.98],[83.05,-97.28],[98.63,-73.2]],"width":4},{"name":"438A south","line":[[122.69,-62.58],[151.73,-66.83]],"width":4},{"name":"439A south","line":[[186.42,-75.33],[224.65,-93.74]],"width":4},{"name":"439A\u2013439\u2013441 spine","line":[[226.06,-86.66],[286.24,-114.98]],"width":4},{"name":"439 links","line":[[251.56,-122.06],[284.83,-117.81]],"width":4},{"name":"441 west","line":[[279.17,-125.6],[295.45,-94.45]],"width":4},{"name":"440 south","line":[[223.24,-67.54],[279.17,-61.88],[304.66,-55.51]],"width":4},{"name":"440A south \u2192 Sembawang Dr bus bay","line":[[287.66,-58.34],[356.34,-86.66],[374.04,-73.91]],"width":4}],"facilities":[{"name":"adult fitness station","where":"437A/437B courtyard","x":45.52,"z":-140.47,"conf":"[marker low-res; order matches IMG_1983 labels \u2192 Inferred]","onRoof":false},{"name":"children playground","where":"437A/437B courtyard","x":53.32,"z":-122.06,"conf":"[Inferred, as above]","onRoof":false},{"name":"elderly fitness station","where":"437A/437B courtyard","x":40.56,"z":-110.73,"conf":"[Inferred, as above]","onRoof":false},{"name":"precinct pavilion","where":"Blk 437","x":-34.83,"z":-89.84,"conf":"[Read '5' + photo label]","onRoof":false},{"name":"drop-off porch","where":"beside 437B, 436 courtyard","x":22.51,"z":-93.74,"conf":"[Inferred from IMG_1985 label]","onRoof":false},{"name":"Adult fitness station (unverified)","where":"Blk 436 roof, west wing","x":-11.82,"z":-44.89,"conf":"[Unverified digit]","onRoof":true},{"name":"children playground","where":"Blk 436 roof, west wing","x":12.95,"z":-39.93,"conf":"[Inferred: IMG_1985 shows children playground on 436 west-wing roof]","onRoof":true},{"name":"elderly fitness station","where":"Blk 436 roof, south wing","x":58.98,"z":-35.69,"conf":"[Inferred: IMG_1985 'ELDERLY FITNESS STATION' on south-wing roof]","onRoof":true},{"name":"children playground","where":"ground, south of 436","x":40.56,"z":-10.9,"conf":"[Inferred: IMG_1985 'CHILDREN PLAYGROUND' at ground south of 436]","onRoof":false},{"name":"Fitness station (marker illegible)","where":"ground, south of Blk 436","x":28.53,"z":-5.24,"conf":"[Unverified: marker digit is 2 or 3]","onRoof":false},{"name":"precinct pavilion","where":"Blk 438","x":165.88,"z":-91.62,"conf":"[Read '5']","onRoof":false},{"name":"precinct pavilion","where":"Blk 439","x":259.34,"z":-124.89,"conf":"[Read '5']","onRoof":false},{"name":"drop-off porch","where":"Blk 439","x":268.55,"z":-113.57,"conf":"[Unverified digit]","onRoof":false},{"name":"eating house at 1st storey","where":"Blk 440","x":248.01,"z":-74.63,"conf":"[Unverified: two-digit marker]","onRoof":false},{"name":"shops at 1st storey","where":"Blk 440","x":272.09,"z":-79.57,"conf":"[Unverified]","onRoof":false},{"name":"mini-mart at 1st storey","where":"Blk 440","x":281.99,"z":-64.71,"conf":"[Unverified]","onRoof":false},{"name":"Residents' Network Centre (likely)","where":"Blk 440A, 1st storey","x":307.49,"z":-64.71,"conf":"[Unverified: the marker digit looks like 8 = RNC in the legend]","onRoof":false},{"name":"adult fitness station","where":"440A garden","x":342.88,"z":-78.16,"conf":"[Unverified digit]","onRoof":false},{"name":"children playground","where":"440A garden","x":335.8,"z":-64.01,"conf":"[Unverified digit]","onRoof":false},{"name":"Hardcourt (unverified)","where":"440A garden","x":315.99,"z":-55.51,"conf":"[Unverified digit]","onRoof":false},{"name":"elderly fitness station","where":"440A garden","x":325.89,"z":-51.96,"conf":"[Unverified digit]","onRoof":false},{"name":"space reserved for future community use","where":"east tip near Sembawang Drive","x":362.71,"z":-110.73,"conf":"[Unverified digit; grey pad ~ 11x16 m]","onRoof":false},{"name":"Heavy vehicle park (nearby)","where":"NE of the estate, beyond the school site. Brochure note 9: possible disamenities such as higher noise levels.","x":363.42,"z":-219.06,"conf":"[Read: label + dot on the site plan; extent not shown]","onRoof":false,"context":true}],"busBays":[{"name":"future bus bay & shelter","road":"Admiralty Street","x":32.78,"z":-163.13},{"name":"future bus bay & shelter","road":"Admiralty Lane (N side)","x":189.96,"z":-56.21},{"name":"future bus bay & shelter","road":"Admiralty Lane (S side)","x":211.19,"z":-35.69},{"name":"future bus bay & shelter","road":"Sembawang Drive","x":384.66,"z":-83.12},{"name":"future bus bay & shelter","road":"unnamed south road","x":299.7,"z":69.11}],"reserved":[{"name":"Site reserved for church","poly":[[49.77,-175.16],[101.45,-199.94],[106.41,-131.97],[70.31,-119.94]]},{"name":"Site reserved for school","poly":[[140.4,-224.72],[267.84,-233.93],[338.64,-233.93],[378.99,-118.52],[329.43,-134.09],[281.99,-140.47],[211.19,-137.64],[154.56,-127.01],[136.86,-134.81]]},{"name":"Acacia Home","poly":[[-89.7,-182.24],[-22.44,-199.94],[-11.82,-155.33],[-72.0,-129.14]]},{"name":"Chinese temple","poly":[[-100.32,-210.56],[-33.06,-228.26],[-22.44,-199.94],[-89.7,-182.24]]},{"name":"Site reserved for Chinese temple","poly":[[-107.41,-238.89],[-43.68,-241.01],[-33.06,-228.26],[-100.32,-210.56]]},{"name":"North Link Building","poly":[[-29.52,-238.89],[76.68,-238.89],[76.68,-222.6],[-11.82,-208.44]]},{"name":"Site reserved for public housing (incl. rental) under BTO (Sembawang Portico)","poly":[[76.68,20.96],[140.4,-8.78],[239.52,-15.86],[296.16,-1.7],[296.16,83.26],[97.92,83.26]]},{"name":"Site reserved for future high-rise residential development (SW)","poly":[[7.29,54.94],[90.84,33.7],[90.84,83.26],[16.5,83.26]]},{"name":"Site reserved for future high-rise residential development (SE)","poly":[[331.55,40.78],[437.76,54.94],[437.76,83.26],[331.55,83.26]]},{"name":"Site reserved for future high-rise industrial development (W of Woodlands Ave 10, partly out of frame)","poly":[[-142.8,-1.7],[-114.49,12.46],[-114.49,40.78],[-142.8,40.78]]},{"name":"Site reserved for civic & community institution (W of Woodlands Ave 10, partly out of frame)","poly":[[-142.8,47.86],[-107.41,47.86],[-107.41,83.26],[-142.8,83.26]]},{"name":"Public housing (inclusive of rental) (U/C) \u2014 Blks 443, 443B, E of Sembawang Drive","poly":[[409.44,-122.06],[448.38,-122.06],[448.38,-1.7],[409.44,-1.7]]}],"paved":[[[139.7,-122.1],[139.0,-120.6],[136.9,-122.1],[113.5,-122.1],[118.4,-110.7],[121.3,-111.4],[122.0,-113.6],[126.9,-113.6],[127.7,-111.4],[124.1,-109.3],[122.0,-103.7],[117.7,-100.1],[93.7,-88.8],[97.2,-81.0],[102.2,-75.3],[108.5,-59.8],[111.4,-59.8],[112.8,-61.9],[105.7,-76.7],[105.0,-84.5],[109.2,-88.8],[129.1,-98.7],[131.9,-104.4],[131.2,-110.7],[128.4,-112.1],[127.7,-114.3],[129.8,-116.4],[138.3,-119.2]],[[10.1,-105.8],[8.0,-106.5],[3.0,-103.7],[2.3,-98.7],[10.1,-102.2]],[[5.9,-92.3],[9.4,-85.2],[7.3,-80.3],[11.5,-70.4],[13.7,-71.8],[15.8,-71.1],[15.8,-69.0],[13.7,-66.8],[18.6,-56.2],[22.2,-52.0],[52.6,-52.0],[54.0,-54.1],[59.0,-52.7],[57.6,-53.4],[57.6,-55.5],[65.3,-59.8],[63.2,-63.3],[63.2,-67.5],[64.6,-69.7],[88.0,-81.0],[85.9,-85.2],[36.3,-61.2],[30.7,-61.2],[26.4,-64.0],[22.2,-71.8],[22.2,-76.0],[26.4,-80.3],[27.1,-83.8],[25.0,-81.7],[18.6,-81.0],[14.4,-83.8],[15.1,-86.7],[11.5,-92.3],[11.5,-94.4]]]};
+/** optional private build-time preset {block, unit, storey}; public builds leave it null */
+const PRESET_FLAT = null;
+let SITE = structuredClone(SITE_DEFAULT);
+
+const APP_VERSION = '1.0.0';
+const STORE_KEY = 'sembawang-brook-3d.settings.v1';
+const DEG = Math.PI / 180;
+const IS_TOUCH = matchMedia('(pointer: coarse)').matches;
+const DEBUG = /[?&]debug\b/.test(location.search);
+
+/* ---------- estate frame ----------
+   World: +X east, +Z south, +Y up (metres). Buildings live in a LOCAL frame
+   (u = along block rows, bearing 64.5°; v = across, bearing 154.5°).
+   A group with rotation.y = GRID maps local (x=u, z=v) → world.            */
+let GRID = 0, GC = 1, GS = 0, EXT = 1.4;
+function setFrame() {
+  GRID = SITE.meta.gridDeg * DEG; GC = Math.cos(GRID); GS = Math.sin(GRID);
+  EXT = SITE.meta.faceExtension_m;
+}
+setFrame();
+const toWorld = (u, v) => ({ x: u * GC + v * GS, z: -u * GS + v * GC });
+const toLocal = (x, z) => ({ u: x * GC - z * GS, v: x * GS + z * GC });
+/** compass bearing (deg, clockwise from north) of a local face normal */
+const FACE_BEARING = (face) => {
+  const g = SITE.meta.gridDeg;
+  return { N: 360 - g, S: 180 - g, E: 90 - g, W: 270 - g }[face];
+};
+const bearingName = (b) => ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'][Math.round(((b % 360) + 360) % 360 / 22.5) % 16];
+
+/* ---------- small utils ---------- */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const fmt = (x, d = 1) => Number(x).toFixed(d);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function pointInPoly(x, z, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, zi] = poly[i], [xj, zj] = poly[j];
+    if ((zi > z) !== (zj > z) && x < (xj - xi) * (z - zi) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function distToSeg(px, pz, ax, az, bx, bz) {
+  const dx = bx - ax, dz = bz - az, l2 = dx * dx + dz * dz || 1;
+  const t = clamp(((px - ax) * dx + (pz - az) * dz) / l2, 0, 1);
+  return Math.hypot(px - (ax + t * dx), pz - (az + t * dz));
+}
+function distToPolyline(px, pz, line) {
+  let d = Infinity;
+  for (let i = 0; i < line.length - 1; i++) d = Math.min(d, distToSeg(px, pz, line[i][0], line[i][1], line[i + 1][0], line[i + 1][1]));
+  return d;
+}
+function polyArea(pts) { let a = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; }
+
+/* ---------- geometry buffer: quads with explicit normals + UVs ---------- */
+class GeoBuf {
+  constructor() { this.p = []; this.n = []; this.uv = []; this.i = []; }
+  get empty() { return this.i.length === 0; }
+  /** a,b,c,d = corners [x,y,z] (bottom-left, bottom-right, top-right, top-left seen from outside) */
+  quad(a, b, c, d, nrm, u0, v0, u1, v1) {
+    const o = this.p.length / 3;
+    this.p.push(...a, ...b, ...c, ...d);
+    for (let k = 0; k < 4; k++) this.n.push(nrm[0], nrm[1], nrm[2]);
+    this.uv.push(u0, v0, u1, v0, u1, v1, u0, v1);
+    this.i.push(o, o + 1, o + 2, o, o + 2, o + 3);
+  }
+  toGeometry() {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(this.p, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(this.n, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(this.uv, 2));
+    g.setIndex(this.i);
+    g.computeBoundingSphere(); g.computeBoundingBox();
+    return g;
+  }
+}
+class MultiBuf {
+  constructor() { this.map = new Map(); }
+  get(k) { if (!this.map.has(k)) this.map.set(k, new GeoBuf()); return this.map.get(k); }
+  /** → array of meshes, one per material key */
+  meshes(matFor, opts = {}) {
+    const out = [];
+    for (const [k, buf] of this.map) {
+      if (buf.empty) continue;
+      const m = new THREE.Mesh(buf.toGeometry(), matFor(k));
+      m.castShadow = opts.cast !== false; m.receiveShadow = opts.receive !== false;
+      m.userData.matKey = k; out.push(m);
+    }
+    return out;
+  }
+}
+
+/* face UV spec → [u0,v0,u1,v1]; w = face width (m), y-range for vertical faces */
+function faceUV(spec, w, y0, y1) {
+  const { f2f, vd } = hts();
+  const mod = 4 * f2f; // facade textures hold 4 storeys
+  switch (spec.mode) {
+    case 'facade': return [0, (y0 - vd) / mod, spec.bays / 4, (y1 - vd) / mod];
+    case 'end': return [0, (y0 - vd) / mod, w / 6, (y1 - vd) / mod];
+    case 'full': return [0, (y0 - vd) / mod, 1, (y1 - vd) / mod];
+    case 'tile': return [0, y0 / (spec.th || spec.tw), w / spec.tw, y1 / (spec.th || spec.tw)];
+    default: return [0, 0, 1, 1];
+  }
+}
+/** Axis-aligned box in the current (local) frame. faces: {N,S,E,W,T,B} → {mat, uv} */
+function addBox(mb, x0, x1, y0, y1, z0, z1, faces) {
+  const F = faces;
+  if (F.N) { const [a, b, c, d] = faceUV(F.N.uv || {}, x1 - x0, y0, y1); mb.get(F.N.mat).quad([x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [0, 0, -1], a, b, c, d); }
+  if (F.S) { const [a, b, c, d] = faceUV(F.S.uv || {}, x1 - x0, y0, y1); mb.get(F.S.mat).quad([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], [0, 0, 1], a, b, c, d); }
+  if (F.E) { const [a, b, c, d] = faceUV(F.E.uv || {}, z1 - z0, y0, y1); mb.get(F.E.mat).quad([x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [1, 0, 0], a, b, c, d); }
+  if (F.W) { const [a, b, c, d] = faceUV(F.W.uv || {}, z1 - z0, y0, y1); mb.get(F.W.mat).quad([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], [-1, 0, 0], a, b, c, d); }
+  if (F.T) { const t = F.T.uv && F.T.uv.tw || 10; mb.get(F.T.mat).quad([x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], [0, 1, 0], x0 / t, -z1 / t, x1 / t, -z0 / t); }
+  if (F.B) { const t = 10; mb.get(F.B.mat).quad([x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], [0, -1, 0], x0 / t, z0 / t, x1 / t, z1 / t); }
+}
+const allSides = (mat, uv) => ({ N: { mat, uv }, S: { mat, uv }, E: { mat, uv }, W: { mat, uv } });
+
+/** Vertical walls along a closed polygon [[x,z],...] with outward normals. */
+function addWalls(mb, pts, y0, y1, mat, tw = 8, th = 6) {
+  const ccw = polyArea(pts) > 0;
+  let run = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i], q = pts[(i + 1) % pts.length];
+    const dx = q[0] - p[0], dz = q[1] - p[1], len = Math.hypot(dx, dz);
+    if (len < 1e-4) continue;
+    const n = ccw ? [dz / len, 0, -dx / len] : [-dz / len, 0, dx / len];
+    // geometric normal of (p→q, up) is (-dz, dx); swap ends if it disagrees with outward n
+    const swap = (-dz * n[0] + dx * n[2]) < 0;
+    const A = swap ? q : p, Bq = swap ? p : q;
+    mb.get(mat).quad([A[0], y0, A[1]], [Bq[0], y0, Bq[1]], [Bq[0], y1, Bq[1]], [A[0], y1, A[1]], n, run / tw, y0 / th, (run + len) / tw, y1 / th);
+    run += len;
+  }
+}
+/** Flat polygon (in XZ) at height y as a mesh. pts [[x,z],...] */
+function flatPoly(pts, y, mat) {
+  const shape = new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, -z)));
+  const g = new THREE.ShapeGeometry(shape); g.rotateX(-Math.PI / 2); g.translate(0, y, 0);
+  const m = new THREE.Mesh(g, mat); m.receiveShadow = true; return m;
+}
+/** Ribbon along a polyline (XZ), width w, at height y. */
+function ribbonGeometry(line, w, y, closed = false) {
+  const pos = [], uv = [], idx = []; let run = 0;
+  const n = line.length;
+  for (let i = 0; i < n; i++) {
+    const p = line[i];
+    const prev = line[Math.max(0, i - 1)], next = line[Math.min(n - 1, i + 1)];
+    let dx = next[0] - prev[0], dz = next[1] - prev[1]; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
+    // miter: average of adjacent segment normals
+    let nx = -dz, nz = dx, scale = 1;
+    if (i > 0 && i < n - 1) {
+      const a = [p[0] - prev[0], p[1] - prev[1]], b = [next[0] - p[0], next[1] - p[1]];
+      const la = Math.hypot(...a) || 1, lb = Math.hypot(...b) || 1;
+      const na = [-a[1] / la, a[0] / la], nb = [-b[1] / lb, b[0] / lb];
+      nx = na[0] + nb[0]; nz = na[1] + nb[1]; const ln = Math.hypot(nx, nz) || 1; nx /= ln; nz /= ln;
+      scale = 1 / Math.max(0.35, nx * na[0] + nz * na[1]);
+    }
+    if (i > 0) run += Math.hypot(p[0] - line[i - 1][0], p[1] - line[i - 1][1]);
+    const hw = w / 2 * scale;
+    pos.push(p[0] + nx * hw, y, p[1] + nz * hw, p[0] - nx * hw, y, p[1] - nz * hw);
+    uv.push(0, run / w, 1, run / w);
+    if (i < n - 1) { const o = i * 2; idx.push(o, o + 2, o + 1, o + 1, o + 2, o + 3); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  // ensure normals point up (winding may flip with direction)
+  const nrm = g.attributes.normal; for (let i = 0; i < nrm.count; i++) { if (nrm.getY(i) < 0) nrm.setXYZ(i, -nrm.getX(i), -nrm.getY(i), -nrm.getZ(i)); }
+  return g;
+}
+
+/* ---------- heights (user-editable assumptions) ---------- */
+function hts() {
+  const h = state.settings.heights;
+  return { f2f: h.floorToFloor, vd: h.voidDeck, par: SITE.heights.parapet };
+}
+/** floor level (m) of storey n; storey 1 = ground/void deck */
+function floorY(n) { const { f2f, vd } = hts(); return n <= 1 ? 0 : vd + (n - 2) * f2f; }
+function roofY(storeys) { const { f2f, vd } = hts(); return vd + (storeys - 1) * f2f; }
+
+/* ---------- state + persistence ---------- */
+const DEFAULT_SETTINGS = () => ({
+  v: 1,
+  layers: { labels: true, facilities: true, roads: true, landscape: true, linkways: true, context: true, canal: true, shadows: true, sunPath: false },
+  heights: { floorToFloor: SITE_DEFAULT.heights.floorToFloor, voidDeck: SITE_DEFAULT.heights.voidDeck },
+  colourByType: false,
+  typeFilter: [],
+  storey: { on: false, n: PRESET_FLAT ? PRESET_FLAT.storey : 10 },
+  myUnit: PRESET_FLAT ? { ...PRESET_FLAT } : null,
+
+  sun: { date: null, minutes: 600 },
+  view: null,
+});
+function loadSettings() {
+  const d = DEFAULT_SETTINGS();
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (!raw || raw.v !== 1) return d;
+    return sanitizeSettings(raw, d);
+  } catch (e) { return d; }
+}
+function sanitizeSettings(raw, d = DEFAULT_SETTINGS()) {
+  const s = d;
+  if (raw.layers) for (const k of Object.keys(s.layers)) if (typeof raw.layers[k] === 'boolean') s.layers[k] = raw.layers[k];
+  if (raw.heights) {
+    const f = Number(raw.heights.floorToFloor), v = Number(raw.heights.voidDeck);
+    if (f >= 2.4 && f <= 3.6) s.heights.floorToFloor = f;
+    if (v >= 2.4 && v <= 6) s.heights.voidDeck = v;
+  }
+  s.colourByType = !!raw.colourByType;
+  if (Array.isArray(raw.typeFilter)) s.typeFilter = raw.typeFilter.filter((t) => typeof t === 'string');
+  if (raw.storey) { s.storey.on = !!raw.storey.on; const n = parseInt(raw.storey.n, 10); if (n >= 2 && n <= 30) s.storey.n = n; }
+  if ('myUnit' in raw) { // null = user cleared it; keep that choice
+    const mu = raw.myUnit;
+    s.myUnit = (mu && typeof mu.block === 'string' && typeof mu.unit === 'string' && Number.isInteger(mu.storey)) ? { block: mu.block, unit: mu.unit, storey: mu.storey } : null;
+  }
+  if (raw.sun) {
+    if (typeof raw.sun.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.sun.date)) s.sun.date = raw.sun.date;
+    const m = Number(raw.sun.minutes); if (m >= 0 && m < 1440) s.sun.minutes = m;
+  }
+  if (raw.view && Array.isArray(raw.view.pos) && Array.isArray(raw.view.target)) s.view = raw.view;
+  return s;
+}
+let saveTimer = 0;
+function saveSettings() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { try { localStorage.setItem(STORE_KEY, JSON.stringify(state.settings)); } catch (e) { /* storage unavailable */ } }, 250);
+}
+
+const state = {
+  settings: null,
+  selection: null,           // {kind, id, ...}
+  tool: 'orbit',             // orbit | measure | walk
+  sunOpen: false,
+  sunPlaying: false,
+  needsRender: true,
+  shadowsDirty: true,
+};
+state.settings = loadSettings();
+
+/* tiny event bus */
+const bus = new EventTarget();
+const emit = (type, detail) => bus.dispatchEvent(new CustomEvent(type, { detail }));
+const on = (type, fn) => bus.addEventListener(type, (e) => fn(e.detail));
+function requestRender() { state.needsRender = true; }
+
+/* ---------- derived data: unit index (sale blocks) ---------- */
+function buildUnitIndex() {
+  const idx = new Map();         // unitNo → info
+  const stacks = new Map();      // blockId → [info]
+  for (const b of SITE.blocks) {
+    if (b.kind !== 'sale') continue;
+    const list = [];
+    const addPad = (p, ext0, ext1, tower, part) => {
+      const u0 = p.u - p.lu / 2 - ext0, u1 = p.u + p.lu / 2 + ext1;
+      const n = p.units.length;
+      p.unitsWE.forEach((no, k) => {
+        let a = u0, c = u1;
+        if (p.face === 'N' || p.face === 'S') { a = u0 + (u1 - u0) * k / n; c = u0 + (u1 - u0) * (k + 1) / n; }
+        const info = {
+          block: b.id, unit: no, type: p.type, face: p.face, tower, part,
+          u0: a, u1: c, v0: p.v - p.lv / 2, v1: p.v + p.lv / 2,
+          bearing: FACE_BEARING(p.face), storeys: b.storeys,
+        };
+        idx.set(no, info); list.push(info);
+      });
+    };
+    for (const t of b.towers) for (const row of t.rows) {
+      const sorted = [...row.pads].sort((a, c) => a.u - c.u);
+      sorted.forEach((p, i) => addPad(p, i === 0 ? EXT : 0, i === sorted.length - 1 ? EXT : 0, t.side, 'tower'));
+    }
+    for (const p of b.link) addPad(p, 0, 0, 'link', 'link');
+    if (b.tip) { // tip slab is stretched flush with the east tower's end face
+      let eastU1 = -Infinity;
+      for (const t of b.towers) if (t.side === 'E') for (const row of t.rows) for (const p of row.pads) eastU1 = Math.max(eastU1, p.u + p.lu / 2 + EXT);
+      addPad(b.tip, 0, Math.max(0, eastU1 - (b.tip.u + b.tip.lu / 2)), 'E', 'tip');
+    }
+    list.sort((a, c) => Number(a.unit) - Number(c.unit));
+    stacks.set(b.id, list);
+  }
+  return { idx, stacks };
+}
+let UNITS = buildUnitIndex();
+const blockById = (id) => SITE.blocks.find((b) => b.id === id);
+
+/* =====================================================================
+   10 TEXTURES + MATERIALS — procedural canvas textures (no image assets)
+   Facade textures hold 4 bays × 4 storeys (the 4-storey band rhythm
+   measured on the model). Colours white-balanced from the photos.
+   ===================================================================== */
+
+const PAL = {
+  white: '#EEECE7', charcoal: '#4A4946', darkInfill: '#2E2E2E', glass: '#6F7E92', glassDark: '#3E4756',
+  gridWhite: '#EDEBE6', roof: '#B6B1A9', tank: '#D2D2D0', turf: '#7C8F2F', roofLawn: '#707C25',
+  canal: '#A6CFD9', asphalt: '#8A8784', kerb: '#D9D6D0', drive: '#5A5755', playground: '#5E9BD0',
+  linkRoof: '#7E7E7A', mscpWhite: '#E4E2DC', mscpCore: '#2B2B2A',
+};
+const PX_STOREY = 128, PX_BAY = 128;
+
+function canvasTex(w, h, draw, opts = {}) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'); draw(g, w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = opts.aniso || 8;
+  return t;
+}
+
+/* Scheme A — "light cells" (east towers, 2-Room Flexi links, 438A east).
+   White-dominant: ~60% white, light blue-grey glass, small dark windows. */
+function drawSchemeA(g, w, h) {
+  const rnd = mulberry32(11);
+  g.fillStyle = PAL.white; g.fillRect(0, 0, w, h);
+  for (let s = 0; s < 4; s++) {
+    const top = s * PX_STOREY;
+    for (let b = 0; b < 4; b++) {
+      const x = b * PX_BAY, flip = (s + b) % 2 === 1;
+      const gx = flip ? x + 14 : x + 66;
+      const grad = g.createLinearGradient(0, top + 26, 0, top + 100);
+      grad.addColorStop(0, '#A3B0C0'); grad.addColorStop(1, '#8091A6');
+      g.fillStyle = grad; g.fillRect(gx, top + 26, 46, 72);
+      const wx = flip ? x + 80 : x + 20;
+      g.fillStyle = '#4E545C'; g.fillRect(wx, top + 44, 28, 40);
+      g.fillStyle = '#E6E4DF'; g.fillRect(wx + 13, top + 44, 2, 40); g.fillRect(wx, top + 62, 28, 2);
+      const lx = flip ? x + 10 : x + 62, lw = 54;
+      g.fillStyle = 'rgba(0,0,0,0.10)'; g.fillRect(lx, top + 108, lw, 5);
+      g.fillStyle = '#FAF9F6'; g.fillRect(lx, top + 98, lw, 11);
+      if (rnd() < 0.3) { g.fillStyle = '#7C9A55'; g.fillRect(lx + 8, top + 93, lw - 16, 5); }
+      g.fillStyle = PAL.charcoal; g.fillRect(x, top, 3, PX_STOREY);
+    }
+    g.fillStyle = PAL.charcoal; g.fillRect(0, top, w, 4);
+  }
+  g.fillStyle = PAL.charcoal; g.fillRect(0, 0, w, 12);
+}
+
+/* Scheme B — "dark glass grid" (west towers, 438A west) */
+function drawSchemeB(g, w, h) {
+  const rnd = mulberry32(7);
+  g.fillStyle = PAL.darkInfill; g.fillRect(0, 0, w, h);
+  for (let s = 0; s < 4; s++) {
+    const top = s * PX_STOREY;
+    for (let b = 0; b < 4; b++) {
+      const x = b * PX_BAY;
+      for (let k = 0; k < 2; k++) {
+        const light = rnd() < 0.25;
+        g.fillStyle = light ? PAL.glass : PAL.glassDark;
+        g.fillRect(x + 14 + k * 54, top + 16, 46, 92);
+        g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(x + 14 + k * 54, top + 16, 46, 10);
+      }
+      g.fillStyle = '#59595A'; g.fillRect(x, top + PX_STOREY - 5, PX_BAY, 3); // thin sill
+      g.fillStyle = PAL.gridWhite; g.fillRect(x, top, 8, PX_STOREY);        // white mullion
+    }
+  }
+  g.fillStyle = PAL.gridWhite; g.fillRect(0, 0, w, 13);                    // white band / 4 storeys
+}
+
+/* End walls: white with a column of small square windows per storey */
+function drawEnd(g, w, h) {
+  g.fillStyle = PAL.white; g.fillRect(0, 0, w, h);
+  for (let s = 0; s < 4; s++) {
+    const top = s * PX_STOREY;
+    g.fillStyle = '#C9C6BF'; g.fillRect(0, top, w, 2);
+    g.fillStyle = '#4A4E55'; g.fillRect(w * 0.5 - 16, top + 44, 32, 32);
+    g.fillStyle = '#4A4E55'; g.fillRect(w * 0.15 - 12, top + 50, 24, 24);
+  }
+}
+/* Lift core strip: white panels + dark slot with stacked small openings */
+function drawCore(g, w, h) {
+  g.fillStyle = PAL.white; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#D6D3CC'; for (let x = 0; x < w; x += 40) g.fillRect(x, 0, 2, h);
+  const sx = w * 0.36, sw = w * 0.28;
+  g.fillStyle = PAL.mscpCore; g.fillRect(sx, 0, sw, h);
+  for (let s = 0; s < 4; s++) { g.fillStyle = '#6C6F73'; g.fillRect(sx + sw * 0.25, s * PX_STOREY + 40, sw * 0.5, 30); }
+}
+/* Corridor / air-well band: dark recess with white corridor slabs each storey */
+function drawBand(g, w, h) {
+  g.fillStyle = '#3A3A39'; g.fillRect(0, 0, w, h);
+  for (let s = 0; s < 4; s++) { g.fillStyle = '#E9E7E2'; g.fillRect(0, s * PX_STOREY + PX_STOREY - 22, w, 22); }
+}
+/* MSCP: white spandrel bands + dark openings, split-level (half-deck shift) */
+function drawMSCP(g, w, h) {
+  g.fillStyle = '#2F2F2E'; g.fillRect(0, 0, w, h);
+  const deck = h / 2;                     // canvas holds 2 decks (6 m), 16 m wide
+  for (let half = 0; half < 2; half++) {
+    const x0 = half * w / 2, shift = half ? deck / 2 : 0;
+    for (let k = -1; k < 3; k++) {
+      const y = k * deck + shift;
+      g.fillStyle = PAL.mscpWhite; g.fillRect(x0, y, w / 2, deck * 0.34);
+      g.fillStyle = 'rgba(0,0,0,0.25)'; g.fillRect(x0, y + deck * 0.34, w / 2, 4);
+    }
+  }
+  g.fillStyle = '#F2F1EE'; g.fillRect(0, 0, 8, h); g.fillRect(w / 2 - 4, 0, 8, h);
+}
+function drawDrum(g, w, h) {
+  for (let x = 0; x < w; x += 16) { g.fillStyle = (x / 16) % 2 ? '#8A8A86' : '#4A4A48'; g.fillRect(x, 0, 16, h); }
+  g.fillStyle = 'rgba(255,255,255,0.12)'; for (let y = 0; y < h; y += 32) g.fillRect(0, y, w, 3);
+}
+function drawShop(g, w, h) {
+  g.fillStyle = PAL.white; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#4C5560'; g.fillRect(0, h * 0.55, w, h * 0.38);
+  g.fillStyle = '#9DB0BF'; for (let x = 6; x < w; x += 32) g.fillRect(x, h * 0.58, 22, h * 0.32);
+  g.fillStyle = '#4C5560'; g.fillRect(0, h * 0.08, w, h * 0.2);
+}
+function drawNoise(base, amp, seed) {
+  return (g, w, h) => {
+    g.fillStyle = base; g.fillRect(0, 0, w, h);
+    const r = mulberry32(seed), img = g.getImageData(0, 0, w, h), d = img.data;
+    for (let i = 0; i < d.length; i += 4) { const n = (r() - 0.5) * amp; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+    g.putImageData(img, 0, 0);
+  };
+}
+
+const TEX = {};
+function makeTextures(maxAniso) {
+  const a = Math.min(8, maxAniso || 4);
+  TEX.facA = canvasTex(4 * PX_BAY, 4 * PX_STOREY, drawSchemeA, { aniso: a });
+  TEX.facB = canvasTex(4 * PX_BAY, 4 * PX_STOREY, drawSchemeB, { aniso: a });
+  TEX.end = canvasTex(256, 4 * PX_STOREY, drawEnd, { aniso: a });
+  TEX.core = canvasTex(256, 4 * PX_STOREY, drawCore, { aniso: a });
+  TEX.band = canvasTex(128, 4 * PX_STOREY, drawBand, { aniso: a });
+  TEX.mscp = canvasTex(512, 256, drawMSCP, { aniso: a });
+  TEX.drum = canvasTex(256, 64, drawDrum, { aniso: a });
+  TEX.shop = canvasTex(256, 128, drawShop, { aniso: a });
+  TEX.grass = canvasTex(256, 256, drawNoise('#86964F', 18, 3), { aniso: a });
+  TEX.asphalt = canvasTex(128, 128, drawNoise(PAL.asphalt, 14, 5), { aniso: a });
+}
+
+/* Base materials, cloned per building so filters can dim one building. */
+function stdMat(o) { return new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0, ...o }); }
+const BASE_MATS = {};
+function makeBaseMaterials() {
+  Object.assign(BASE_MATS, {
+    facA: stdMat({ map: TEX.facA }), facB: stdMat({ map: TEX.facB, roughness: 0.6 }),
+    end: stdMat({ map: TEX.end }), core: stdMat({ map: TEX.core }), band: stdMat({ map: TEX.band }),
+    frameDark: stdMat({ color: PAL.charcoal }), frameWhite: stdMat({ color: PAL.gridWhite }),
+    roof: stdMat({ color: PAL.roof }), roofDark: stdMat({ color: '#8E8A84' }),
+    voidDeck: stdMat({ color: '#45464A' }), soffit: stdMat({ color: '#D8D6D0' }), column: stdMat({ color: '#E8E6E1' }),
+    mscp: stdMat({ map: TEX.mscp }), mscpCore: stdMat({ color: PAL.mscpCore }), drum: stdMat({ map: TEX.drum }),
+    lowRoof: stdMat({ color: '#6E6E6B' }), shop: stdMat({ map: TEX.shop }), ess: stdMat({ color: '#B9B7B1' }),
+  });
+}
+const matCache = new Map();
+/** material for building `owner` and key `k` (cloned once per owner) */
+function matFor(owner, k) {
+  const id = owner + '|' + k;
+  if (!matCache.has(id)) { const m = BASE_MATS[k].clone(); m.userData.base = { color: m.color.clone() }; matCache.set(id, m); }
+  return matCache.get(id);
+}
+/** dim (true) or restore (false) every material of one building */
+function setOwnerDim(owner, dim) {
+  for (const [id, m] of matCache) {
+    if (!id.startsWith(owner + '|')) continue;
+    m.transparent = dim; m.opacity = dim ? 0.28 : 1; m.depthWrite = !dim; m.needsUpdate = true;
+  }
+}
+
+/* =====================================================================
+   20 SCENE — renderer, camera, controls, lights, layer groups
+   ===================================================================== */
+
+const viewportEl = document.getElementById('viewport');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+} catch (e) {
+  document.getElementById('fatal').hidden = false;
+  throw e;
+}
+const MAX_DPR = IS_TOUCH ? 1.5 : 2;
+let dprCap = MAX_DPR;
+renderer.setPixelRatio(Math.min(devicePixelRatio, dprCap));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;
+viewportEl.appendChild(renderer.domElement);
+renderer.domElement.id = 'gl';
+renderer.domElement.setAttribute('aria-label', '3D view of Sembawang Brook');
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.domElement.id = 'labels';
+viewportEl.appendChild(labelRenderer.domElement);
+
+const scene = new THREE.Scene();
+const SKY = new THREE.Color('#E3E9EE');
+scene.background = SKY;
+scene.fog = new THREE.Fog(SKY, 1100, 3200);
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 6000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.09;
+controls.maxPolarAngle = 88 * DEG; controls.minDistance = 8; controls.maxDistance = 1600;
+controls.screenSpacePanning = false; // pan across the ground plane
+controls.zoomToCursor = true;
+controls.addEventListener('change', requestRender);
+
+/* lights */
+const hemi = new THREE.HemisphereLight('#DCE8F3', '#8C917C', 1.15);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight('#FFF4E2', 2.6);
+sun.castShadow = true;
+const SHADOW_SIZE = IS_TOUCH ? 2048 : 4096;
+sun.shadow.mapSize.set(SHADOW_SIZE, SHADOW_SIZE);
+Object.assign(sun.shadow.camera, { left: -330, right: 330, top: 330, bottom: -330, near: 10, far: 2200 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.5;
+scene.add(sun); scene.add(sun.target);
+
+/* layer groups (world frame) and the estate group (local frame) */
+const G = {
+  ground: new THREE.Group(), context: new THREE.Group(), roads: new THREE.Group(), canal: new THREE.Group(),
+  estate: new THREE.Group(), // rotated: buildings in local u/v
+  linkways: new THREE.Group(), landscape: new THREE.Group(), facilities: new THREE.Group(),
+  overlays: new THREE.Group(), tools: new THREE.Group(), sunPath: new THREE.Group(),
+};
+for (const k of Object.keys(G)) { G[k].name = k; scene.add(G[k]); }
+// sub-groups in the local frame
+const L = {
+  buildings: new THREE.Group(), roofProps: new THREE.Group(), typeOverlay: new THREE.Group(),
+  storeyBand: new THREE.Group(), unitMark: new THREE.Group(), pick: new THREE.Group(), selection: new THREE.Group(),
+};
+for (const k of Object.keys(L)) { L[k].name = 'L.' + k; G.estate.add(L[k]); }
+
+function applyGroupFrame() { G.estate.rotation.set(0, GRID, 0); G.estate.updateMatrixWorld(true); }
+applyGroupFrame();
+
+/* width (px) hidden by the open left panel on desktop; the view is re-centred on the free area */
+function panelOffset() {
+  const left = document.getElementById('left');
+  if (document.body.classList.contains('mobile') || !left.classList.contains('open')) return 0;
+  return left.getBoundingClientRect().right + 12;
+}
+function viewAspect() { const w = viewportEl.clientWidth, h = Math.max(1, viewportEl.clientHeight); return (w - panelOffset()) / h; }
+function resize() {
+  const w = viewportEl.clientWidth, h = viewportEl.clientHeight;
+  renderer.setPixelRatio(Math.min(devicePixelRatio, dprCap));
+  renderer.setSize(w, h, false);
+  renderer.domElement.style.width = w + 'px'; renderer.domElement.style.height = h + 'px';
+  labelRenderer.setSize(w, h);
+  const P = panelOffset();
+  if (P > 0 && w - P > 200) { camera.aspect = (w + P) / Math.max(1, h); camera.setViewOffset(w + P, h, 0, 0, w, h); }
+  else { camera.aspect = w / Math.max(1, h); camera.clearViewOffset(); }
+  camera.updateProjectionMatrix();
+  requestRender();
+}
+new ResizeObserver(resize).observe(viewportEl);
+
+/* dispose a group's children (geometries; materials are shared/cached) */
+function clearGroup(g, disposeMaterials = false) {
+  for (let i = g.children.length - 1; i >= 0; i--) {
+    const o = g.children[i];
+    o.traverse((c) => {
+      if (c.geometry) c.geometry.dispose();
+      if (disposeMaterials && c.material) (Array.isArray(c.material) ? c.material : [c.material]).forEach((m) => { if (m.map && m.userData.ownMap) m.map.dispose(); m.dispose(); });
+      if (c.isCSS2DObject && c.element && c.element.parentNode) c.element.parentNode.removeChild(c.element);
+    });
+    g.remove(o);
+  }
+}
+
+/* =====================================================================
+   30 BUILDERS — buildings (local frame) and site context (world frame)
+   ===================================================================== */
+
+const REG = {
+  pick: [],          // invisible boxes for picking + sun-ray occlusion
+  walk: [],          // local AABBs {u0,u1,v0,v1} blocking walk mode / tree placement
+  tanks: [],         // local [u, y, v, r]
+  labels: [],        // CSS2DObjects (toggle with "labels" layer)
+  anchors: new Map(),// owner → local {u, y, v, size} for camera focus
+};
+const PICK_MAT = new THREE.MeshBasicMaterial({ visible: false });
+let MSCP_H = 24;
+
+function addPick(owner, kind, x0, x1, y0, y1, z0, z1, walkInset = 0) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0), PICK_MAT);
+  m.position.set((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  m.userData = { owner, kind };
+  m.visible = false;
+  L.pick.add(m); REG.pick.push(m);
+  if (walkInset >= 0) REG.walk.push({ u0: x0 + walkInset, u1: x1 - walkInset, v0: z0 + walkInset, v1: z1 - walkInset, owner });
+}
+function addLabel(owner, text, u, y, v, cls = '') {
+  const el = document.createElement('button');
+  el.className = 'lbl ' + cls; el.textContent = text; el.type = 'button';
+  el.dataset.owner = owner;
+  el.addEventListener('click', (e) => { e.stopPropagation(); select({ kind: 'building', id: owner }, { fly: false }); });
+  const o = new CSS2DObject(el); o.position.set(u, y, v); o.userData.owner = owner;
+  L.buildings.add(o); REG.labels.push(o);
+  return o;
+}
+function pushMeshes(mb, owner, group = L.buildings) {
+  for (const m of mb.meshes((k) => matFor(owner, k))) { m.userData.owner = owner; group.add(m); }
+}
+function rowExtents(row) {
+  let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity, bays = 0;
+  for (const p of row.pads) {
+    u0 = Math.min(u0, p.u - p.lu / 2); u1 = Math.max(u1, p.u + p.lu / 2);
+    v0 = Math.min(v0, p.v - p.lv / 2); v1 = Math.max(v1, p.v + p.lv / 2); bays += p.bays;
+  }
+  return { u0: u0 - EXT, u1: u1 + EXT, v0, v1, bays };
+}
+
+/* one residential slab: facade body, void deck, columns, frame fins, parapet, 4-storey bands */
+function slab(mb, e, fac, frame, storeys, opts = {}) {
+  const { vd, par, f2f } = hts(); const top = roofY(storeys);
+  const facN = { mat: fac, uv: { mode: 'facade', bays: e.bays } };
+  const endF = opts.endFacade ? { mat: fac, uv: { mode: 'facade', bays: e.endBays } } : { mat: 'end', uv: { mode: 'end' } };
+  addBox(mb, e.u0, e.u1, vd, top, e.v0, e.v1, { N: facN, S: facN, E: opts.tipE ? { mat: fac, uv: { mode: 'facade', bays: opts.tipE } } : endF, W: endF, T: { mat: 'roof' }, B: { mat: 'soffit' } });
+  // void deck enclosure (recessed 1.5 m) + white columns on both long faces
+  const ins = 1.5;
+  addBox(mb, e.u0 + ins, e.u1 - ins, 0, vd, e.v0 + ins, e.v1 - ins, allSides('voidDeck', { mode: 'tile', tw: 4 }));
+  const len = e.u1 - e.u0, nCol = Math.max(2, Math.round(len / 6)) + 1;
+  for (let k = 0; k < nCol; k++) {
+    const u = e.u0 + 0.5 + k * (len - 1) / (nCol - 1);
+    for (const z of [e.v0 + 0.45, e.v1 - 0.45]) addBox(mb, u - 0.3, u + 0.3, 0, vd, z - 0.3, z + 0.3, allSides('column'));
+  }
+  if (opts.noFrame) { addParapet(mb, e, top, par, frame, 0.3); return; }
+  // picture-frame fins at both ends of each long face (0.6 m proud)
+  const P = 0.6, W = 0.8, T = { mat: frame };
+  for (const [z0, z1] of [[e.v0 - P, e.v0], [e.v1, e.v1 + P]]) {
+    addBox(mb, e.u0, e.u0 + W, vd, top + par, z0, z1, { ...allSides(frame), T });
+    addBox(mb, e.u1 - W, e.u1, vd, top + par, z0, z1, { ...allSides(frame), T });
+  }
+  addParapet(mb, e, top, par, frame, P);
+  // 4-storey bands (projecting 0.35 m) on both long faces
+  for (let s = 4; s < storeys - 1; s += 4) {
+    const y = vd + s * f2f;
+    addBox(mb, e.u0 + W, e.u1 - W, y - 0.14, y + 0.16, e.v0 - 0.35, e.v0, { N: { mat: frame }, T, B: { mat: frame } });
+    addBox(mb, e.u0 + W, e.u1 - W, y - 0.14, y + 0.16, e.v1, e.v1 + 0.35, { S: { mat: frame }, T, B: { mat: frame } });
+  }
+}
+function addParapet(mb, e, top, par, frame, P) {
+  const t = 0.3, T = { mat: frame }, S = allSides(frame);
+  addBox(mb, e.u0, e.u1, top, top + par, e.v0 - P, e.v0 + t, { ...S, T });
+  addBox(mb, e.u0, e.u1, top, top + par, e.v1 - t, e.v1 + P, { ...S, T });
+  addBox(mb, e.u0, e.u0 + t, top, top + par, e.v0 + t, e.v1 - t, { ...S, T });
+  addBox(mb, e.u1 - t, e.u1, top, top + par, e.v0 + t, e.v1 - t, { ...S, T });
+}
+function placeTanks(e, n, top) {
+  if (n <= 0) return;
+  const len = e.u1 - e.u0 - 8;
+  for (let k = 0; k < n; k++) REG.tanks.push([e.u0 + 4 + (k + 0.5) * len / n, top, (e.v0 + e.v1) / 2, 2.0]);
+}
+
+function buildResidential(b) {
+  const owner = b.id, mb = new MultiBuf(), { vd, par } = hts(), top = roofY(b.storeys);
+  let eastU1 = -Infinity;
+  for (const t of b.towers) {
+    const fac = t.scheme === 'A' ? 'facA' : 'facB', frame = t.scheme === 'A' ? 'frameDark' : 'frameWhite';
+    const exts = t.rows.map(rowExtents);
+    exts.forEach((e) => { slab(mb, e, fac, frame, b.storeys); addPick(owner, 'block', e.u0, e.u1, 0, top + par, e.v0, e.v1, 1.5); });
+    if (t.side === 'E') eastU1 = Math.max(...exts.map((e) => e.u1));
+    const [n, s] = exts;
+    if (n && s && s.v0 - n.v1 > 0.6) {
+      const bu0 = Math.max(n.u0, s.u0) + 2.5, bu1 = Math.min(n.u1, s.u1) - 2.5;
+      if (bu1 - bu0 > 3) {
+        addBox(mb, bu0, bu1, vd, top, n.v1, s.v0, { E: { mat: 'band', uv: { mode: 'end' } }, W: { mat: 'band', uv: { mode: 'end' } }, T: { mat: 'roofDark' }, B: { mat: 'soffit' } });
+        addBox(mb, bu0 + 1.5, bu1 - 1.5, 0, vd, n.v1, s.v0, { E: { mat: 'voidDeck' }, W: { mat: 'voidDeck' } });
+        addPick(owner, 'block', bu0, bu1, 0, top, n.v1, s.v0, 1.5);
+      }
+    }
+    const nN = Math.ceil(t.tanks * 0.6);
+    placeTanks(exts[0], nN, top + 0.01); if (exts[1]) placeTanks(exts[1], t.tanks - nN, top + 0.01);
+  }
+  for (const p of b.link) {
+    const e = { u0: p.u - p.lu / 2, u1: p.u + p.lu / 2, v0: p.v - p.lv / 2, v1: p.v + p.lv / 2, bays: p.bays };
+    slab(mb, e, 'facA', 'frameDark', b.storeys, { noFrame: true });
+    addPick(owner, 'block', e.u0, e.u1, 0, top + par, e.v0, e.v1, 1.5);
+  }
+  if (b.tip) {
+    const p = b.tip;
+    const e = { u0: p.u - p.lu / 2, u1: Math.max(p.u + p.lu / 2, eastU1), v0: p.v - p.lv / 2, v1: p.v + p.lv / 2, bays: 2 };
+    slab(mb, e, 'facA', 'frameDark', b.storeys, { noFrame: true, tipE: p.bays });
+    addPick(owner, 'block', e.u0, e.u1, 0, top + par, e.v0, e.v1, 1.5);
+  }
+  const c = b.core;
+  const cu0 = c.u - c.lu / 2, cu1 = c.u + c.lu / 2, cv0 = c.v - c.lv / 2, cv1 = c.v + c.lv / 2;
+  addBox(mb, cu0, cu1, 0, top + 4.5, cv0, cv1, { ...allSides('core', { mode: 'full' }), T: { mat: 'roofDark' } });
+  addPick(owner, 'block', cu0, cu1, 0, top + 4.5, cv0, cv1, 0);
+  pushMeshes(mb, owner);
+  REG.anchors.set(owner, { u: c.u, y: top / 2, v: c.v, size: 90 });
+  addLabel(owner, 'Blk ' + b.id, c.u, top + 12, c.v, 'blk');
+}
+
+function buildPointTowers(b) {
+  const owner = b.id, mb = new MultiBuf(), { par } = hts(), top = roofY(b.storeys);
+  for (const pt of b.points) {
+    const fac = pt.scheme === 'A' ? 'facA' : 'facB', frame = pt.scheme === 'A' ? 'frameDark' : 'frameWhite';
+    const e = { u0: pt.u - pt.lu / 2 - EXT, u1: pt.u + pt.lu / 2 + EXT, v0: pt.v - pt.lv / 2, v1: pt.v + pt.lv / 2, bays: 4, endBays: Math.max(4, Math.round(pt.lv / 3.6)) };
+    slab(mb, e, fac, frame, b.storeys, { endFacade: true });
+    addPick(owner, 'block', e.u0, e.u1, 0, top + par, e.v0, e.v1, 1.5);
+    const half = { ...e, v0: e.v0 + 2, v1: e.v1 - 2 };
+    placeTanks(half, pt.tanks, top + 0.01);
+  }
+  const c = b.core;
+  const cu0 = c.u - c.lu / 2, cu1 = c.u + c.lu / 2, cv0 = c.v - c.lv / 2, cv1 = c.v + c.lv / 2;
+  addBox(mb, cu0, cu1, 0, top + 4.5, cv0, cv1, { ...allSides('core', { mode: 'full' }), T: { mat: 'roofDark' } });
+  addPick(owner, 'block', cu0, cu1, 0, top + 4.5, cv0, cv1, 0);
+  pushMeshes(mb, owner);
+  REG.anchors.set(owner, { u: c.u, y: top / 2, v: c.v, size: 70 });
+  addLabel(owner, 'Blk ' + b.id + ' · rental', c.u, top + 12, c.v, 'blk');
+}
+
+/* ---------- Blk 436 multi-storey car park + roof garden ---------- */
+function mscpOutline() {
+  const m = SITE.mscp, ww = m.westWing, sw = m.southWing, r = (ww.u1 - ww.u0) / 2, uc = (ww.u0 + ww.u1) / 2;
+  const pts = [[ww.u0, ww.v1], [sw.u1, sw.v1], [sw.u1, sw.v0], [ww.u1, sw.v0], [ww.u1, ww.v0 + r]];
+  for (let k = 1; k < 18; k++) { const a = k / 18 * Math.PI; pts.push([uc + r * Math.cos(a), ww.v0 + r - r * Math.sin(a)]); }
+  pts.push([ww.u0, ww.v0 + r]);
+  return pts;
+}
+function buildMSCP() {
+  const m = SITE.mscp, owner = '436', H = m.height; MSCP_H = H;
+  const ww = m.westWing, sw = m.southWing, R = m.ramp, r = (ww.u1 - ww.u0) / 2;
+  const mb = new MultiBuf(), pts = mscpOutline();
+  addWalls(mb, pts, 0, H, 'mscp', 16, 6);
+  // cores (charcoal stair/lift towers, +3.5 m above roof) [representative positions from IMG_1985/1989]
+  const cores = [[ww.u0 + 4.5, ww.v0 + r + 1], [ww.u1 - 3, sw.v1 - 3.5], [R.u - R.r - 5, sw.v1 - 3.5]];
+  for (const [cu, cv] of cores) addBox(mb, cu - 3.5, cu + 3.5, 0, H + 3.5, cv - 3.5, cv + 3.5, { ...allSides('mscpCore'), T: { mat: 'mscpCore' } });
+  pushMeshes(mb, owner);
+  // roof deck (planted base)
+  const deck = flatPoly(pts, H, new THREE.MeshStandardMaterial({ color: '#7D8B4C', roughness: 0.95 }));
+  deck.userData.owner = owner; deck.castShadow = true; L.buildings.add(deck);
+  // ramp drum
+  const drumG = new THREE.CylinderGeometry(R.r, R.r, H + 1.5, 48, 1, true);
+  const drum = new THREE.Mesh(drumG, matFor(owner, 'drum')); drum.position.set(R.u, (H + 1.5) / 2, R.v);
+  drum.castShadow = drum.receiveShadow = true; drum.userData.owner = owner; L.buildings.add(drum);
+  const ringG = new THREE.RingGeometry(3.8, R.r, 48); ringG.rotateX(-Math.PI / 2);
+  const ring = new THREE.Mesh(ringG, new THREE.MeshStandardMaterial({ color: '#6E8542', roughness: 0.95 }));
+  ring.position.set(R.u, H + 1.52, R.v); ring.receiveShadow = true; L.buildings.add(ring);
+  const ocG = new THREE.CircleGeometry(3.8, 32); ocG.rotateX(-Math.PI / 2);
+  const oc = new THREE.Mesh(ocG, new THREE.MeshBasicMaterial({ color: '#1E1E1E' })); oc.position.set(R.u, H + 1.5, R.v); L.buildings.add(oc);
+  // picking / occlusion
+  addPick(owner, 'mscp', ww.u0, ww.u1, 0, H, ww.v0, ww.v1, 0.5);
+  addPick(owner, 'mscp', ww.u1, sw.u1, 0, H, sw.v0, sw.v1, 0.5);
+  addPick(owner, 'mscp', R.u - R.r, R.u + R.r, 0, H + 1.5, R.v - R.r, R.v + R.r, 0.5);
+  buildRoofGarden(H);
+  REG.anchors.set(owner, { u: (ww.u0 + sw.u1) / 2, y: H, v: (ww.v0 + sw.v1) / 2, size: 110 });
+  addLabel(owner, 'Blk 436 · car park', (ww.u0 + ww.u1) / 2, H + 10, ww.v0 + 25, 'blk');
+}
+
+function buildRoofGarden(H) {
+  const m = SITE.mscp, ww = m.westWing, sw = m.southWing, r = (ww.u1 - ww.u0) / 2;
+  const y = H + 0.04, g = L.roofProps, mb = new MultiBuf();
+  const RG = { gravel: '#D4CBB4', airwell: '#202020', rib: '#E6E4DF', lawn: '#93AC45', soil: '#6B5236', leaf: '#5E8A3A', shelter: '#5B5B58' };
+  const plane = (u0, u1, v0, v1, yy, k) => mb.get(k).quad([u0, yy, v1], [u1, yy, v1], [u1, yy, v0], [u0, yy, v0], [0, 1, 0], 0, 0, 1, 1);
+  const box = (u, yy, v, su, sy, sv, k) => addBox(mb, u - su / 2, u + su / 2, yy, yy + sy, v - sv / 2, v + sv / 2, { ...allSides(k), T: { mat: k } });
+  const L0 = ww.v0 + r, len = ww.v1 - L0;
+  plane(ww.u0 + 1.2, ww.u0 + 3.2, L0, ww.v1 - 2, y + 0.01, 'gravel');            // west perimeter path
+  const mp = []; for (let k = 0; k <= 20; k++) { const t = k / 20; mp.push([ww.u1 - 6 + Math.sin(t * Math.PI * 3) * 3, L0 + 2 + t * (len - 6)]); }
+  const mpm = new THREE.Mesh(ribbonGeometry(mp, 2, y + 0.02), new THREE.MeshStandardMaterial({ color: RG.gravel, roughness: 0.95 })); mpm.receiveShadow = true; g.add(mpm);
+  const au = (ww.u0 + ww.u1) / 2 + 2, av0 = L0 + 4, av1 = av0 + 0.45 * len;       // air-well slot (~45% of the wing)
+  plane(au - 2, au + 2, av0, av1, y + 0.02, 'airwell');
+  for (let v = av0 + 2; v < av1; v += 4) box(au, y, v, 4.2, 0.3, 0.3, 'rib');
+  box(au - 2.3, y, (av0 + av1) / 2, 0.4, 1.0, av1 - av0, 'rib'); box(au + 2.3, y, (av0 + av1) / 2, 0.4, 1.0, av1 - av0, 'rib');
+  plane(ww.u0 + 4, ww.u0 + 16, L0 + len * 0.45, L0 + len * 0.45 + 18, y + 0.02, 'lawn');
+  for (let i = 0; i < 5; i++) for (let j = 0; j < 9; j++) {                          // community garden plots 5 x 9
+    const u = ww.u0 + 5 + i * 2.3, v = ww.v1 - 26 + j * 2.3;
+    box(u, y, v, 1.7, 0.45, 1.7, 'soil'); box(u, y + 0.45, v, 1.4, 0.12, 1.4, 'leaf');
+  }
+  const shelter = (u, v) => { box(u, y + 2.5, v, 4.5, 0.25, 4.5, 'shelter'); for (const [a, c] of [[-1.9, -1.9], [1.9, -1.9], [-1.9, 1.9], [1.9, 1.9]]) box(u + a, y, v + c, 0.15, 2.5, 0.15, 'shelter'); };
+  shelter(ww.u1 - 6, L0 + 6); shelter(ww.u1 - 6, L0 + len * 0.55); shelter(ww.u0 + 9, ww.v1 - 32); shelter((sw.u0 + sw.u1) / 2 - 10, (sw.v0 + sw.v1) / 2);
+  for (const mesh of mb.meshes((k) => k === 'airwell' ? new THREE.MeshBasicMaterial({ color: RG.airwell }) : new THREE.MeshStandardMaterial({ color: RG[k], roughness: 0.95 }))) g.add(mesh);
+  for (const f of SITE.facilities.filter((f) => f.onRoof)) {                       // roof facilities from the site plan
+    const { u, v } = toLocal(f.x, f.z);
+    if (/playground/i.test(f.name)) playgroundProp(g, u, y, v);
+    else if (/fitness/i.test(f.name)) fitnessProp(g, u, y, v);
+  }
+}
+function playgroundProp(g, u, y, v) {
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(5.5, 28).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: PAL.playground, roughness: 0.9 }));
+  disc.position.set(u, y + 0.03, v); disc.receiveShadow = true; g.add(disc);
+  const mat = new THREE.MeshStandardMaterial({ color: '#2E3A4A' });
+  const tower = new THREE.Mesh(new THREE.BoxGeometry(2, 2.6, 2), mat); tower.position.set(u - 1, y + 1.3, v); tower.castShadow = true; g.add(tower);
+  const slide = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.15, 0.8), new THREE.MeshStandardMaterial({ color: '#E8C547' }));
+  slide.position.set(u + 1.6, y + 1.3, v); slide.rotation.z = -0.55; slide.castShadow = true; g.add(slide);
+}
+function fitnessProp(g, u, y, v) {
+  const mat = new THREE.Mesh(new THREE.PlaneGeometry(7, 4.5).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#8C9097', roughness: 0.9 }));
+  mat.position.set(u, y + 0.03, v); mat.receiveShadow = true; g.add(mat);
+  const bar = new THREE.MeshStandardMaterial({ color: '#E8E6E1' });
+  for (let k = -1; k <= 1; k++) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.15, 1.8, 0.15), bar); b.position.set(u + k * 2, y + 0.9, v); b.castShadow = true; g.add(b); }
+}
+
+/* ---------- low-rise: pavilions, porch, commercial (440), sub-station (441) ---------- */
+function buildLowRise() {
+  for (const lr of SITE.lowRise) {
+    const mb = new MultiBuf(), owner = lr.id;
+    const u0 = lr.u - lr.lu / 2, u1 = lr.u + lr.lu / 2, v0 = lr.v - lr.lv / 2, v1 = lr.v + lr.lv / 2;
+    addBox(mb, u0, u1, lr.height - 0.7, lr.height, v0, v1, { ...allSides('lowRoof', { mode: 'tile', tw: 4 }), T: { mat: 'lowRoof' }, B: { mat: 'soffit' } });
+    for (const u of [u0 + 0.6, (u0 + u1) / 2, u1 - 0.6]) for (const v of [v0 + 0.6, v1 - 0.6]) addBox(mb, u - 0.25, u + 0.25, 0, lr.height - 0.7, v - 0.25, v + 0.25, allSides('column'));
+    addBox(mb, u0 + 1.5, u0 + lr.lu * 0.35, 0, lr.height - 0.7, v0 + 1.5, v0 + lr.lv * 0.4, { ...allSides('end', { mode: 'tile', tw: 6 }) });
+    pushMeshes(mb, owner);
+    addPick(owner, 'lowrise', u0, u1, 0, lr.height, v0, v1, 0.3);
+    REG.anchors.set(owner, { u: lr.u, y: 3, v: lr.v, size: 40 });
+    addLabel(owner, lr.id === 'porch' ? 'Drop-off porch' : 'Blk ' + lr.id, lr.u, lr.height + 5, lr.v, 'small');
+  }
+  // commercial 440 (world polygons → local)
+  const c = SITE.commercial440, mb = new MultiBuf();
+  let cu = 0, cv = 0, cn = 0;
+  for (const poly of c.polys) {
+    const loc = poly.map(([x, z]) => { const p = toLocal(x, z); return [p.u, p.v]; });
+    addWalls(mb, loc, 0, c.height, 'shop', 8, 4.5);
+    const roof = flatPoly(loc, c.height, matFor('440', 'lowRoof')); roof.castShadow = true; roof.userData.owner = '440'; L.buildings.add(roof);
+    const xs = loc.map((p) => p[0]), zs = loc.map((p) => p[1]);
+    addPick('440', 'lowrise', Math.min(...xs), Math.max(...xs), 0, c.height, Math.min(...zs), Math.max(...zs), 0.3);
+    for (const p of loc) { cu += p[0]; cv += p[1]; cn++; }
+  }
+  pushMeshes(mb, '440');
+  REG.anchors.set('440', { u: cu / cn, y: 4, v: cv / cn, size: 50 });
+  addLabel('440', 'Blk 440 · shops', cu / cn, c.height + 5, cv / cn, 'small');
+  // ESS 441
+  const e = SITE.ess441, mb2 = new MultiBuf();
+  const loc = e.poly.map(([x, z]) => { const p = toLocal(x, z); return [p.u, p.v]; });
+  addWalls(mb2, loc, 0, e.height, 'ess', 6, 5);
+  pushMeshes(mb2, '441');
+  const roof = flatPoly(loc, e.height, matFor('441', 'lowRoof')); roof.castShadow = true; roof.userData.owner = '441'; L.buildings.add(roof);
+  const xs = loc.map((p) => p[0]), zs = loc.map((p) => p[1]);
+  addPick('441', 'lowrise', Math.min(...xs), Math.max(...xs), 0, e.height, Math.min(...zs), Math.max(...zs), 0.3);
+  const au = (Math.min(...xs) + Math.max(...xs)) / 2, av = (Math.min(...zs) + Math.max(...zs)) / 2;
+  REG.anchors.set('441', { u: au, y: 3, v: av, size: 40 });
+  addLabel('441', 'Blk 441 · ESS', au, e.height + 5, av, 'small');
+}
+
+/* roof water tanks: one InstancedMesh for the estate */
+let tankMesh = null;
+function buildTanks() {
+  if (tankMesh) { tankMesh.geometry.dispose(); L.roofProps.remove(tankMesh); }
+  const geo = new THREE.CylinderGeometry(1, 1, 3, 20);
+  tankMesh = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ color: PAL.tank, roughness: 0.6 }), REG.tanks.length);
+  const m4 = new THREE.Matrix4();
+  REG.tanks.forEach(([u, y, v, r], i) => { m4.makeScale(r, 1, r); m4.setPosition(u, y + 1.5, v); tankMesh.setMatrixAt(i, m4); });
+  tankMesh.castShadow = tankMesh.receiveShadow = true;
+  L.roofProps.add(tankMesh);
+}
+
+function buildAllBuildings() {
+  clearGroup(L.buildings); clearGroup(L.roofProps); clearGroup(L.pick);
+  REG.pick.length = 0; REG.walk.length = 0; REG.tanks.length = 0; REG.labels.length = 0; REG.anchors.clear();
+  tankMesh = null;
+  for (const b of SITE.blocks) (b.kind === 'sale' ? buildResidential : buildPointTowers)(b);
+  buildMSCP(); buildLowRise(); buildTanks();
+  G.estate.updateMatrixWorld(true);
+}
+
+/* =====================================================================
+   SITE CONTEXT (world frame)
+   ===================================================================== */
+const GROUND_HALF = { x: 900, z: 650 };
+let ESTATE_CENTRE = new THREE.Vector3();
+function computeCentre() {
+  let x = 0, z = 0, n = 0;
+  for (const b of SITE.blocks) { const p = toWorld(b.core.u, b.core.v); x += p.x; z += p.z; n++; }
+  ESTATE_CENTRE.set(x / n, 0, z / n);
+}
+/** extend a polyline at both ends by d metres along direction dir (unit [dx,dz]; default = its own end segments) */
+function extendLine(line, d, dir = null) {
+  const a = line[0], b = line[1], y = line[line.length - 2], z = line[line.length - 1];
+  const l1 = Math.hypot(b[0] - a[0], b[1] - a[1]), l2 = Math.hypot(z[0] - y[0], z[1] - y[1]);
+  const d1 = dir || [(b[0] - a[0]) / l1, (b[1] - a[1]) / l1], d2 = dir || [(z[0] - y[0]) / l2, (z[1] - y[1]) / l2];
+  return [[a[0] - d1[0] * d, a[1] - d1[1] * d], ...line, [z[0] + d2[0] * d, z[1] + d2[1] * d]];
+}
+/** canal polygon: both banks extended parallel to the east bank (keeps the channel width) */
+function canalPolygon() {
+  const e = SITE.canal.east, a = e[0], z = e[e.length - 1], l = Math.hypot(z[0] - a[0], z[1] - a[1]);
+  const dir = [(z[0] - a[0]) / l, (z[1] - a[1]) / l];
+  const east = extendLine(e, 160, dir), west = extendLine(SITE.canal.west, 160, dir);
+  return { east, west, poly: [...east, ...[...west].reverse()] };
+}
+function groundText(text, x, z, angle, size = 4, color = '#FFFFFF', y = 0.15) {
+  const c = document.createElement('canvas'); const fs = 64; const g0 = c.getContext('2d');
+  g0.font = `600 ${fs}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
+  const sp = text.split('').join(String.fromCharCode(8202));
+  const w = Math.ceil(g0.measureText(sp).width) + 24; c.width = w; c.height = fs + 24;
+  const g = c.getContext('2d'); g.font = `600 ${fs}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
+  g.fillStyle = color; g.textBaseline = 'middle'; g.fillText(sp, 12, c.height / 2);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  const h = size, wl = h * c.width / c.height;
+  const geo = new THREE.PlaneGeometry(wl, h); geo.rotateX(-Math.PI / 2);
+  const mat = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false });
+  mat.userData.ownMap = true;
+  const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.y = angle; m.renderOrder = 2;
+  return m;
+}
+function buildContext() {
+  for (const k of ['ground', 'context', 'roads', 'canal']) clearGroup(G[k], true);
+  computeCentre();
+  const cx = ESTATE_CENTRE.x, cz = ESTATE_CENTRE.z;
+  // canal polygon (banks extended 160 m each way)
+  const { east, west, poly: canalPoly } = canalPolygon();
+  // ground with a hole for the canal
+  const rect = [[cx - GROUND_HALF.x, cz - GROUND_HALF.z], [cx + GROUND_HALF.x, cz - GROUND_HALF.z], [cx + GROUND_HALF.x, cz + GROUND_HALF.z], [cx - GROUND_HALF.x, cz + GROUND_HALF.z]];
+  const shape = new THREE.Shape(rect.map(([x, z]) => new THREE.Vector2(x, -z)));
+  shape.holes.push(new THREE.Path(canalPoly.map(([x, z]) => new THREE.Vector2(x, -z))));
+  const gg = new THREE.ShapeGeometry(shape); gg.rotateX(-Math.PI / 2);
+  const uv = gg.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 24, uv.getY(i) / 24);
+  TEX.grass.repeat.set(1, 1);
+  const ground = new THREE.Mesh(gg, new THREE.MeshStandardMaterial({ color: '#B9C39A', map: TEX.grass, roughness: 1 }));
+  ground.receiveShadow = true; ground.name = 'groundPlane'; G.ground.add(ground);
+  // estate site lawn
+  const site = flatPoly(SITE.boundary, 0.03, new THREE.MeshStandardMaterial({ color: '#A9BD7A', map: TEX.grass, roughness: 1 }));
+  const su = site.geometry.attributes.uv; for (let i = 0; i < su.count; i++) su.setXY(i, su.getX(i) / 24, su.getY(i) / 24);
+  G.ground.add(site);
+  // ground patch that fills the canal opening when the canal layer is hidden
+  const patchG = flatPoly(canalPoly, 0.0, new THREE.MeshStandardMaterial({ color: '#B9C39A', roughness: 1 }));
+  patchG.name = 'canalPatch'; patchG.visible = !state.settings.layers.canal; G.ground.add(patchG);
+  // paved car-park courtyard + service drives (segmented from the plan's light-grey service fill)
+  for (const p of SITE.paved || []) { const m = flatPoly(p, 0.06, new THREE.MeshStandardMaterial({ color: '#77736F', map: TEX.asphalt, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1 })); const uv = m.geometry.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 8, uv.getY(i) / 8); G.ground.add(m); }
+  const bl = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(SITE.boundary.map(([x, z]) => new THREE.Vector3(x, 0.25, z))), new THREE.LineBasicMaterial({ color: '#C0392B' }));
+  G.ground.add(bl);
+  // canal: water + sloped concrete banks
+  const water = flatPoly(canalPoly, -1.7, new THREE.MeshStandardMaterial({ color: PAL.canal, roughness: 0.18, metalness: 0.05 }));
+  G.canal.add(water);
+  const bankMb = new MultiBuf();
+  const bank = (line, sideSign) => {
+    for (let i = 0; i < line.length - 1; i++) {
+      const p = line[i], q = line[i + 1]; const dx = q[0] - p[0], dz = q[1] - p[1], l = Math.hypot(dx, dz);
+      const nx = -dz / l * sideSign, nz = dx / l * sideSign; // toward water
+      const a = [p[0], 0.02, p[1]], b = [q[0], 0.02, q[1]], c = [q[0] + nx * 3, -1.7, q[1] + nz * 3], d = [p[0] + nx * 3, -1.7, p[1] + nz * 3];
+      const n = [nx * 0.5, 0.86, nz * 0.5];
+      if (sideSign > 0) bankMb.get('bank').quad(a, d, c, b, n, 0, 0, 1, 1); else bankMb.get('bank').quad(a, b, c, d, n, 0, 0, 1, 1);
+    }
+  };
+  bank(east, 1); bank(west, -1);
+  for (const m of bankMb.meshes(() => new THREE.MeshStandardMaterial({ color: '#CFCBC4', roughness: 0.9, side: THREE.DoubleSide }), { cast: false })) G.canal.add(m);
+  const mid = SITE.canal.east[2];
+  G.canal.add(groundText('SUNGEI SEMBAWANG', mid[0] - 12, mid[1] - 35, Math.atan2(SITE.canal.east[3][0] - SITE.canal.east[1][0], SITE.canal.east[3][1] - SITE.canal.east[1][1]) + Math.PI / 2, 5, '#2F5B6A', -1.6));
+  // drainage reserve
+  G.ground.add(flatPoly(SITE.drainage, 0.06, new THREE.MeshStandardMaterial({ color: '#BFBDBE', roughness: 1 })));
+  // reserved / neighbouring sites (flat, labelled — no invented buildings)
+  for (const r of SITE.reserved) {
+    const ln = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(r.poly.map(([x, z]) => new THREE.Vector3(x, 0.2, z))), new THREE.LineBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: 0.8 }));
+    G.context.add(ln);
+    let x = 0, z = 0; r.poly.forEach((p) => { x += p[0]; z += p[1]; }); x /= r.poly.length; z /= r.poly.length;
+    const short = r.name.replace(/\(.*?\)/g, '').replace('Site reserved for', 'Reserved:').replace('future high-rise', 'future high-rise').trim();
+    G.context.add(groundText(short.toUpperCase(), x, z, 0, 3.2, '#3E4A2E', 0.22));
+    const hit = flatPoly(r.poly, 0.01, PICK_MAT); hit.visible = false; hit.userData = { owner: 'reserved:' + r.name, kind: 'reserved', name: r.name }; G.context.add(hit);
+  }
+  // roads: kerb/footpath ribbon + asphalt ribbon + name
+  for (const rd of SITE.roads) {
+    const drive = /driveway|service/i.test(rd.name);
+    const kerb = new THREE.Mesh(ribbonGeometry(rd.line, rd.width + (drive ? 2 : 6), 0.07), new THREE.MeshStandardMaterial({ color: PAL.kerb, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1 }));
+    kerb.receiveShadow = true; G.roads.add(kerb);
+    const asph = new THREE.Mesh(ribbonGeometry(rd.line, rd.width, 0.1), new THREE.MeshStandardMaterial({ color: drive ? PAL.drive : '#9A9794', map: TEX.asphalt, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -2 }));
+    asph.receiveShadow = true; asph.userData = { owner: 'road:' + rd.name, kind: 'road' }; G.roads.add(asph);
+    if (!drive && !/unnamed/i.test(rd.name)) {
+      // label on the longest segment
+      let best = 0, bi = 0; for (let i = 0; i < rd.line.length - 1; i++) { const l = Math.hypot(rd.line[i + 1][0] - rd.line[i][0], rd.line[i + 1][1] - rd.line[i][1]); if (l > best) { best = l; bi = i; } }
+      const a = rd.line[bi], b = rd.line[bi + 1];
+      let ang = -Math.atan2(b[1] - a[1], b[0] - a[0]); if (Math.abs(ang) > Math.PI / 2) ang += Math.PI;
+      const nm = rd.name.replace(/\s*\(existing.*?\)/i, '').replace(/\s*\(future road\)/i, '').toUpperCase() + (rd.status === 'future' ? ' (FUTURE)' : '');
+      G.roads.add(groundText(nm, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, ang, Math.min(4.5, rd.width * 0.22), '#FFFFFF', 0.16));
+    }
+  }
+}
+
+/* covered linkways (roof ribbons on posts) */
+function buildLinkways() {
+  clearGroup(G.linkways, true);
+  const roofMat = new THREE.MeshStandardMaterial({ color: PAL.linkRoof, roughness: 0.8, side: THREE.DoubleSide });
+  const posts = [];
+  for (const lw of SITE.linkways) {
+    const top = new THREE.Mesh(ribbonGeometry(lw.line, lw.width, 3.2), roofMat); top.castShadow = top.receiveShadow = true;
+    top.userData = { owner: 'linkway', kind: 'linkway', name: lw.name }; G.linkways.add(top);
+    for (let i = 0; i < lw.line.length - 1; i++) {
+      const a = lw.line[i], b = lw.line[i + 1], l = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.round(l / 7));
+      const nx = -(b[1] - a[1]) / l, nz = (b[0] - a[0]) / l;
+      for (let k = 0; k <= n; k++) { const t = k / n, x = a[0] + (b[0] - a[0]) * t, z = a[1] + (b[1] - a[1]) * t; posts.push([x + nx * (lw.width / 2 - 0.3), z + nz * (lw.width / 2 - 0.3)], [x - nx * (lw.width / 2 - 0.3), z - nz * (lw.width / 2 - 0.3)]); }
+    }
+  }
+  const pm = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.1, 0.1, 3.2, 6), new THREE.MeshStandardMaterial({ color: '#5E5E5B' }), posts.length);
+  const m4 = new THREE.Matrix4(); posts.forEach(([x, z], i) => { m4.makeTranslation(x, 1.6, z); pm.setMatrixAt(i, m4); });
+  G.linkways.add(pm);
+  // bus bays (future): small shelters
+  for (const bb of SITE.busBays) {
+    const s = new THREE.Mesh(new THREE.BoxGeometry(7, 0.25, 2.6), new THREE.MeshStandardMaterial({ color: '#F2F1EE' }));
+    s.position.set(bb.x, 2.7, bb.z); s.castShadow = true; G.linkways.add(s);
+  }
+}
+
+/* landscape: instanced trees (representative, not surveyed) + ground facility props */
+function blocked(x, z, pad = 2) {
+  const { u, v } = toLocal(x, z);
+  for (const b of REG.walk) if (u > b.u0 - pad - 1.5 && u < b.u1 + pad + 1.5 && v > b.v0 - pad - 1.5 && v < b.v1 + pad + 1.5) return true;
+  for (const rd of SITE.roads) if (distToPolyline(x, z, rd.line) < rd.width / 2 + 3) return true;
+  for (const lw of SITE.linkways) if (distToPolyline(x, z, lw.line) < lw.width / 2 + 1.5) return true;
+  for (const f of SITE.facilities) if (!f.onRoof && Math.hypot(x - f.x, z - f.z) < 7) return true;
+  return false;
+}
+function buildLandscape() {
+  clearGroup(G.landscape, true); clearGroup(G.facilities, true);
+  const rnd = mulberry32(2026);
+  const pts = []; // [x, y, z, scale, colourIdx]
+  const bnd = SITE.boundary;
+  // trees along the site boundary (inset 4 m), every ~7 m
+  const c = ESTATE_CENTRE;
+  for (let i = 0; i < bnd.length; i++) {
+    const a = bnd[i], b = bnd[(i + 1) % bnd.length], l = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    for (let d = 3; d < l; d += 6 + rnd() * 3) {
+      let x = a[0] + (b[0] - a[0]) * d / l, z = a[1] + (b[1] - a[1]) * d / l;
+      // nudge inward
+      const nx = -(b[1] - a[1]) / l, nz = (b[0] - a[0]) / l; const s = pointInPoly(x + nx * 4, z + nz * 4, bnd) ? 1 : -1;
+      x += nx * 4 * s; z += nz * 4 * s;
+      if (!blocked(x, z)) pts.push([x, 0, z, 0.8 + rnd() * 0.6, (rnd() * 3) | 0]);
+    }
+  }
+  // along linkways
+  for (const lw of SITE.linkways) for (let i = 0; i < lw.line.length - 1; i++) {
+    const a = lw.line[i], b = lw.line[i + 1], l = Math.hypot(b[0] - a[0], b[1] - a[1]); const nx = -(b[1] - a[1]) / l, nz = (b[0] - a[0]) / l;
+    for (let d = 5; d < l; d += 11 + rnd() * 5) for (const sgn of [-1, 1]) {
+      const x = a[0] + (b[0] - a[0]) * d / l + nx * sgn * 6, z = a[1] + (b[1] - a[1]) * d / l + nz * sgn * 6;
+      if (pointInPoly(x, z, bnd) && !blocked(x, z)) pts.push([x, 0, z, 0.7 + rnd() * 0.5, (rnd() * 3) | 0]);
+    }
+  }
+  // clusters around ground facilities and in courtyards
+  for (const f of SITE.facilities.filter((f) => !f.onRoof)) for (let k = 0; k < 7; k++) {
+    const a = rnd() * Math.PI * 2, r = 10 + rnd() * 8, x = f.x + Math.cos(a) * r, z = f.z + Math.sin(a) * r;
+    if (pointInPoly(x, z, bnd) && !blocked(x, z, 1)) pts.push([x, 0, z, 0.7 + rnd() * 0.6, (rnd() * 3) | 0]);
+  }
+  // random infill inside the site
+  for (let k = 0; k < 900 && pts.length < 520; k++) {
+    const x = c.x - 260 + rnd() * 520, z = c.z - 160 + rnd() * 260;
+    if (pointInPoly(x, z, bnd) && !blocked(x, z, 4)) pts.push([x, 0, z, 0.6 + rnd() * 0.6, (rnd() * 3) | 0]);
+  }
+  // Blk 436 roof garden trees (local → world)
+  const m = SITE.mscp, ww = m.westWing, r0 = (ww.u1 - ww.u0) / 2;
+  for (let k = 0; k < 60 && pts.length < 580; k++) {
+    const u = ww.u0 + 3 + rnd() * (ww.u1 - ww.u0 - 6), v = ww.v0 + r0 + 2 + rnd() * (ww.v1 - ww.v0 - r0 - 4);
+    const au = (ww.u0 + ww.u1) / 2 + 2; if (Math.abs(u - au) < 5) continue;
+    if (u < ww.u0 + 18 && v > ww.v1 - 28) continue; // plots
+    if (Math.hypot(u - (ww.u0 + 4.5), v - (ww.v0 + r0 + 1)) < 7 || Math.hypot(u - (ww.u1 - 3), v - (m.southWing.v1 - 3.5)) < 7) continue; // stair cores
+    const p = toWorld(u, v); pts.push([p.x, m.height, p.z, 0.45 + rnd() * 0.3, (rnd() * 3) | 0]);
+  }
+  const canopyG = new THREE.IcosahedronGeometry(1, 1), trunkG = new THREE.CylinderGeometry(0.18, 0.25, 1, 6);
+  const canopy = new THREE.InstancedMesh(canopyG, new THREE.MeshStandardMaterial({ roughness: 0.95, flatShading: true }), pts.length);
+  const trunk = new THREE.InstancedMesh(trunkG, new THREE.MeshStandardMaterial({ color: '#5A4A3A' }), pts.length);
+  const greens = [new THREE.Color('#4F6B32'), new THREE.Color('#6E8F40'), new THREE.Color('#90A85A')];
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s3 = new THREE.Vector3(), p3 = new THREE.Vector3();
+  pts.forEach(([x, y, z, s, ci], i) => {
+    const h = 6 * s, cr = 3.2 * s;
+    m4.compose(p3.set(x, y + h * 0.45 + cr * 0.7, z), q, s3.set(cr, cr * 0.85, cr)); canopy.setMatrixAt(i, m4); canopy.setColorAt(i, greens[ci]);
+    m4.compose(p3.set(x, y + h * 0.3, z), q, s3.set(1, h * 0.6, 1)); trunk.setMatrixAt(i, m4);
+  });
+  canopy.castShadow = true; canopy.receiveShadow = true; trunk.castShadow = true;
+  G.landscape.add(canopy, trunk);
+  G.landscape.userData.treeCount = pts.length;
+  // ground facility props + pins
+  for (const f of SITE.facilities) {
+    const y = f.onRoof ? MSCP_H + 0.05 : 0.12;
+    if (!f.onRoof) {
+      const { u, v } = toLocal(f.x, f.z), g = new THREE.Group();
+      g.rotation.y = GRID; // placed in world, rotated like the estate grid
+      g.position.set(f.x, 0, f.z);
+      if (/playground/i.test(f.name)) playgroundProp(g, 0, 0.1, 0);
+      else if (/fitness/i.test(f.name)) fitnessProp(g, 0, 0.1, 0);
+      else if (/hardcourt/i.test(f.name)) { const ct = new THREE.Mesh(new THREE.PlaneGeometry(15, 26).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#4E7F6A' })); ct.position.y = 0.12; ct.receiveShadow = true; g.add(ct); }
+      else if (/future community/i.test(f.name)) { const pd = new THREE.Mesh(new THREE.PlaneGeometry(11, 16).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({ color: '#BDBAB3' })); pd.position.y = 0.12; g.add(pd); }
+      if (g.children.length) G.landscape.add(g);
+    }
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'pin';
+    el.title = f.name + ' — ' + f.where; el.setAttribute('aria-label', f.name);
+    el.textContent = /playground/i.test(f.name) ? '◎' : /fitness/i.test(f.name) ? '✚' : /pavilion|porch/i.test(f.name) ? '⌂' : /school|preschool/i.test(f.name) ? '✎' : /eating|shop|mart/i.test(f.name) ? '¤' : /heavy vehicle/i.test(f.name) ? '!' : '•';
+    if (f.context) el.classList.add('ctx');
+    el.addEventListener('click', (e) => { e.stopPropagation(); select({ kind: 'facility', id: f.name + '@' + f.x + ',' + f.z, f }); });
+    const o = new CSS2DObject(el); o.position.set(f.x, y + 4, f.z); G.facilities.add(o);
+  }
+  for (const bb of SITE.busBays) {
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'pin bus'; el.textContent = 'B'; el.title = 'Future bus bay & shelter — ' + bb.road;
+    el.addEventListener('click', (e) => { e.stopPropagation(); select({ kind: 'facility', id: 'bus@' + bb.x, f: { name: 'Future bus bay & shelter', where: bb.road, conf: '[Read label; position ±3 m]', x: bb.x, z: bb.z } }); });
+    const o = new CSS2DObject(el); o.position.set(bb.x, 6, bb.z); G.facilities.add(o);
+  }
+}
+
+/* =====================================================================
+   40 OVERLAYS — flat-type colouring, storey band, my-flat marker,
+   stack highlight, selection outline
+   ===================================================================== */
+
+const typeColor = (t) => new THREE.Color(`rgb(${(SITE.flatTypes[t] || { rgb: [200, 200, 200] }).rgb.join(',')})`);
+const typeMeshes = new Map();
+
+function buildTypeOverlay() {
+  clearGroup(L.typeOverlay); typeMeshes.clear();
+  const { vd } = hts(); const per = new Map();
+  const mbFor = (t) => { if (!per.has(t)) per.set(t, new MultiBuf()); return per.get(t); };
+  const IN_V = 0.75, IN_U = 0.05; // cover frame fins (0.6 m proud) without overlapping neighbours
+  for (const b of SITE.blocks) {
+    const top = roofY(b.storeys);
+    if (b.kind === 'sale') {
+      for (const info of UNITS.stacks.get(b.id)) {
+        const inU = info.face === 'E' ? 0.75 : IN_U, inV = info.face === 'E' ? 0.05 : IN_V;
+        addBox(mbFor(info.type), info.u0 - inU, info.u1 + inU, vd, top + 0.2, info.v0 - inV, info.v1 + inV, { ...allSides('x'), T: { mat: 'x' } });
+      }
+    } else {
+      for (const pt of b.points) addBox(mbFor('1R-RENT'), pt.u - pt.lu / 2 - EXT - 0.7, pt.u + pt.lu / 2 + EXT + 0.7, vd, top + 0.2, pt.v - pt.lv / 2 - 0.7, pt.v + pt.lv / 2 + 0.7, { ...allSides('x'), T: { mat: 'x' } });
+    }
+  }
+  for (const [t, mb] of per) {
+    const c = typeColor(t);
+    const [m] = mb.meshes(() => new THREE.MeshStandardMaterial({ color: c, roughness: 0.75, emissive: c, emissiveIntensity: 0.12 }));
+    m.userData.type = t; m.castShadow = false; L.typeOverlay.add(m); typeMeshes.set(t, m);
+  }
+  updateTypeOverlay();
+}
+/** types present in a block (brochure mix keys) */
+const blockTypes = (b) => Object.keys(b.mix);
+function typeMatches(t) {
+  const f = state.settings.typeFilter;
+  if (!f.length) return true;
+  return f.includes(t) || (f.includes('RENT') && /RENT/.test(t)) || (f.includes('2RF') && /^2RF/.test(t));
+}
+function updateTypeOverlay() {
+  const s = state.settings;
+  L.typeOverlay.visible = s.colourByType;
+  for (const [t, m] of typeMeshes) m.visible = typeMatches(t);
+  // dim buildings that hold none of the filtered types
+  const owners = new Set(SITE.blocks.map((b) => b.id));
+  for (const b of SITE.blocks) setOwnerDim(b.id, s.typeFilter.length > 0 && !blockTypes(b).some(typeMatches));
+  for (const id of ['436', '437', '438', '439', 'porch', '440', '441']) setOwnerDim(id, s.typeFilter.length > 0);
+  void owners;
+  state.shadowsDirty = true; requestRender();
+}
+
+/* horizontal band at storey n on every residential block that has it */
+function buildStoreyBand() {
+  clearGroup(L.storeyBand);
+  const s = state.settings.storey; if (!s.on) return;
+  const { f2f } = hts(), n = s.n, y0 = floorY(n), y1 = y0 + f2f, P = 0.9;
+  const mb = new MultiBuf();
+  const add = (e) => addBox(mb, e.u0 - P, e.u1 + P, y0, y1, e.v0 - P, e.v1 + P, { ...allSides('band'), T: { mat: 'band' } });
+  for (const b of SITE.blocks) {
+    if (n > b.storeys) continue;
+    if (b.kind === 'sale') {
+      for (const t of b.towers) for (const row of t.rows) add(rowExtents(row));
+      for (const p of b.link) add({ u0: p.u - p.lu / 2, u1: p.u + p.lu / 2, v0: p.v - p.lv / 2, v1: p.v + p.lv / 2 });
+      if (b.tip) add({ u0: b.tip.u - b.tip.lu / 2, u1: b.tip.u + b.tip.lu / 2 + EXT, v0: b.tip.v - b.tip.lv / 2, v1: b.tip.v + b.tip.lv / 2 });
+    } else for (const pt of b.points) add({ u0: pt.u - pt.lu / 2 - EXT, u1: pt.u + pt.lu / 2 + EXT, v0: pt.v - pt.lv / 2, v1: pt.v + pt.lv / 2 });
+  }
+  for (const m of mb.meshes(() => new THREE.MeshBasicMaterial({ color: '#0A84FF', transparent: true, opacity: 0.45, depthWrite: false }), { cast: false, receive: false })) { m.renderOrder = 3; L.storeyBand.add(m); }
+  requestRender();
+}
+
+/* my-flat marker: bright box on the flat's facade at its storey + label */
+function unitFaceBox(info, storey, pad = 0.9) {
+  const { f2f } = hts(), y0 = floorY(storey), y1 = y0 + f2f;
+  const box = { u0: info.u0, u1: info.u1, v0: info.v0, v1: info.v1, y0, y1 };
+  if (info.face === 'N') box.v0 -= pad; else if (info.face === 'S') box.v1 += pad; else box.u1 += pad;
+  return box;
+}
+function buildUnitMark() {
+  clearGroup(L.unitMark);
+  const mu = state.settings.myUnit; if (!mu) { requestRender(); return; }
+  if (!myUnitValid(mu)) { requestRender(); return; }
+  const info = UNITS.idx.get(mu.unit);
+  const bx = unitFaceBox(info, mu.storey, 1.1);
+  const geo = new THREE.BoxGeometry(bx.u1 - bx.u0 + 0.4, bx.y1 - bx.y0, bx.v1 - bx.v0 + 0.4);
+  const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: '#D6247E', transparent: true, opacity: 0.92 }));
+  mesh.position.set((bx.u0 + bx.u1) / 2, (bx.y0 + bx.y1) / 2, (bx.v0 + bx.v1) / 2); mesh.renderOrder = 4;
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: '#FFFFFF' }));
+  edges.position.copy(mesh.position);
+  L.unitMark.add(mesh, edges);
+  // faint stack line so the flat is findable from afar
+  const sg = new THREE.BoxGeometry(bx.u1 - bx.u0, roofY(info.storeys) - hts().vd, bx.v1 - bx.v0);
+  const stack = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ color: '#D6247E', transparent: true, opacity: 0.16, depthWrite: false }));
+  stack.position.set(mesh.position.x, hts().vd + (roofY(info.storeys) - hts().vd) / 2, mesh.position.z); L.unitMark.add(stack);
+  const el = document.createElement('div'); el.className = 'lbl mine';
+  el.textContent = `Your flat · Blk ${mu.block} #${String(mu.storey).padStart(2, '0')}-${mu.unit}`;
+  // anchor the label just outside the flat's facade (not inside the slab)
+  const lx = info.face === 'E' ? bx.u1 + 0.6 : mesh.position.x, lz = info.face === 'N' ? bx.v0 - 0.6 : info.face === 'S' ? bx.v1 + 0.6 : mesh.position.z;
+  const lo = new CSS2DObject(el); lo.position.set(lx, bx.y1 + 3, lz); L.unitMark.add(lo);
+  requestRender();
+}
+
+/* selection outline (pick boxes of the selected owner) + optional stack highlight */
+function buildSelection() {
+  clearGroup(L.selection);
+  const sel = state.selection; if (!sel) { requestRender(); return; }
+  const lineMat = new THREE.LineBasicMaterial({ color: '#0A84FF' });
+  if (sel.kind === 'building') {
+    for (const p of REG.pick) {
+      if (p.userData.owner !== sel.id) continue;
+      const e = new THREE.LineSegments(new THREE.EdgesGeometry(p.geometry), lineMat);
+      e.position.copy(p.position); L.selection.add(e);
+    }
+  }
+  if (sel.stack) {
+    const info = sel.stack, { vd } = hts(), top = roofY(info.storeys);
+    const bx = unitFaceBox(info, 2, 0.8);
+    const geo = new THREE.BoxGeometry(bx.u1 - bx.u0 + 0.3, top - vd, bx.v1 - bx.v0 + 0.3);
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: '#0A84FF', transparent: true, opacity: 0.35, depthWrite: false }));
+    m.position.set((bx.u0 + bx.u1) / 2, vd + (top - vd) / 2, (bx.v0 + bx.v1) / 2); m.renderOrder = 3;
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), lineMat); e.position.copy(m.position);
+    L.selection.add(m, e);
+  }
+  requestRender();
+}
+
+/* =====================================================================
+   50 SUN — NOAA solar position, Singapore time (UTC+8, no DST),
+   light placement, sun path, per-flat direct-sun estimate
+   ===================================================================== */
+
+const SGT_OFFSET_MIN = 8 * 60;
+/** UTC instant for a Singapore local date ('YYYY-MM-DD') + minutes after midnight */
+function sgtDate(dateStr, minutes) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d, 0, 0, 0) + (minutes - SGT_OFFSET_MIN) * 60000);
+}
+function todaySGT() {
+  const t = new Date(Date.now() + SGT_OFFSET_MIN * 60000);
+  return t.toISOString().slice(0, 10);
+}
+/** NOAA solar position (spreadsheet algorithm). Returns degrees: az (from N, clockwise), el (incl. refraction) */
+function sunPosition(date, lat, lon) {
+  const rad = DEG, d2r = (x) => x * rad, r2d = (x) => x / rad;
+  const jd = date.getTime() / 86400000 + 2440587.5;
+  const T = (jd - 2451545) / 36525;
+  const L0 = (280.46646 + T * (36000.76983 + T * 0.0003032)) % 360;
+  const M = 357.52911 + T * (35999.05029 - 0.0001537 * T);
+  const e = 0.016708634 - T * (0.000042037 + 0.0000001267 * T);
+  const C = Math.sin(d2r(M)) * (1.914602 - T * (0.004817 + 0.000014 * T)) + Math.sin(d2r(2 * M)) * (0.019993 - 0.000101 * T) + Math.sin(d2r(3 * M)) * 0.000289;
+  const trueLong = L0 + C;
+  const omega = 125.04 - 1934.136 * T;
+  const lambda = trueLong - 0.00569 - 0.00478 * Math.sin(d2r(omega));
+  const eps0 = 23 + (26 + (21.448 - T * (46.815 + T * (0.00059 - T * 0.001813))) / 60) / 60;
+  const eps = eps0 + 0.00256 * Math.cos(d2r(omega));
+  const decl = r2d(Math.asin(Math.sin(d2r(eps)) * Math.sin(d2r(lambda))));
+  const y = Math.tan(d2r(eps / 2)) ** 2;
+  const eqTime = 4 * r2d(y * Math.sin(2 * d2r(L0)) - 2 * e * Math.sin(d2r(M)) + 4 * e * y * Math.sin(d2r(M)) * Math.cos(2 * d2r(L0)) - 0.5 * y * y * Math.sin(4 * d2r(L0)) - 1.25 * e * e * Math.sin(2 * d2r(M)));
+  const utcMin = date.getUTCHours() * 60 + date.getUTCMinutes() + date.getUTCSeconds() / 60;
+  let tst = (utcMin + eqTime + 4 * lon) % 1440; if (tst < 0) tst += 1440;
+  const ha = tst / 4 < 0 ? tst / 4 + 180 : tst / 4 - 180;
+  const cosZ = Math.sin(d2r(lat)) * Math.sin(d2r(decl)) + Math.cos(d2r(lat)) * Math.cos(d2r(decl)) * Math.cos(d2r(ha));
+  const zen = r2d(Math.acos(clamp(cosZ, -1, 1)));
+  let el = 90 - zen;
+  // atmospheric refraction (NOAA)
+  let refr = 0;
+  if (el > 85) refr = 0;
+  else if (el > 5) refr = (58.1 / Math.tan(d2r(el)) - 0.07 / Math.tan(d2r(el)) ** 3 + 0.000086 / Math.tan(d2r(el)) ** 5) / 3600;
+  else if (el > -0.575) refr = (1735 + el * (-518.2 + el * (103.4 + el * (-12.79 + el * 0.711)))) / 3600;
+  else refr = (-20.772 / Math.tan(d2r(el))) / 3600;
+  el += refr;
+  const azDen = Math.cos(d2r(lat)) * Math.sin(d2r(zen));
+  let az;
+  if (Math.abs(azDen) < 1e-9) az = lat > decl ? 180 : 0;
+  else {
+    const cosAz = clamp(((Math.sin(d2r(lat)) * Math.cos(d2r(zen))) - Math.sin(d2r(decl))) / azDen, -1, 1);
+    az = ha > 0 ? (r2d(Math.acos(cosAz)) + 180) % 360 : (540 - r2d(Math.acos(cosAz))) % 360;
+  }
+  return { az, el, elGeo: 90 - zen, decl, eqTime };
+}
+const LATLON = () => SITE.meta.latlon;
+const sunAt = (dateStr, minutes) => sunPosition(sgtDate(dateStr, minutes), LATLON()[0], LATLON()[1]);
+/** unit vector toward the sun in world space (+X east, +Y up, +Z south) */
+function sunDir(az, el, out = new THREE.Vector3()) {
+  return out.set(Math.sin(az * DEG) * Math.cos(el * DEG), Math.sin(el * DEG), -Math.cos(az * DEG) * Math.cos(el * DEG));
+}
+/** sunrise / sunset / solar noon in SGT minutes (1-minute scan) */
+function sunTimes(dateStr) {
+  // rise/set: geometric centre at -0.833° (standard refraction + semi-diameter), linearly interpolated
+  const H = -0.833;
+  let rise = null, set = null, noon = 0, best = -99, prev = sunAt(dateStr, 0).elGeo;
+  for (let m = 1; m < 1440; m++) {
+    const p = sunAt(dateStr, m), el = p.elGeo;
+    if (prev < H && el >= H && rise === null) rise = m - 1 + (H - prev) / (el - prev);
+    if (prev >= H && el < H) set = m - 1 + (prev - H) / (prev - el);
+    if (p.el > best) { best = p.el; noon = m; }
+    prev = el;
+  }
+  return { rise, set, noon, maxEl: best };
+}
+const hhmm = (m) => { if (m == null) return '—'; const t = Math.round(m); return `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`; };
+
+const _sd = new THREE.Vector3();
+let lastSun = null;
+function updateSun() {
+  const s = state.settings.sun; const dateStr = s.date || todaySGT();
+  const p = sunAt(dateStr, s.minutes); lastSun = { ...p, dateStr, minutes: s.minutes };
+  sunDir(p.az, p.el, _sd);
+  const c = ESTATE_CENTRE;
+  sun.target.position.copy(c); sun.target.updateMatrixWorld();
+  sun.position.copy(c).addScaledVector(_sd, 900);
+  const day = clamp((p.el + 2) / 10, 0, 1);
+  sun.intensity = 2.6 * day; sun.castShadow = state.settings.layers.shadows && p.el > 0;
+  hemi.intensity = 0.45 + 0.75 * day;
+  sun.color.setHSL(0.1, 0.6 * (1 - clamp(p.el / 40, 0, 1)) + 0.15, 0.94);
+  buildSunPath(dateStr);
+  state.shadowsDirty = true; requestRender();
+  emit('sun', lastSun);
+}
+function buildSunPath(dateStr) {
+  clearGroup(G.sunPath, true);
+  G.sunPath.visible = state.settings.layers.sunPath;
+  if (!state.settings.layers.sunPath) return;
+  const R = 420, c = ESTATE_CENTRE, pts = [];
+  for (let m = 0; m < 1440; m += 10) { const p = sunAt(dateStr, m); if (p.el > 0) pts.push(sunDir(p.az, p.el).multiplyScalar(R).add(c)); }
+  if (pts.length > 1) G.sunPath.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#F5A623' })));
+  if (lastSun && lastSun.el > 0) {
+    const ball = new THREE.Mesh(new THREE.SphereGeometry(9, 20, 12), new THREE.MeshBasicMaterial({ color: '#FFC83D' }));
+    ball.position.copy(sunDir(lastSun.az, lastSun.el).multiplyScalar(R).add(c)); G.sunPath.add(ball);
+  }
+  // hour ticks
+  for (let h = 7; h <= 19; h++) {
+    const p = sunAt(dateStr, h * 60); if (p.el <= 0) continue;
+    const el = document.createElement('div'); el.className = 'hour'; el.textContent = h;
+    const o = new CSS2DObject(el); o.position.copy(sunDir(p.az, p.el).multiplyScalar(R + 18).add(c)); G.sunPath.add(o);
+  }
+}
+
+/* ---------- direct-sun estimate on a flat's main facade ---------- */
+const _ray = new THREE.Raycaster();
+/** returns {hours, before12, after15, samples} — geometric estimate, 5-min steps */
+function flatSunHours(info, storey, dateStr, trace = null) {
+  G.estate.updateMatrixWorld(true);
+  const { f2f } = hts(); const y = floorY(storey) + f2f * 0.55;
+  const um = (info.u0 + info.u1) / 2, vm = (info.v0 + info.v1) / 2;
+  let pl, nl;
+  if (info.face === 'N') { pl = new THREE.Vector3(um, y, info.v0 - 0.9); nl = new THREE.Vector3(0, 0, -1); }
+  else if (info.face === 'S') { pl = new THREE.Vector3(um, y, info.v1 + 0.9); nl = new THREE.Vector3(0, 0, 1); }
+  else { pl = new THREE.Vector3(info.u1 + 0.9, y, vm); nl = new THREE.Vector3(1, 0, 0); }
+  const pw = pl.applyMatrix4(G.estate.matrixWorld), nw = nl.applyAxisAngle(new THREE.Vector3(0, 1, 0), GRID);
+  let lit = 0, before12 = 0, after15 = 0; const step = 5, d = new THREE.Vector3();
+  for (let m = 6 * 60; m <= 20 * 60; m += step) {
+    const p = sunAt(dateStr, m); if (p.el <= 0.5) continue;
+    sunDir(p.az, p.el, d); const dot = d.dot(nw);
+    if (dot <= 0.02) { if (trace) trace.push([m, +p.az.toFixed(1), +p.el.toFixed(1), +dot.toFixed(3), 'behind facade']); continue; }
+    _ray.set(pw, d); _ray.far = 2000;
+    const hit = _ray.intersectObjects(REG.pick, false);
+    if (trace) trace.push([m, +p.az.toFixed(1), +p.el.toFixed(1), +dot.toFixed(3), hit.length ? 'blocked by ' + hit[0].object.userData.owner + ' @' + hit[0].distance.toFixed(0) + 'm' : 'SUN']);
+    if (hit.length) continue;
+    lit += step; if (m < 12 * 60) before12 += step; if (m >= 15 * 60) after15 += step;
+  }
+  return { hours: lit / 60, before12: before12 / 60, after15: after15 / 60 };
+}
+
+/* =====================================================================
+   60 UI — selection + info panel, search, filters, layers, storey,
+   my flat (+ sun hours), heights, sun bar, menu, keyboard, mobile
+   ===================================================================== */
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const FACE_TXT = (f) => `${bearingName(FACE_BEARING(f))} (${Math.round(FACE_BEARING(f))}°)`;
+const typeName = (t) => (SITE.flatTypes[t] || { name: t }).name;
+const swatch = (t) => `<i class="sw" style="background:rgb(${(SITE.flatTypes[t] || { rgb: [200, 200, 200] }).rgb.join(',')})"></i>`;
+const tag = (s) => `<span class="tag">${esc(s)}</span>`;
+
+/* ---------- layers ---------- */
+function setCssVisible(obj, v) { obj.traverse((o) => { if (o.isCSS2DObject) o.visible = v; }); }
+function applyLayers() {
+  const Ly = state.settings.layers;
+  G.roads.visible = Ly.roads; G.canal.visible = Ly.canal; G.context.visible = Ly.context;
+  const cp = G.ground.getObjectByName('canalPatch'); if (cp) cp.visible = !Ly.canal;
+  G.linkways.visible = Ly.linkways; G.landscape.visible = Ly.landscape;
+  G.facilities.visible = Ly.facilities; setCssVisible(G.facilities, Ly.facilities);
+  for (const o of REG.labels) o.visible = Ly.labels;
+  G.sunPath.visible = Ly.sunPath; setCssVisible(G.sunPath, Ly.sunPath);
+  renderer.shadowMap.enabled = Ly.shadows; sun.castShadow = Ly.shadows && (lastSun ? lastSun.el > 0 : true);
+  scene.traverse((o) => { if (o.material) { const ms = Array.isArray(o.material) ? o.material : [o.material]; ms.forEach((m) => { m.needsUpdate = true; }); } });
+  state.shadowsDirty = true; requestRender();
+}
+
+/* ---------- selection + info panel ---------- */
+function select(sel, opts = {}) {
+  state.selection = sel;
+  buildSelection(); renderInfo();
+  $$('.blist button').forEach((b) => b.classList.toggle('on', !!sel && sel.kind === 'building' && b.dataset.id === sel.id));
+  $$('#labels .lbl').forEach((el) => el.classList.toggle('on', !!sel && sel.kind === 'building' && el.dataset.owner === sel.id));
+  if (sel && opts.fly) {
+    if (sel.kind === 'building') focusAnchor(REG.anchors.get(sel.id));
+    else if (sel.kind === 'facility' && sel.f) flyTo(new THREE.Vector3(sel.f.x + 60, 60, sel.f.z + 60), new THREE.Vector3(sel.f.x, 0, sel.f.z), 50);
+  }
+  document.body.classList.toggle('has-sel', !!sel);
+}
+function infoBuilding(id, sel) {
+  const b = blockById(id);
+  if (b && b.kind === 'sale') {
+    const top = roofY(b.storeys), stacks = UNITS.stacks.get(b.id);
+    const mixRows = Object.entries(b.mix).map(([t, n]) => `<tr><td>${swatch(t)}${esc(typeName(t))}</td><td class="n">${n}</td><td class="n">${n / (b.storeys - 1)}</td></tr>`).join('');
+    const stackRows = stacks.map((s) => `<tr data-unit="${s.unit}" class="${sel.stack && sel.stack.unit === s.unit ? 'on' : ''}"><td>#${s.unit}</td><td>${swatch(s.type)}${esc(SITE.flatTypes[s.type].short)}</td><td>${FACE_TXT(s.face)}</td><td>${s.part === 'link' ? 'link' : s.tower === 'W' ? 'west tower' : 'east tower'}</td></tr>`).join('');
+    let stackCard = '';
+    if (sel.stack) {
+      const s = sel.stack, st = sel.storeyHint && sel.storeyHint >= 2 ? sel.storeyHint : null;
+      stackCard = `<div class="card accent"><b>Stack #${s.unit}</b> · ${esc(typeName(s.type))}<br>Faces ${FACE_TXT(s.face)} · storeys 2–${b.storeys}${st ? `<br>You tapped ≈ storey ${st} <small>(from the assumed storey heights)</small>` : ''}
+        <div class="row"><button class="btn sm" data-act="mine" data-unit="${s.unit}" data-storey="${st || ''}">Set as my flat${st ? ` (storey ${st})` : ''}</button><button class="btn sm ghost" data-act="clearstack">Clear stack</button></div></div>`;
+    }
+    return `<h2>Blk ${esc(b.id)}</h2><p class="sub">${b.storeys} storeys · ${b.total} flats for sale · ${b.unitsPerFloor} per floor</p>
+      ${stackCard}
+      <dl class="kv"><dt>Storeys</dt><dd>${b.storeys} ${tag('Read')}</dd>
+      <dt>Flats on</dt><dd>storeys 2–${b.storeys}; storey 1 is the void deck ${tag('Derived')}</dd>
+      <dt>Roof level</dt><dd>≈ ${fmt(top)} m ${tag('Estimated')}</dd>
+      <dt>Facades</dt><dd>west tower dark glass grid · east tower light cells ${tag('Model photos')}</dd></dl>
+      <h3>Flat mix <small>(brochure table)</small></h3>
+      <table class="t"><thead><tr><th>Type</th><th class="n">Flats</th><th class="n">Stacks</th></tr></thead><tbody>${mixRows}</tbody></table>
+      <h3>Stacks <small>tap one to highlight it</small></h3>
+      <table class="t click" id="stackTable"><thead><tr><th>Unit</th><th>Type</th><th>Faces</th><th>Where</th></tr></thead><tbody>${stackRows}</tbody></table>
+      ${b.notes.map((n) => `<p class="note">${esc(n)}</p>`).join('')}
+      <div class="row"><button class="btn" data-act="focus">Focus</button><button class="btn ghost" data-act="colour">${state.settings.colourByType ? 'Hide' : 'Show'} flat-type colours</button></div>`;
+  }
+  if (b) { // 438A rental
+    return `<h2>Blk ${esc(b.id)}</h2><p class="sub">${b.storeys} storeys · ${b.total} rental flats · ${b.unitsPerFloor} per floor</p>
+      <dl class="kv"><dt>Flats</dt><dd>100 × 1-Room, 100 × 2-Room (rental) ${tag('Read')}</dd>
+      <dt>Flats on</dt><dd>storeys 2–${b.storeys} ${tag('Derived')}</dd><dt>Roof level</dt><dd>≈ ${fmt(roofY(b.storeys))} m ${tag('Estimated')}</dd>
+      <dt>Form</dt><dd>two point towers joined by a lift core; west tower dark grid, east tower light cells</dd></dl>
+      ${b.notes.map((n) => `<p class="note">${esc(n)}</p>`).join('')}<div class="row"><button class="btn" data-act="focus">Focus</button></div>`;
+  }
+  if (id === '436') {
+    const m = SITE.mscp;
+    return `<h2>Blk 436</h2><p class="sub">8-storey multi-storey car park with accessible roof garden</p>
+      <dl class="kv"><dt>1st storey</dt><dd>${esc(m.uses['1'])} ${tag('Read')}</dd><dt>2nd storey</dt><dd>${esc(m.uses['2'])} ${tag('Read')}</dd>
+      <dt>Roof garden</dt><dd>lawn, community garden plots, children's playground, shelters, elderly fitness station ${tag('Model photo')}</dd>
+      <dt>Size</dt><dd>west wing ≈ ${fmt(m.westWing.u1 - m.westWing.u0, 0)} × ${fmt(m.westWing.v1 - m.westWing.v0, 0)} m; spiral ramp Ø ≈ ${fmt(m.ramp.r * 2, 0)} m ${tag('Measured')}</dd>
+      <dt>Height</dt><dd>≈ ${m.height} m ${tag('Estimated')}</dd></dl>
+      ${m.notes.map((n) => `<p class="note">${esc(n)}</p>`).join('')}<div class="row"><button class="btn" data-act="focus">Focus</button><button class="btn ghost" data-act="preset" data-id="roof436">Roof-garden view</button></div>`;
+  }
+  const lr = SITE.lowRise.find((x) => x.id === id);
+  if (lr) return `<h2>${lr.id === 'porch' ? 'Drop-off porch' : 'Blk ' + esc(lr.id)}</h2><p class="sub">${esc(lr.use)}</p>
+      <dl class="kv"><dt>Footprint</dt><dd>≈ ${fmt(lr.lu, 0)} × ${fmt(lr.lv, 0)} m ${tag('Measured')}</dd><dt>Height</dt><dd>≈ ${lr.height} m, 1 storey ${tag('Estimated')}</dd></dl>
+      <div class="row"><button class="btn" data-act="focus">Focus</button></div>`;
+  if (id === '440') return `<h2>Blk 440</h2><p class="sub">${esc(SITE.commercial440.use)}</p><dl class="kv"><dt>Height</dt><dd>≈ ${SITE.commercial440.height} m ${tag('Estimated')}</dd><dt>Note</dt><dd>${esc(SITE.commercial440.heightConf)}; marker digits on the plan are illegible ${tag('Unverified')}</dd></dl><div class="row"><button class="btn" data-act="focus">Focus</button></div>`;
+  if (id === '441') return `<h2>Blk 441</h2><p class="sub">${esc(SITE.ess441.use)}</p><dl class="kv"><dt>Height</dt><dd>≈ ${SITE.ess441.height} m ${tag('Estimated')}</dd></dl><div class="row"><button class="btn" data-act="focus">Focus</button></div>`;
+  return `<h2>${esc(id)}</h2>`;
+}
+function renderInfo() {
+  const sel = state.selection, el = $('#infoBody');
+  if (!sel) { el.innerHTML = '<p class="muted">Tap a block, a facility pin, a road or a reserved site to see details.</p>'; return; }
+  let html = '';
+  if (sel.kind === 'building') html = infoBuilding(sel.id, sel);
+  else if (sel.kind === 'facility') { const f = sel.f; html = `<h2>${esc(f.name[0].toUpperCase() + f.name.slice(1))}</h2><p class="sub">${esc(f.where)}</p><dl class="kv"><dt>Source</dt><dd>${esc(f.conf)}</dd><dt>Note</dt><dd>Props in the 3D view are representative, not surveyed.</dd></dl>`; }
+  else if (sel.kind === 'road') { const r = SITE.roads.find((x) => x.name === sel.id); html = `<h2>${esc(r.name)}</h2><p class="sub">${r.status === 'future' ? 'Future road' : r.status === 'existing' ? 'Existing road' : 'Status not stated'}</p><dl class="kv"><dt>Width</dt><dd>≈ ${r.width} m ${tag('Measured/inferred')}</dd><dt>Source</dt><dd>${esc(r.conf)}</dd></dl>`; }
+  else if (sel.kind === 'reserved') html = `<h2>${esc(sel.id)}</h2><p class="sub">Neighbouring / reserved site (context only)</p><p class="note">Shown as a flat labelled plot. Any future buildings here are not modelled, so views and sun hours could change when they are built.</p>`;
+  el.innerHTML = html;
+  $('#info').classList.add('open');
+}
+$('#infoBody').addEventListener('click', (e) => {
+  const tr = e.target.closest('#stackTable tbody tr');
+  if (tr) { const info = UNITS.idx.get(tr.dataset.unit); select({ ...state.selection, stack: info, storeyHint: null }); return; }
+  const btn = e.target.closest('[data-act]'); if (!btn) return;
+  const sel = state.selection, act = btn.dataset.act;
+  if (act === 'focus' && sel) focusAnchor(REG.anchors.get(sel.id));
+  else if (act === 'colour') { state.settings.colourByType = !state.settings.colourByType; syncControls(); updateTypeOverlay(); saveSettings(); renderInfo(); }
+  else if (act === 'preset') goPreset(btn.dataset.id);
+  else if (act === 'clearstack') select({ ...sel, stack: null, storeyHint: null });
+  else if (act === 'mine') {
+    const info = UNITS.idx.get(btn.dataset.unit);
+    $('#muBlock').value = info.block; fillUnitOptions(); $('#muUnit').value = info.unit;
+    const st = parseInt(btn.dataset.storey, 10); if (st) $('#muStorey').value = st;
+    openLeft('mine'); $('#muStorey').focus();
+  }
+});
+$('#infoClose').addEventListener('click', () => { $('#info').classList.remove('open'); select(null); });
+
+/* ---------- search (blocks, unit numbers, flat types, facilities, roads, reserved sites) ---------- */
+let SEARCH = [];
+const norm = (s) => String(s).toLowerCase().replace(/\b(blk|block|unit|stack)\b/g, '').replace(/[#\s\-_.]+/g, '');
+const TYPE_SYNONYMS = { '2RF-T1': ['2 room flexi type 1', '2rf t1', '2-room flexi', 'flexi', '2rf', 'two room'], '2RF-T2': ['2 room flexi type 2', '2rf t2', '2-room flexi', 'flexi', '2rf', 'two room'], '3R': ['3 room', '3-room', 'three room', '3r'], '4R': ['4 room', '4-room', 'four room', '4r'], '5R': ['5 room', '5-room', 'five room', '5r'], '3GEN': ['3gen', '3 gen', 'three generation', 'multi-generation'], '1R-RENT': ['1 room rental', 'rental', 'rent'], '2R-RENT': ['2 room rental', 'rental', 'rent'] };
+function buildSearchIndex() {
+  SEARCH = [];
+  for (const b of SITE.blocks) SEARCH.push({ kind: 'Block', label: 'Blk ' + b.id, sub: `${b.storeys} storeys · ${b.total} ${b.kind === 'sale' ? 'flats' : 'rental flats'}`, keys: [b.id, 'blk ' + b.id, ...(b.kind === 'rental' ? ['rental'] : []), ...Object.keys(b.mix).map(typeName)], go: () => select({ kind: 'building', id: b.id }, { fly: true }) });
+  const others = [['436', 'Blk 436 · multi-storey car park', ['car park', 'carpark', 'mscp', 'parking', 'roof garden', 'preschool', 'community garden', 'allotment']],
+    ['437', 'Blk 437 · precinct pavilion', ['pavilion']], ['438', 'Blk 438 · precinct pavilion', ['pavilion']], ['439', 'Blk 439 · pavilion + drop-off porch', ['pavilion', 'drop-off', 'porch']],
+    ['porch', 'Drop-off porch (by Blk 437B)', ['drop-off', 'porch']], ['440', 'Blk 440 · eating house, shops, mini-mart', ['shops', 'eating house', 'food', 'coffee shop', 'mini-mart', 'minimart', 'commercial']], ['441', 'Blk 441 · electrical sub-station', ['ess', 'sub-station', 'substation']]];
+  for (const [id, label, keys] of others) SEARCH.push({ kind: 'Building', label, sub: '', keys: [id, 'blk ' + id, ...keys], go: () => select({ kind: 'building', id }, { fly: true }) });
+  for (const [no, info] of UNITS.idx) SEARCH.push({ kind: 'Stack', label: `#${no} · Blk ${info.block}`, sub: `${typeName(info.type)} · faces ${FACE_TXT(info.face)}`, keys: ['#' + no, no], exact: true, go: () => { select({ kind: 'building', id: info.block, stack: info }); focusFlat(info, Math.min(15, info.storeys)); } });
+  const types = ['2RF-T1', '2RF-T2', '3R', '4R', '5R', '3GEN', '1R-RENT'];
+  for (const t of types) SEARCH.push({ kind: 'Flat type', label: t === '1R-RENT' ? 'Rental flats (1-Room / 2-Room)' : typeName(t), sub: 'Filter + colour stacks', keys: [t, typeName(t), ...(TYPE_SYNONYMS[t] || [])], go: () => { const key = t === '1R-RENT' ? 'RENT' : t; state.settings.typeFilter = [key]; state.settings.colourByType = true; syncControls(); updateTypeOverlay(); renderBlockList(); saveSettings(); openLeft('types'); } });
+  for (const f of SITE.facilities) SEARCH.push({ kind: 'Facility', label: f.name[0].toUpperCase() + f.name.slice(1), sub: f.where, keys: [f.name, f.where], go: () => select({ kind: 'facility', id: f.name, f }, { fly: true }) });
+  for (const r of SITE.roads) if (!/unnamed/i.test(r.name)) SEARCH.push({ kind: 'Road', label: r.name, sub: r.status, keys: [r.name], go: () => { select({ kind: 'road', id: r.name }); const m = r.line[Math.floor(r.line.length / 2)]; flyTo(new THREE.Vector3(m[0] + 90, 120, m[1] + 90), new THREE.Vector3(m[0], 0, m[1]), 50); } });
+  SEARCH.push({ kind: 'Water', label: 'Sungei Sembawang (canal)', sub: 'west edge of the estate', keys: ['canal', 'sungei sembawang', 'river', 'drain'], go: () => { const m = SITE.canal.east[2]; select(null); flyTo(new THREE.Vector3(m[0] - 120, 90, m[1] + 60), new THREE.Vector3(m[0], 0, m[1]), 50); } });
+  for (const r of SITE.reserved) SEARCH.push({ kind: 'Site', label: r.name, sub: 'context only', keys: [r.name], go: () => { select({ kind: 'reserved', id: r.name }); let x = 0, z = 0; r.poly.forEach((p) => { x += p[0]; z += p[1]; }); x /= r.poly.length; z /= r.poly.length; flyTo(new THREE.Vector3(x + 100, 160, z + 100), new THREE.Vector3(x, 0, z), 50); } });
+  for (const p of SEARCH) p.nkeys = p.keys.map(norm);
+}
+function runSearch(q) {
+  const n = norm(q); if (!n) return [];
+  const out = [];
+  const addr = String(q).match(/#?\s*(\d{1,2})\s*-\s*(\d{3})/); // HDB address: #storey-unit
+  if (addr && UNITS.idx.has(addr[2])) {
+    const info = UNITS.idx.get(addr[2]), st = parseInt(addr[1], 10);
+    if (st >= 2 && st <= info.storeys) return [{ kind: 'Flat', label: `Blk ${info.block} #${String(st).padStart(2, '0')}-${addr[2]}`, sub: `${typeName(info.type)} · storey ${st} · faces ${FACE_TXT(info.face)}`,
+      go: () => { select({ kind: 'building', id: info.block, stack: info, storeyHint: st }); focusFlat(info, st); } }];
+    return [{ kind: 'Flat', label: `#${addr[1]}-${addr[2]}`, sub: `Blk ${info.block} has storeys 2–${info.storeys} (storey 1 is the void deck)`, go: () => {} }];
+  }
+  for (const p of SEARCH) {
+    let score = 0;
+    for (const k of p.nkeys) {
+      if (p.exact) { if (k === n) score = Math.max(score, 3); else if (k.startsWith(n) && n.length >= 2) score = Math.max(score, 1.5); continue; }
+      if (k === n) score = Math.max(score, 3); else if (k.startsWith(n)) score = Math.max(score, 2); else if (k.includes(n)) score = Math.max(score, 1);
+    }
+    if (score) out.push({ p, score });
+  }
+  out.sort((a, b) => b.score - a.score || a.p.label.localeCompare(b.p.label));
+  const seen = new Set(); return out.filter(({ p }) => !seen.has(p.label) && seen.add(p.label)).slice(0, 9).map((x) => x.p);
+}
+(function bindSearch() {
+  const inp = $('#search'), box = $('#searchResults'); let res = [], cur = -1;
+  const draw = () => {
+    box.innerHTML = res.length ? res.map((p, i) => `<button type="button" role="option" class="${i === cur ? 'cur' : ''}" data-i="${i}"><span class="k">${esc(p.kind)}</span><span class="l">${esc(p.label)}</span><span class="s">${esc(p.sub || '')}</span></button>`).join('')
+      : (inp.value.trim() ? '<div class="none">No match. Try "437B", "#132", "4-room", "playground".</div>' : '');
+    box.hidden = !inp.value.trim();
+  };
+  inp.addEventListener('input', () => { res = runSearch(inp.value); cur = res.length ? 0 : -1; draw(); });
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { cur = Math.min(res.length - 1, cur + 1); draw(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { cur = Math.max(0, cur - 1); draw(); e.preventDefault(); }
+    else if (e.key === 'Enter' && res[cur]) { res[cur].go(); box.hidden = true; inp.blur(); }
+    else if (e.key === 'Escape') { inp.value = ''; box.hidden = true; inp.blur(); }
+  });
+  box.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; res[+b.dataset.i].go(); box.hidden = true; inp.blur(); });
+  document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.search')) box.hidden = true; });
+})();
+
+/* ---------- left panel: blocks list, flat types, storey, my flat, layers, heights ---------- */
+function renderBlockList() {
+  const f = state.settings.typeFilter;
+  const rows = SITE.blocks.map((b) => {
+    const match = Object.entries(b.mix).filter(([t]) => typeMatches(t));
+    const cnt = f.length ? match.reduce((a, [, n]) => a + n, 0) : b.total;
+    const dots = Object.keys(b.mix).map(swatch).join('');
+    return `<button type="button" data-id="${b.id}" class="${f.length && !cnt ? 'dim' : ''}"><b>Blk ${b.id}</b><span>${dots}</span><small>${b.storeys} st · ${f.length ? `${cnt} matching flats` : `${b.total} ${b.kind === 'sale' ? 'flats' : 'rental'}`}</small></button>`;
+  }).join('') + `<button type="button" data-id="436"><b>Blk 436</b><span></span><small>car park + roof garden</small></button>`;
+  $('#blockList').innerHTML = rows;
+  $('#typeSummary').textContent = f.length ? `${SITE.blocks.reduce((a, b) => a + Object.entries(b.mix).filter(([t]) => typeMatches(t)).reduce((x, [, n]) => x + n, 0), 0)} flats match` : '1,360 flats in 5 blocks';
+}
+$('#blockList').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) { select({ kind: 'building', id: b.dataset.id }, { fly: true }); if (document.body.classList.contains('mobile')) closeLeft(); } });
+
+function renderTypeChips() {
+  const keys = [['2RF', '2-Room Flexi', '2RF-T2'], ['3R', '3-Room', '3R'], ['4R', '4-Room', '4R'], ['5R', '5-Room', '5R'], ['3GEN', '3Gen', '3GEN'], ['RENT', 'Rental', '1R-RENT']];
+  $('#typeChips').innerHTML = keys.map(([k, l, c]) => `<button type="button" class="chip ${state.settings.typeFilter.includes(k) ? 'on' : ''}" data-k="${k}" aria-pressed="${state.settings.typeFilter.includes(k)}">${swatch(c)}${l}</button>`).join('');
+}
+$('#typeChips').addEventListener('click', (e) => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  const f = state.settings.typeFilter, k = b.dataset.k, i = f.indexOf(k);
+  if (i >= 0) f.splice(i, 1); else f.push(k);
+  renderTypeChips(); renderBlockList(); updateTypeOverlay(); saveSettings();
+});
+$('#typeClear').addEventListener('click', () => { state.settings.typeFilter = []; renderTypeChips(); renderBlockList(); updateTypeOverlay(); saveSettings(); });
+$('#colourByType').addEventListener('change', (e) => { state.settings.colourByType = e.target.checked; updateTypeOverlay(); saveSettings(); if (state.selection) renderInfo(); });
+
+function storeyReadout() {
+  const n = state.settings.storey.n;
+  $('#storeyOut').textContent = `Storey ${n} · floor ≈ ${fmt(floorY(n))} m above ground`;
+}
+$('#storeyOn').addEventListener('change', (e) => { state.settings.storey.on = e.target.checked; buildStoreyBand(); saveSettings(); });
+$('#storeyN').addEventListener('input', (e) => { state.settings.storey.n = +e.target.value; storeyReadout(); if (!state.settings.storey.on) { state.settings.storey.on = true; $('#storeyOn').checked = true; } buildStoreyBand(); saveSettings(); });
+
+/* my flat */
+function fillUnitOptions() {
+  const id = $('#muBlock').value, list = UNITS.stacks.get(id) || [];
+  $('#muUnit').innerHTML = list.map((s) => `<option value="${s.unit}">#${s.unit} · ${esc(SITE.flatTypes[s.type].short)} · ${bearingName(s.bearing)}</option>`).join('');
+  const b = blockById(id); $('#muStorey').max = b ? b.storeys : 30;
+}
+function initMyFlat() {
+  $('#muBlock').innerHTML = SITE.blocks.filter((b) => b.kind === 'sale').map((b) => `<option value="${b.id}">Blk ${b.id}</option>`).join('');
+  const mu = state.settings.myUnit;
+  if (mu && myUnitValid(mu)) { $('#muBlock').value = mu.block; fillUnitOptions(); $('#muUnit').value = mu.unit; $('#muStorey').value = mu.storey; }
+  else fillUnitOptions();
+  renderMyFlat();
+}
+$('#muBlock').addEventListener('change', fillUnitOptions);
+$('#muForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const block = $('#muBlock').value, unit = $('#muUnit').value, storey = parseInt($('#muStorey').value, 10);
+  const info = UNITS.idx.get(unit), b = blockById(block);
+  const err = $('#muErr');
+  if (!info || info.block !== block) { err.textContent = 'Pick a unit in that block.'; return; }
+  if (!(storey >= 2 && storey <= b.storeys)) { err.textContent = `Storey must be 2–${b.storeys} (storey 1 is the void deck).`; return; }
+  err.textContent = '';
+  state.settings.myUnit = { block, unit, storey }; saveSettings();
+  buildUnitMark(); renderMyFlat(true); focusFlat(info, storey);
+  if (document.body.classList.contains('mobile')) closeLeft();
+});
+$('#muClear').addEventListener('click', () => { state.settings.myUnit = null; saveSettings(); buildUnitMark(); renderMyFlat(); });
+function myUnitValid(mu) {
+  const info = mu && UNITS.idx.get(mu.unit), b = mu && blockById(mu.block);
+  return !!(info && b && info.block === mu.block && mu.storey >= 2 && mu.storey <= b.storeys);
+}
+function keyDates(year) { return [['20 Mar', `${year}-03-20`], ['21 Jun', `${year}-06-21`], ['22 Sep', `${year}-09-22`], ['21 Dec', `${year}-12-21`]]; }
+function renderMyFlat(compute = false) {
+  const mu = state.settings.myUnit, out = $('#muOut');
+  $('#muClear').hidden = !mu;
+  if (!mu || !myUnitValid(mu)) { out.innerHTML = '<p class="muted">Set your block, unit number and storey to highlight your flat and estimate its direct sun.</p>'; return; }
+  const info = UNITS.idx.get(mu.unit);
+  const head = `<div class="card mine"><b>Blk ${esc(mu.block)} #${String(mu.storey).padStart(2, '0')}-${esc(mu.unit)}</b><br>${esc(typeName(info.type))} · main windows face ${FACE_TXT(info.face)}<br>Floor ≈ ${fmt(floorY(mu.storey))} m above ground <small>(assumed heights)</small>
+    <div class="row"><button class="btn sm" type="button" id="muGo">Go to my flat</button><button class="btn sm ghost" type="button" id="muSun">${compute ? 'Recalculate' : 'Estimate sun hours'}</button></div></div>`;
+  let table = '';
+  if (compute) {
+    const sd = state.settings.sun.date || todaySGT(), yr = sd.slice(0, 4);
+    const rows = [['Selected', sd], ...keyDates(yr)].map(([n, d]) => { const r = flatSunHours(info, mu.storey, d); return `<tr><td>${n}<small>${d.slice(5)}</small></td><td class="n">${fmt(r.hours)}</td><td class="n">${fmt(r.before12)}</td><td class="n">${fmt(r.after15)}</td></tr>`; }).join('');
+    table = `<h4>Direct sun on the main facade <small>(hours, estimate)</small></h4><table class="t"><thead><tr><th>Date</th><th class="n">Total</th><th class="n">Before 12</th><th class="n">After 3 pm</th></tr></thead><tbody>${rows}</tbody></table>
+      <p class="note">Geometric estimate at the centre of the flat's main facade, 5-minute steps, blocked by the modelled buildings only. It ignores trees, ledges, side windows, and anything future built on the reserved sites. Heights are assumed (${state.settings.heights.floorToFloor} m storeys, ${state.settings.heights.voidDeck} m void deck).</p>`;
+  }
+  out.innerHTML = head + table;
+  $('#muGo').onclick = () => focusFlat(info, mu.storey);
+  $('#muSun').onclick = () => renderMyFlat(true);
+}
+
+/* layers */
+function bindLayers() {
+  $$('#layers input[type=checkbox]').forEach((cb) => {
+    cb.checked = state.settings.layers[cb.name];
+    cb.addEventListener('change', () => { state.settings.layers[cb.name] = cb.checked; if (cb.name === 'sunPath') updateSun(); applyLayers(); saveSettings(); syncControls(); });
+  });
+}
+/* heights */
+$('#hForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const f = parseFloat($('#hF2F').value), v = parseFloat($('#hVD').value), err = $('#hErr');
+  if (!(f >= 2.4 && f <= 3.6) || !(v >= 2.4 && v <= 6)) { err.textContent = 'Floor-to-floor 2.4–3.6 m; void deck 2.4–6 m.'; return; }
+  err.textContent = '';
+  state.settings.heights = { floorToFloor: f, voidDeck: v }; saveSettings(); rebuildBuildings();
+});
+$('#hReset').addEventListener('click', () => { $('#hErr').textContent = ''; state.settings.heights = { floorToFloor: SITE_DEFAULT.heights.floorToFloor, voidDeck: SITE_DEFAULT.heights.voidDeck }; syncControls(); saveSettings(); rebuildBuildings(); });
+
+/* ---------- sun bar ---------- */
+function syncSunBar() {
+  const s = state.settings.sun;
+  $('#sunDate').value = s.date || todaySGT();
+  $('#sunTime').value = s.minutes;
+}
+on('sun', (p) => {
+  const t = sunTimes(p.dateStr);
+  $('#sunRead').innerHTML = `<b>${hhmm(p.minutes)} SGT</b> · ${p.el > 0 ? `altitude ${fmt(p.el)}° · azimuth ${fmt(p.az, 0)}° (${bearingName(p.az)})` : 'sun below the horizon'}<small>rise ${hhmm(t.rise)} · solar noon ${hhmm(t.noon)} (${fmt(t.maxEl, 0)}°) · set ${hhmm(t.set)}</small>`;
+});
+$('#sunDate').addEventListener('change', (e) => { if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { state.settings.sun.date = e.target.value; updateSun(); saveSettings(); } });
+$('#sunTime').addEventListener('input', (e) => { state.settings.sun.minutes = +e.target.value; updateSun(); saveSettings(); });
+$('#sunPlay').addEventListener('click', () => { state.sunPlaying = !state.sunPlaying; $('#sunPlay').textContent = state.sunPlaying ? 'Pause' : 'Play day'; $('#sunPlay').setAttribute('aria-pressed', state.sunPlaying); requestRender(); });
+$('#sunNow').addEventListener('click', () => { const t = new Date(Date.now() + SGT_OFFSET_MIN * 60000); state.settings.sun.date = t.toISOString().slice(0, 10); state.settings.sun.minutes = t.getUTCHours() * 60 + t.getUTCMinutes(); syncSunBar(); updateSun(); saveSettings(); });
+function stepSun(dt) {
+  if (!state.sunPlaying) return false;
+  const speed = +$('#sunSpeed').value; // minutes per second
+  let m = state.settings.sun.minutes + speed * dt;
+  if (m > 19.5 * 60) m = 6.5 * 60;
+  state.settings.sun.minutes = m; $('#sunTime').value = Math.round(m); updateSun();
+  return true;
+}
+function toggleSun(open = !state.sunOpen) {
+  state.sunOpen = open; document.body.classList.toggle('sun-open', open);
+  $('#btnSun').setAttribute('aria-pressed', open);
+  if (!open && state.sunPlaying) $('#sunPlay').click();
+  requestRender();
+}
+
+/* ---------- top bar actions, menu, dialogs ---------- */
+$('#btnMeasure').addEventListener('click', () => setTool(state.tool === 'measure' ? 'orbit' : 'measure'));
+$('#btnWalk').addEventListener('click', () => setTool(state.tool === 'walk' ? 'orbit' : 'walk'));
+$('#btnSun').addEventListener('click', () => toggleSun());
+$('#toolExit').addEventListener('click', () => { clearMeasure(); setTool('orbit'); });
+$('#btnShot').addEventListener('click', screenshot);
+$('#btnMenu').addEventListener('click', () => ($('#left').classList.contains('open') ? closeLeft() : openLeft()));
+$('#leftClose').addEventListener('click', closeLeft);
+function openLeft(section) {
+  $('#left').classList.add('open'); setTimeout(resize, 260);
+  if (section) { const d = document.getElementById('sec-' + section); if (d) { d.open = true; d.scrollIntoView({ block: 'nearest' }); } }
+}
+function closeLeft() { $('#left').classList.remove('open'); setTimeout(resize, 260); }
+const menu = $('#menu');
+$('#btnMore').addEventListener('click', (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; });
+document.addEventListener('click', (e) => { if (!e.target.closest('#menu, #btnMore')) menu.hidden = true; });
+menu.addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return; menu.hidden = true;
+  ({ export: exportJSON, import: () => $('#importFile').click(), reset: resetSettings, about: () => $('#about').showModal(), help: () => $('#help').showModal() })[b.dataset.act]?.();
+});
+$$('dialog .close').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
+
+/* ---------- saving files: artifact "downloads" capability → normal download → in-page fallback ---------- */
+let DL = null;
+try { if (window.claude && typeof window.claude.use === 'function') window.claude.use('downloads').then((d) => { DL = d; }).catch(() => { DL = null; }); } catch (e) { DL = null; }
+const IN_FRAME = (() => { try { return window.top !== window; } catch (e) { return true; } })();
+async function saveFile(filename, blob, fallback) {
+  if (DL) {
+    try { const r = await DL.save({ filename, data: blob }); if (r && r.status === 'saved') toast('Saved ' + filename); return; }
+    catch (e) {
+      const c = e && e.code;
+      if (c === 'declined') { toast('Save cancelled'); return; }
+      if (c === 'rate_limited') { toast('A save prompt is already open'); return; }
+      // unavailable / other: fall through to the next route
+    }
+  }
+  if (!IN_FRAME) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+    return;
+  }
+  fallback(); // sandboxed frame without the capability: show it in the page instead
+}
+function exportJSON() {
+  const data = { format: 'sembawang-brook-3d', version: 1, app: APP_VERSION, exported: new Date().toISOString(), settings: state.settings, site: SITE };
+  const text = JSON.stringify(data, null, 1);
+  saveFile('sembawang-brook-3d.json', new Blob([text], { type: 'application/json' }), () => {
+    $('#saveTitle').textContent = 'Export (copy)';
+    $('#saveNote').textContent = 'Downloads are not available in this view. Copy the JSON and keep it as a .json file; you can import it later.';
+    $('#saveBody').innerHTML = '<textarea readonly rows="8"></textarea><div class="row"><button class="btn" type="button" id="copyJson">Copy JSON</button></div>';
+    $('#saveBody textarea').value = text;
+    $('#copyJson').onclick = async () => { try { await navigator.clipboard.writeText(text); toast('Copied'); } catch (e) { $('#saveBody textarea').select(); toast('Select all and copy', true); } };
+    $('#saveDlg').showModal();
+  });
+}
+$('#importFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    if (data.format !== 'sembawang-brook-3d' || data.version !== 1) throw new Error('Not a Sembawang Brook 3D export (format/version mismatch).');
+    if (data.site) checkSiteShape(data.site);
+    const prevSite = SITE, prevSettings = state.settings;
+    try {
+      if (data.site) { SITE = data.site; setFrame(); applyGroupFrame(); }
+      state.settings = sanitizeSettings(data.settings || {});
+      rebuildEverything();
+    } catch (err) { // roll back to the previous, working state
+      SITE = prevSite; state.settings = prevSettings; setFrame(); applyGroupFrame(); rebuildEverything(); syncControls();
+      throw new Error('the data could not be built (' + err.message + '); nothing was changed');
+    }
+    let note = 'Imported';
+    if (state.settings.myUnit && !myUnitValid(state.settings.myUnit)) { state.settings.myUnit = null; buildUnitMark(); note += ' · the saved flat did not match its block/storey and was cleared'; }
+    const issues = validateSite(); if (issues.length) note += ' · data check: ' + issues[0];
+    saveSettings(); syncControls(); toast(note, issues.length > 0);
+  } catch (err) { toast('Import failed: ' + err.message, true); }
+});
+function checkSiteShape(s) {
+  const bad = (m) => { throw new Error('site data: ' + m); };
+  if (s.format !== 'sembawang-brook-site' || s.version !== 1) bad('format/version mismatch');
+  if (!s.meta || typeof s.meta.gridDeg !== 'number' || !Array.isArray(s.meta.latlon)) bad('meta missing');
+  if (!s.heights || !Array.isArray(s.blocks) || !s.blocks.length) bad('blocks missing');
+  const box = (o) => o && ['u', 'v', 'lu', 'lv'].every((k) => Number.isFinite(o[k]));
+  for (const b of s.blocks) {
+    if (!b.id || !Number.isInteger(b.storeys) || !b.mix || !box(b.core)) bad(`block ${b.id || '?'} incomplete`);
+    if (b.kind === 'sale' && !(Array.isArray(b.towers) && b.towers.every((t) => Array.isArray(t.rows) && t.rows.every((r) => Array.isArray(r.pads) && r.pads.every(box))) && Array.isArray(b.link))) bad(`block ${b.id} towers/link incomplete`);
+    if (b.kind !== 'sale' && !(Array.isArray(b.points) && b.points.every(box))) bad(`block ${b.id} towers incomplete`);
+  }
+  if (!s.mscp || !s.mscp.westWing || !s.mscp.southWing || !s.mscp.ramp) bad('car park missing');
+  for (const k of ['roads', 'linkways', 'facilities', 'busBays', 'reserved', 'lowRise', 'boundary']) if (!Array.isArray(s[k])) bad(k + ' missing');
+  if (!s.canal || !Array.isArray(s.canal.east) || !Array.isArray(s.canal.west)) bad('canal missing');
+}
+function resetSettings() {
+  try { localStorage.removeItem(STORE_KEY); } catch (e) { /* ignore */ }
+  SITE = structuredClone(SITE_DEFAULT); setFrame(); applyGroupFrame();
+  state.settings = DEFAULT_SETTINGS(); rebuildEverything(); syncControls(); goPreset(defaultPreset()); toast('Settings reset');
+}
+function screenshot() {
+  render();
+  renderer.domElement.toBlob((blob) => {
+    if (!blob) { toast('Could not capture the image', true); return; }
+    saveFile('sembawang-brook-3d.png', blob, () => {
+      $('#saveTitle').textContent = 'Image';
+      $('#saveNote').textContent = 'Downloads are not available in this view. Long-press or right-click the image to save it.';
+      $('#saveBody').innerHTML = `<img alt="Snapshot of the 3D view" src="${URL.createObjectURL(blob)}">`;
+      $('#saveDlg').showModal();
+    });
+  }, 'image/png');
+}
+let toastTimer = 0;
+function toast(msg, bad = false) { const t = $('#toast'); t.textContent = msg; t.className = bad ? 'bad' : ''; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200); }
+
+/* presets bar */
+function renderPresets() {
+  $('#presets').innerHTML = PRESETS.map((p) => `<button type="button" class="preset" data-id="${p.id}" title="${esc(p.hint)} (key ${p.key})">${esc(p.name)}</button>`).join('');
+}
+$('#presets').addEventListener('click', (e) => { const b = e.target.closest('.preset'); if (b) goPreset(b.dataset.id); });
+$('#btnReset').addEventListener('click', () => goPreset(defaultPreset()));
+$('#btnFocus').addEventListener('click', () => { const s = state.selection; if (s && s.kind === 'building') focusAnchor(REG.anchors.get(s.id)); else toast('Select a building first'); });
+
+/* keyboard (ignored while typing or walking) */
+addEventListener('keydown', (e) => {
+  if (e.target.closest('input,select,textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.key === 'Escape') { if (state.tool !== 'orbit') { clearMeasure(); setTool('orbit'); } else if (state.selection) { select(null); $('#info').classList.remove('open'); } return; }
+  if (state.tool === 'walk') return;
+  const p = PRESETS.find((x) => x.key === e.key); if (p) { goPreset(p.id); return; }
+  if (e.key === '/') { e.preventDefault(); $('#search').focus(); }
+  else if (e.key === 'f' || e.key === 'F') $('#btnFocus').click();
+  else if (e.key === 'm' || e.key === 'M') $('#btnMeasure').click();
+  else if (e.key === 'r' || e.key === 'R') goPreset(defaultPreset());
+  else if (e.key === '?') $('#help').showModal();
+});
+
+/* compass (rotates with the camera) */
+const _cd = new THREE.Vector3();
+function updateCompass() {
+  camera.getWorldDirection(_cd); const bearing = Math.atan2(_cd.x, -_cd.z) / DEG;
+  $('#compass .dial').style.transform = `rotate(${-bearing}deg)`;
+  $('#compass').title = `Facing ${bearingName(bearing)} (${Math.round((bearing + 360) % 360)}°) — tap to face north`;
+}
+$('#compass').addEventListener('click', () => { // face north (keep height/distance)
+  const t = controls.target.clone(), d = camera.position.distanceTo(t), el = Math.asin(clamp((camera.position.y - t.y) / d, -1, 1));
+  flyTo(new THREE.Vector3(t.x, t.y + Math.sin(el) * d, t.z + Math.cos(el) * d), t);
+});
+
+/* sync all controls from settings */
+function syncControls() {
+  const s = state.settings;
+  $('#colourByType').checked = s.colourByType; renderTypeChips(); renderBlockList();
+  $('#storeyOn').checked = s.storey.on; $('#storeyN').value = s.storey.n; storeyReadout();
+  $$('#layers input[type=checkbox]').forEach((cb) => { cb.checked = s.layers[cb.name]; });
+  $('#hF2F').value = s.heights.floorToFloor; $('#hVD').value = s.heights.voidDeck;
+  syncSunBar(); initMyFlat();
+}
+
+/* mobile layout switch */
+const mq = matchMedia('(max-width: 760px)');
+function applyMobile() { document.body.classList.toggle('mobile', mq.matches); setTimeout(resize, 0); $('#search').placeholder = mq.matches ? 'Search' : 'Search block, #unit, flat type, facility…'; if (!mq.matches) $('#left').classList.add('open'); else closeLeft(); }
+mq.addEventListener('change', applyMobile);
+
+/* =====================================================================
+   70 TOOLS — camera presets + transitions, picking, measure, walk
+   ===================================================================== */
+
+/* ---------- camera presets (world). 'adm-st' reproduces photo IMG_1981
+   (critic's calibrated camera: bearing 170°, pitch −11°, vFOV ≈ 54°). ---- */
+function presetList() {
+  const c = ESTATE_CENTRE;
+  const fromBearing = (pos, bearing, pitch, dist) => {
+    const d = new THREE.Vector3(Math.sin(bearing * DEG) * Math.cos(pitch * DEG), Math.sin(pitch * DEG), -Math.cos(bearing * DEG) * Math.cos(pitch * DEG));
+    return { pos, target: pos.clone().addScaledVector(d, dist) };
+  };
+  const ww = SITE.mscp.westWing, mc = toWorld((ww.u0 + ww.u1) / 2, (ww.v0 + ww.v1) / 2);
+  return [
+    { id: 'adm-st', name: 'Admiralty St', hint: 'Matches photo 1 (north side)', key: '1', fov: 54, ...fromBearing(new THREE.Vector3(88, 110, -443), 170, -11, 380) },
+    { id: 'adm-lane', name: 'Admiralty Lane', hint: 'From the south (photo 8)', key: '2', fov: 50, pos: new THREE.Vector3(c.x - 20, 85, c.z + 330), target: new THREE.Vector3(c.x - 10, 25, c.z - 10) },
+    { id: 'woodlands', name: 'Woodlands Ave 10', hint: 'From the west, over the canal (photo 10)', key: '3', fov: 50, pos: new THREE.Vector3(-200, 70, -10), target: new THREE.Vector3(40, 30, -80) },
+    { id: 'sembawang-dr', name: 'Sembawang Dr', hint: 'From the east (photo 9)', key: '4', fov: 50, pos: new THREE.Vector3(500, 75, -30), target: new THREE.Vector3(300, 32, -95) },
+    { id: 'top', name: 'Top', hint: 'Plan view, north up', key: '5', fov: 45, pos: new THREE.Vector3(c.x, 520, c.z + 0.01), target: new THREE.Vector3(c.x, 0, c.z) },
+    { id: 'roof436', name: 'Car-park roof', hint: 'Blk 436 roof garden', key: '6', fov: 50, pos: new THREE.Vector3(mc.x + 70, 85, mc.z + 60), target: new THREE.Vector3(mc.x, MSCP_H, mc.z) },
+    { id: 'iso', name: 'Overview', hint: 'Isometric overview', key: '7', fov: 45, pos: new THREE.Vector3(c.x - 260, 330, c.z + 330), target: new THREE.Vector3(c.x, 20, c.z),
+      portrait: (() => { const a = toWorld(-175, -10), t = toWorld(190, -35); return { pos: new THREE.Vector3(a.x, 240, a.z), target: new THREE.Vector3(t.x, 10, t.z), fov: 62 }; })() },
+  ];
+}
+let PRESETS = [];
+/** landscape screens open on the photo-1 view; portrait phones on the along-the-estate overview */
+const defaultPreset = () => (viewAspect() < 1 ? 'iso' : 'adm-st');
+
+let tween = null;
+const ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+function flyTo(pos, target, fov = camera.fov, dur = 0.9) {
+  if (state.tool === 'walk') exitWalk();
+  tween = { t0: performance.now(), dur: dur * 1000, p0: camera.position.clone(), t0v: controls.target.clone(), f0: camera.fov, p1: pos.clone(), t1: target.clone(), f1: fov };
+  requestRender();
+}
+function stepTween(now) {
+  if (!tween) return false;
+  const k = clamp((now - tween.t0) / tween.dur, 0, 1), e = ease(k);
+  camera.position.lerpVectors(tween.p0, tween.p1, e);
+  controls.target.lerpVectors(tween.t0v, tween.t1, e);
+  camera.fov = tween.f0 + (tween.f1 - tween.f0) * e; camera.updateProjectionMatrix();
+  if (k >= 1) { tween = null; saveView(); }
+  return true;
+}
+/** keep a preset's horizontal coverage on portrait screens: widen the FOV up to 75°, then step back */
+function fitPreset(p) {
+  const aspect = viewAspect(), ref = 1.6;
+  if (aspect >= ref * 0.9) return { pos: p.pos.clone(), target: p.target.clone(), fov: p.fov };
+  if (aspect < 1 && p.portrait) return { pos: p.portrait.pos.clone(), target: p.portrait.target.clone(), fov: p.portrait.fov }; // look along the estate's long axis
+  const halfH = Math.tan(p.fov / 2 * DEG) * ref * 0.62;      // keep ~60% of the landscape width
+  const need = halfH / aspect, maxT = Math.tan(35 * DEG);     // vertical tan needed vs cap
+  const fov = Math.max(p.fov, Math.min(70, 2 * Math.atan(need) / DEG)), k = Math.max(1, need / maxT);
+  return { pos: p.target.clone().add(p.pos.clone().sub(p.target).multiplyScalar(k)), target: p.target.clone(), fov };
+}
+function goPreset(id, instant = false) {
+  const p0 = PRESETS.find((x) => x.id === id); if (!p0) return;
+  const p = fitPreset(p0);
+  if (instant) { camera.position.copy(p.pos); controls.target.copy(p.target); camera.fov = p.fov; camera.updateProjectionMatrix(); controls.update(); requestRender(); return; }
+  flyTo(p.pos, p.target, p.fov);
+  document.querySelectorAll('.preset').forEach((b) => b.classList.toggle('on', b.dataset.id === id));
+}
+/** frame a local-frame anchor {u,y,v,size} */
+function focusAnchor(a, fromDir) {
+  if (!a) return;
+  const w = toWorld(a.u, a.v), t = new THREE.Vector3(w.x, a.y, w.z);
+  const dir = fromDir || camera.position.clone().sub(controls.target).setY(0).normalize();
+  if (dir.lengthSq() < 0.01) dir.set(0, 0, 1);
+  const dist = a.size * 2.2;
+  const pos = t.clone().addScaledVector(dir, dist); pos.y = a.y + dist * 0.55;
+  flyTo(pos, t, 50);
+}
+function focusFlat(info, storey) {
+  const y = floorY(storey) + 1.4;
+  const um = (info.u0 + info.u1) / 2, vm = (info.v0 + info.v1) / 2;
+  const off = info.face === 'N' ? [0, -70] : info.face === 'S' ? [0, 70] : [70, 0];
+  const t = toWorld(um, vm), p = toWorld(um + off[0], vm + off[1]);
+  flyTo(new THREE.Vector3(p.x, y + 12, p.z), new THREE.Vector3(t.x, y, t.z), 50);
+}
+let viewTimer = 0;
+function saveView() {
+  clearTimeout(viewTimer);
+  viewTimer = setTimeout(() => { state.settings.view = { pos: camera.position.toArray().map((x) => +x.toFixed(2)), target: controls.target.toArray().map((x) => +x.toFixed(2)), fov: camera.fov }; saveSettings(); }, 400);
+}
+controls.addEventListener('end', saveView);
+controls.addEventListener('start', () => document.querySelectorAll('.preset.on').forEach((b) => b.classList.remove('on')));
+
+/* ---------- picking ---------- */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+function setNdc(ev) { const r = renderer.domElement.getBoundingClientRect(); ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1); }
+function pickAt(ev) {
+  setNdc(ev); raycaster.setFromCamera(ndc, camera);
+  const hits = raycaster.intersectObjects(REG.pick, false);
+  if (hits.length) return { kind: 'building', id: hits[0].object.userData.owner, point: hits[0].point };
+  const roads = state.settings.layers.roads ? raycaster.intersectObjects(G.roads.children.filter((o) => o.userData.kind === 'road'), false) : [];
+  if (roads.length) return { kind: 'road', id: roads[0].object.userData.owner.slice(5) };
+  if (state.settings.layers.context) {
+    const h2 = raycaster.intersectObjects(G.context.children.filter((o) => o.userData.kind === 'reserved'), false);
+    if (h2.length) return { kind: 'reserved', id: h2[0].object.userData.name };
+  }
+  return null;
+}
+/** ground/building point under the pointer (for measuring) */
+function surfacePoint(ev) {
+  setNdc(ev); raycaster.setFromCamera(ndc, camera);
+  const targets = [...REG.pick, G.ground.getObjectByName('groundPlane')].filter(Boolean);
+  const hits = raycaster.intersectObjects(targets, false);
+  return hits.length ? hits[0].point.clone() : null;
+}
+
+let downAt = null;
+renderer.domElement.addEventListener('pointerdown', (ev) => { downAt = { x: ev.clientX, y: ev.clientY, t: performance.now() }; });
+renderer.domElement.addEventListener('pointerup', (ev) => {
+  if (!downAt) return;
+  const moved = Math.hypot(ev.clientX - downAt.x, ev.clientY - downAt.y), dt = performance.now() - downAt.t; downAt = null;
+  if (moved > 6 || dt > 500 || state.tool === 'walk') return;
+  if (state.tool === 'measure') { measureClick(ev); return; }
+  const hit = pickAt(ev);
+  if (!hit) { select(null); return; }
+  if (hit.kind === 'building') {
+    // a tap on a sale block's facade also identifies the stack under the pointer
+    const b = blockById(hit.id); let stack = null;
+    if (b && b.kind === 'sale') {
+      const lp = G.estate.worldToLocal(hit.point.clone());
+      let best = null, bd = 3.5;
+      for (const info of UNITS.stacks.get(b.id)) {
+        const du = Math.max(info.u0 - lp.x, 0, lp.x - info.u1), dv = Math.max(info.v0 - lp.z, 0, lp.z - info.v1), d = Math.hypot(du, dv);
+        if (d < bd) { bd = d; best = info; }
+      }
+      stack = best;
+    }
+    select({ kind: 'building', id: hit.id, stack, storeyHint: stack ? storeyAtY(hit.point.y) : null });
+  } else select(hit);
+});
+function storeyAtY(y) { const { f2f, vd } = hts(); return y < vd ? 1 : Math.floor((y - vd) / f2f) + 2; }
+
+/* ---------- measure ---------- */
+const measure = { pts: [], objs: [] };
+function setTool(t) {
+  if (state.tool === 'walk' && t !== 'walk') exitWalk();
+  state.tool = t;
+  document.body.dataset.tool = t;
+  document.getElementById('btnMeasure').setAttribute('aria-pressed', t === 'measure');
+  document.getElementById('btnWalk').setAttribute('aria-pressed', t === 'walk');
+  const hint = document.getElementById('toolHint');
+  if (t === 'measure') { hint.hidden = false; hint.querySelector('span').textContent = 'Tap two points to measure. Tap again to start a new measurement.'; }
+  else if (t === 'walk') { hint.hidden = false; hint.querySelector('span').textContent = IS_TOUCH ? 'Left pad to move · drag elsewhere to look' : 'Drag to look · W A S D / arrows to move · Shift = faster'; }
+  else hint.hidden = true;
+  if (t === 'walk') enterWalk();
+  requestRender();
+}
+function clearMeasure() { for (const o of measure.objs) { G.tools.remove(o); o.traverse?.((c) => { if (c.geometry) c.geometry.dispose(); }); } measure.objs.length = 0; measure.pts.length = 0; requestRender(); }
+function measureClick(ev) {
+  const p = surfacePoint(ev); if (!p) return;
+  if (measure.pts.length >= 2) clearMeasure();
+  measure.pts.push(p);
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 8), new THREE.MeshBasicMaterial({ color: '#FF2D55', depthTest: false }));
+  dot.position.copy(p); dot.renderOrder = 10; G.tools.add(dot); measure.objs.push(dot);
+  if (measure.pts.length === 2) {
+    const [a, b] = measure.pts;
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color: '#FF2D55', depthTest: false }));
+    line.renderOrder = 10; G.tools.add(line); measure.objs.push(line);
+    const el = document.createElement('div'); el.className = 'lbl measure';
+    const dh = Math.abs(b.y - a.y), dxz = Math.hypot(b.x - a.x, b.z - a.z);
+    el.innerHTML = `<b>${fmt(a.distanceTo(b))} m</b><small>plan ${fmt(dxz)} m · height Δ ${fmt(dh)} m</small>`;
+    const o = new CSS2DObject(el); o.position.copy(a).add(b).multiplyScalar(0.5); G.tools.add(o); measure.objs.push(o);
+    document.getElementById('measureOut').textContent = `${fmt(a.distanceTo(b))} m (plan ${fmt(dxz)} m, height Δ ${fmt(dh)} m)`;
+  }
+  requestRender();
+}
+
+/* ---------- walk mode (eye level 1.6 m, collision with building footprints + canal) ---------- */
+const walk = { yaw: 0, pitch: 0, keys: new Set(), joy: { x: 0, y: 0 }, saved: null, look: null };
+function enterWalk() {
+  walk.saved = { pos: camera.position.clone(), target: controls.target.clone(), fov: camera.fov };
+  controls.enabled = false;
+  // start at the orbit target; if that is inside a building, take the nearest open spot ≥ 6 m from walls, facing the building
+  const t0 = controls.target.clone(); let start = null;
+  if (!walkBlocked(t0.x, t0.z, 0.4)) start = t0;
+  for (let r = 4; r <= 160 && !start; r += 3) for (let k = 0; k < 24; k++) {
+    const a = k / 24 * Math.PI * 2, x = t0.x + Math.cos(a) * r, z = t0.z + Math.sin(a) * r;
+    if (!walkBlocked(x, z, 6)) { start = new THREE.Vector3(x, 0, z); break; }
+  }
+  start = start || t0; start.y = 1.6; camera.position.copy(start);
+  const d = start === t0 ? walk.saved.target.clone().sub(walk.saved.pos) : t0.clone().sub(start);
+  walk.yaw = Math.atan2(-d.x, -d.z); walk.pitch = start === t0 ? 0.05 : 0.35;
+  document.getElementById('info').classList.remove('open'); if (document.body.classList.contains('mobile')) document.getElementById('left').classList.remove('open');
+  camera.fov = 70; camera.near = 0.1; camera.updateProjectionMatrix();
+  document.getElementById('joy').hidden = !IS_TOUCH;
+  applyWalkCam(); requestRender();
+}
+function exitWalk() {
+  if (!walk.saved) return;
+  controls.enabled = true; camera.near = 0.5;
+  camera.position.copy(walk.saved.pos); controls.target.copy(walk.saved.target); camera.fov = walk.saved.fov; camera.updateProjectionMatrix();
+  walk.saved = null; walk.keys.clear(); walk.joy.x = walk.joy.y = 0;
+  document.getElementById('joy').hidden = true;
+  if (state.tool === 'walk') { state.tool = 'orbit'; document.body.dataset.tool = 'orbit'; document.getElementById('btnWalk').setAttribute('aria-pressed', 'false'); document.getElementById('toolHint').hidden = true; }
+  controls.update(); requestRender();
+}
+function walkBlocked(x, z, pad = 0.4) {
+  const { u, v } = toLocal(x, z);
+  for (const b of REG.walk) if (u > b.u0 - pad && u < b.u1 + pad && v > b.v0 - pad && v < b.v1 + pad) return true;
+  if (pointInPoly(x, z, canalPolygon().poly)) return true;
+  return false;
+}
+function applyWalkCam() {
+  walk.pitch = clamp(walk.pitch, -1.2, 1.2);
+  const d = new THREE.Vector3(-Math.sin(walk.yaw) * Math.cos(walk.pitch), Math.sin(walk.pitch), -Math.cos(walk.yaw) * Math.cos(walk.pitch));
+  camera.lookAt(camera.position.clone().add(d));
+}
+function stepWalk(dt) {
+  if (state.tool !== 'walk') return false;
+  let f = 0, s = 0;
+  const k = walk.keys;
+  if (k.has('KeyW') || k.has('ArrowUp')) f += 1; if (k.has('KeyS') || k.has('ArrowDown')) f -= 1;
+  if (k.has('KeyD') || k.has('ArrowRight')) s += 1; if (k.has('KeyA') || k.has('ArrowLeft')) s -= 1;
+  f += -walk.joy.y; s += walk.joy.x;
+  if (Math.abs(f) + Math.abs(s) < 0.01) return false;
+  const speed = (k.has('ShiftLeft') || k.has('ShiftRight') ? 12 : 4.5) * dt;
+  const fx = -Math.sin(walk.yaw), fz = -Math.cos(walk.yaw), sx = Math.cos(walk.yaw), sz = -Math.sin(walk.yaw);
+  const nx = camera.position.x + (fx * f + sx * s) * speed, nz = camera.position.z + (fz * f + sz * s) * speed;
+  if (!walkBlocked(nx, camera.position.z)) camera.position.x = nx;   // slide along walls
+  if (!walkBlocked(camera.position.x, nz)) camera.position.z = nz;
+  applyWalkCam();
+  return true;
+}
+addEventListener('keydown', (e) => { if (state.tool === 'walk' && !e.target.closest('input,select,textarea')) { walk.keys.add(e.code); if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault(); } });
+addEventListener('keyup', (e) => walk.keys.delete(e.code));
+addEventListener('blur', () => walk.keys.clear());
+// look by dragging the view
+renderer.domElement.addEventListener('pointerdown', (e) => { if (state.tool !== 'walk') return; walk.look = { id: e.pointerId, x: e.clientX, y: e.clientY }; renderer.domElement.setPointerCapture(e.pointerId); });
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (state.tool !== 'walk' || !walk.look || walk.look.id !== e.pointerId) return;
+  walk.yaw -= (e.clientX - walk.look.x) * 0.004; walk.pitch -= (e.clientY - walk.look.y) * 0.004;
+  walk.look.x = e.clientX; walk.look.y = e.clientY; applyWalkCam(); requestRender();
+});
+renderer.domElement.addEventListener('pointerup', (e) => { if (walk.look && walk.look.id === e.pointerId) walk.look = null; });
+// touch joystick
+(function joystick() {
+  const pad = document.getElementById('joy'), knob = pad.querySelector('i'); let id = null, c = null;
+  pad.addEventListener('pointerdown', (e) => { id = e.pointerId; pad.setPointerCapture(id); const r = pad.getBoundingClientRect(); c = { x: r.left + r.width / 2, y: r.top + r.height / 2, R: r.width / 2 }; move(e); e.stopPropagation(); });
+  const move = (e) => { if (e.pointerId !== id) return; let dx = (e.clientX - c.x) / c.R, dy = (e.clientY - c.y) / c.R; const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; } walk.joy.x = dx; walk.joy.y = dy; knob.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`; };
+  pad.addEventListener('pointermove', move);
+  const end = (e) => { if (e.pointerId !== id) return; id = null; walk.joy.x = walk.joy.y = 0; knob.style.transform = ''; };
+  pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
+})();
+
+/* =====================================================================
+   90 MAIN — rebuilds, render loop (on demand), init
+   ===================================================================== */
+
+function validateSite() {
+  const issues = [];
+  const tot = SITE.blocks.reduce((a, b) => a + b.total, 0);
+  if (tot !== 1360) issues.push(`unit total ${tot} ≠ 1360`);
+  for (const b of SITE.blocks) {
+    const s = Object.values(b.mix).reduce((a, n) => a + n, 0);
+    if (s !== b.total) issues.push(`Blk ${b.id}: mix ${s} ≠ total ${b.total}`);
+    if (b.unitsPerFloor * (b.storeys - 1) !== b.total) issues.push(`Blk ${b.id}: ${b.unitsPerFloor}×${b.storeys - 1} ≠ ${b.total}`);
+    if (b.kind === 'sale') {
+      const st = UNITS.stacks.get(b.id) || [];
+      if (st.length !== b.unitsPerFloor) issues.push(`Blk ${b.id}: ${st.length} stacks ≠ ${b.unitsPerFloor}/floor`);
+      const per = {}; st.forEach((x) => { per[x.type] = (per[x.type] || 0) + 1; });
+      for (const [t, n] of Object.entries(per)) if (n * (b.storeys - 1) !== b.mix[t]) issues.push(`Blk ${b.id} ${t}: ${n} stacks × ${b.storeys - 1} ≠ ${b.mix[t]}`);
+    }
+  }
+  return issues;
+}
+
+function rebuildBuildings() {
+  UNITS = buildUnitIndex();
+  buildAllBuildings(); buildTypeOverlay(); buildStoreyBand(); buildUnitMark();
+  if (state.selection && state.selection.stack) state.selection.stack = UNITS.idx.get(state.selection.stack.unit) || null;
+  buildSelection(); applyLayers(); storeyReadout(); renderMyFlat();
+  if (state.selection) renderInfo();
+  state.shadowsDirty = true; requestRender();
+  toast(`Heights applied: ${state.settings.heights.floorToFloor} m storeys, ${state.settings.heights.voidDeck} m void deck`);
+}
+function rebuildEverything() {
+  UNITS = buildUnitIndex();
+  buildAllBuildings(); buildContext(); buildLinkways(); buildLandscape();
+  buildTypeOverlay(); buildStoreyBand(); buildUnitMark();
+  state.selection = null; buildSelection(); renderInfo();
+  PRESETS = presetList(); renderPresets(); buildSearchIndex(); applyLayers(); updateSun();
+  $('#dataCheck').textContent = (validateSite().join('; ') || 'all brochure totals reproduced (1,360 flats)');
+}
+
+/* facility pins only when the camera is near enough to read them */
+const _pp = new THREE.Vector3();
+function updatePinVisibility() {
+  const on = state.settings.layers.facilities, far = 200;
+  for (const o of G.facilities.children) if (o.isCSS2DObject) o.visible = on && o.getWorldPosition(_pp).distanceTo(camera.position) < far;
+  const lab = state.settings.layers.labels; // small (low-rise) labels only when near
+  for (const o of REG.labels) o.visible = lab && (!o.element.classList.contains('small') || o.getWorldPosition(_pp).distanceTo(camera.position) < 380);
+}
+const _occRay = new THREE.Raycaster(), _lp = new THREE.Vector3(), _dir = new THREE.Vector3();
+let occlFrame = 0;
+function updateOcclusion() {
+  if (state.tool === 'walk' || (occlFrame++ % 3)) return; // every 3rd rendered frame is enough
+  const objs = [...REG.labels, ...L.unitMark.children.filter((o) => o.isCSS2DObject), ...G.facilities.children.filter((o) => o.isCSS2DObject)];
+  for (const o of objs) {
+    if (!o.visible) continue;
+    o.getWorldPosition(_lp); _dir.copy(_lp).sub(camera.position); const d = _dir.length(); _dir.divideScalar(d);
+    _occRay.set(camera.position, _dir); _occRay.far = d - 3;
+    const hit = _occRay.intersectObjects(REG.pick, false).length > 0;
+    o.element.classList.toggle('occl', hit);
+  }
+}
+function render() {
+  updatePinVisibility(); updateOcclusion();
+  if (state.shadowsDirty) { renderer.shadowMap.needsUpdate = true; state.shadowsDirty = false; }
+  renderer.render(scene, camera);
+  labelRenderer.render(scene, camera);
+  updateCompass();
+  state.needsRender = false;
+}
+
+/* render only when something changed; adaptive pixel ratio on slow devices */
+let last = performance.now(), slow = 0, fast = 0;
+function loop(now) {
+  const dt = Math.min(state.tool === 'walk' ? 0.25 : 0.1, (now - last) / 1000); last = now;
+  let active = stepTween(now);
+  if (state.tool === 'walk') { if (stepWalk(dt)) active = true; }
+  else if (controls.update()) active = true;
+  if (stepSun(dt)) active = true;
+  if (!(active || state.needsRender)) return;
+  render();
+  if (active) {
+    if (dt > 0.045) { slow++; fast = 0; } else { fast++; slow = Math.max(0, slow - 1); }
+    if (slow > 25 && dprCap > 1) { dprCap = Math.max(1, dprCap - 0.25); slow = 0; resize(); }
+  }
+}
+
+function init() {
+  makeTextures(renderer.capabilities.getMaxAnisotropy());
+  makeBaseMaterials();
+  buildAllBuildings(); buildContext(); buildLinkways(); buildLandscape();
+  buildTypeOverlay(); buildStoreyBand(); buildUnitMark();
+  PRESETS = presetList(); renderPresets(); buildSearchIndex();
+  bindLayers(); syncControls(); applyMobile(); applyLayers(); updateSun();
+  resize();
+  const v = state.settings.view;
+  if (v) { camera.position.fromArray(v.pos); controls.target.fromArray(v.target); camera.fov = v.fov || 50; camera.updateProjectionMatrix(); controls.update(); }
+  else goPreset(defaultPreset(), true);
+  renderInfo();
+  const issues = validateSite();
+  $('#dataCheck').textContent = issues.join('; ') || 'all brochure totals reproduced (1,360 flats)';
+  if (issues.length) toast('Data check: ' + issues[0], true);
+  renderer.setAnimationLoop(loop);
+  document.body.classList.add('ready');
+  if (DEBUG) {
+    window.__sb = { state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
+  }
+}
+init();
+</script>
+</body>
+</html>
