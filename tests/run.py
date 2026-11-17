@@ -172,7 +172,7 @@ with sync_playwright() as p:
         check('QA m2: #178 face flush with the building end', abs(t178[0] - t178[1]) < 0.01, t178)
         st = ev("__sb.sunTimes('2026-06-21')")
         check('QA n1: sunrise/sunset 21 Jun ≈ 07:00.4 / 19:12.8', abs(st['rise'] - 420.4) < 0.6 and abs(st['set'] - 1152.8) < 0.6, st)
-        bad = os.path.join(SHOTS, '..', 'bad_import.json')
+        bad = os.path.join(SHOTS, 'bad_import.json')
         good = json.load(open(dl.value.path())); del good['site']['blocks'][1]['core']; json.dump(good, open(bad, 'w'))
         page.set_input_files('#importFile', bad); page.wait_for_timeout(800)
         owners = ev("[...new Set(__sb.REG.pick.map(m => m.userData.owner))].length")
