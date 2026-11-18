@@ -38,7 +38,7 @@ async function ptLoad() {
 
 /* ---------- the scene the path tracer sees ---------- */
 // groups that are UI, not the world
-const PT_SKIP = () => new Set([G.sunPath, G.tools].filter(Boolean));
+const PT_SKIP = () => new Set([G.sunPath, G.tools, G.sky].filter(Boolean)); // the tracer has its own sky
 function ptVisible(o, stop) {
   for (let c = o; c && c !== stop; c = c.parent) if (!c.visible) return false;
   return true;

@@ -105,6 +105,7 @@ function updateSun() {
   hemi.intensity = 0.45 + 0.75 * day;
   sun.color.setHSL(0.1, 0.6 * (1 - clamp(p.el / 40, 0, 1)) + 0.15, 0.94);
   buildSunPath(dateStr);
+  updateSky();
   state.shadowsDirty = true; requestRender();
   emit('sun', lastSun);
 }
@@ -113,11 +114,10 @@ function buildSunPath(dateStr) {
   G.sunPath.visible = state.settings.layers.sunPath;
   if (!state.settings.layers.sunPath) return;
   // dome over the estate, or (area view) over whatever part of the map is in view — same sun directions either way
-  const f = sunFrame.half ? sunFrame : sunFrameFor();
-  const R = f.area ? Math.min(2900, Math.max(420, f.half * 1.15)) : 420, k = R / 420, c = new THREE.Vector3(f.x, 0, f.z), pts = [];
+  const { c, R, k } = sunDome(), pts = [];
   for (let m = 0; m < 1440; m += 10) { const p = sunAt(dateStr, m); if (p.el > 0) pts.push(sunDir(p.az, p.el).multiplyScalar(R).add(c)); }
   if (pts.length > 1) G.sunPath.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#F5A623', fog: false })));
-  if (lastSun && lastSun.el > 0) {
+  if (lastSun && lastSun.el > 0 && !state.settings.layers.sky) { // with Sun & sky on, the 3D sun sits on this arc
     const ball = new THREE.Mesh(new THREE.SphereGeometry(9 * k, 20, 12), new THREE.MeshBasicMaterial({ color: '#FFC83D', fog: false }));
     ball.position.copy(sunDir(lastSun.az, lastSun.el).multiplyScalar(R).add(c)); G.sunPath.add(ball);
   }

@@ -20,6 +20,7 @@ function applyLayers() {
   G.facilities.visible = Ly.facilities; setCssVisible(G.facilities, Ly.facilities);
   for (const o of REG.labels) o.visible = Ly.labels;
   G.sunPath.visible = Ly.sunPath; setCssVisible(G.sunPath, Ly.sunPath);
+  updateSky();
   renderer.shadowMap.enabled = Ly.shadows; sun.castShadow = Ly.shadows && (lastSun ? lastSun.el > 0 : true);
   scene.traverse((o) => { if (o.material) { const ms = Array.isArray(o.material) ? o.material : [o.material]; ms.forEach((m) => { m.needsUpdate = true; }); } });
   applyArea();
@@ -266,7 +267,7 @@ function renderMyFlat(compute = false) {
 function bindLayers() {
   $$('#layers input[type=checkbox]').forEach((cb) => {
     cb.checked = state.settings.layers[cb.name];
-    cb.addEventListener('change', () => { state.settings.layers[cb.name] = cb.checked; if (cb.name === 'sunPath') updateSun(); applyLayers(); saveSettings(); syncControls(); });
+    cb.addEventListener('change', () => { state.settings.layers[cb.name] = cb.checked; if (cb.name === 'sunPath' || cb.name === 'sky') updateSun(); applyLayers(); saveSettings(); syncControls(); });
   });
 }
 /* heights */

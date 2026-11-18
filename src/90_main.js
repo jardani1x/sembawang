@@ -108,7 +108,7 @@ function init() {
   syncAreaUI(); if (state.settings.layers.area) setAreaOn(true, false);
   document.body.classList.add('ready');
   if (DEBUG) {
-    window.__sb = { THREE, RENDER, renderStart, renderStop, AREA, osmConvert, osmCoastLand, osmFromGeoJSON, osmProjector, setAreaOn, areaRayBlocked, sunFrame: () => sunFrame, estateCentre: () => ESTATE_CENTRE, state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
+    window.__sb = { THREE, sunDome, RENDER, renderStart, renderStop, AREA, osmConvert, osmCoastLand, osmFromGeoJSON, osmProjector, setAreaOn, areaRayBlocked, sunFrame: () => sunFrame, estateCentre: () => ESTATE_CENTRE, state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
   }
 }
 init();

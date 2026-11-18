@@ -134,13 +134,16 @@ Click **Sun** to open the sun bar:
 - choose a date and a time from 06:00 to 20:00 Singapore time (UTC+8, no daylight saving)
 - **Play day** at ½, 1 or 3 hours per second, or **Now**
 - the readout shows altitude, azimuth, sunrise, solar noon and sunset
-- turn on the **Sun path** layer to draw the day's arc with hour markers
+- watch the **3D sun** move across the sky above the model: it glows white by day and turns orange near sunrise and sunset. The sky follows the time of day: blue overhead, warm towards the sun at dusk and dawn, dark at night. The fog takes the horizon colour. Turn it off with the **Sun & sky** layer
+- turn on the **Sun path** layer to draw the day's arc with hour markers; the 3D sun rides on it
 
-The sun is about 150 million km away, so at any moment it sits in the same direction for every building in Sembawang and its rays arrive parallel. The sun path is therefore drawn as a dome: over the estate in the estate view, and over whatever part of the map you are looking at in the area view. Only its size and centre change; the directions and times on it are the same. Near the equator (1.46° N) the arc is tall. The sun rises in the east, passes almost overhead at noon (about 25° off the zenith to the south in December, 22° to the north in June) and sets in the west.
+The sun is about 150 million km away, so at any moment it sits in the same direction for every building in Sembawang and its rays arrive parallel. The sun path is therefore drawn as a dome: over the estate in the estate view, and over whatever part of the map you are looking at in the area view. Only its size and centre change; the directions and times on it are the same. Near the equator (1.46° N) the arc is tall. The sun rises in the east, passes almost overhead at noon (about 25° off the zenith to the south in December, 22° to the north in June) and sets in the west. The 3D sun is drawn on that same dome, so it sits on the arc. Buildings in front of it hide it, and its direction from the dome's centre is exactly the sun's. In the estate views the camera looks down, so the sun is often above the top of the screen; zoom out, tilt up or use the area view to see it.
 
 Shadows work the same way. In the estate view they cover about 660 m around the estate, at full sharpness. In the area view they follow the view, so every surrounding building casts one, and zoomed out they cover the whole map at coarser resolution.
 
 ![Sun study, 21 June 17:00](docs/sun-study.jpg)
+
+![The 3D sun on its arc, 17 Nov 17:30, seen from Sembawang Drive](docs/sun3d.jpg)
 
 ### Photo-real render
 **Render** traces the current view with real light paths: direct sun, light from the whole sky, light bounced off walls and the ground, and soft contact shadows. It uses the same sun as the live view (date, time, direction and strength), under a Singapore clear sky that is hazy blue overhead and paler at the horizon, brighter around the sun.
@@ -214,6 +217,7 @@ src/
   30_builders.js           blocks, car park + roof garden, low-rise, ground, roads, canal, linkways, trees, pins
   40_overlays.js           flat-type colours, storey band, my-flat marker, selection outline
   50_sun.js                NOAA sun position, sun light + path, per-flat sun hours
+  55_sky.js                3D sun on the sun-path dome + time-of-day sky dome and fog colour
   60_ui.js                 panels, details, search, filters, my flat, layers, heights, sun bar, menu, keyboard
   70_tools.js              camera views + transitions, picking, measure, walk
   75_osmconv.js            OSM → area data converter (pure JS; shared by the page and tools/build_area.mjs)
@@ -287,7 +291,7 @@ python3 tests/run.py desktop    # or: mobile, area, render
 OSM_EXPORT=export.geojson python3 tests/run.py area   # + converter parity and the live-update flow (Overpass mocked)
 ```
 
-The suite runs headless Chrome (78 checks). It covers:
+The suite runs headless Chrome (82 checks). It covers:
 - console errors and data validation
 - the sun position against independent values: 21 Jun 13:06 SGT at 68.0° due north, and the solstice noon and sunrise/sunset times
 - every camera view, selection, search (including `#12-160`), flat-type filters and the storey band
@@ -295,6 +299,7 @@ The suite runs headless Chrome (78 checks). It covers:
 - the sun bar and playback, measure, walk, the heights editor
 - export, import, and rejection of a bad import
 - persistence, PNG export, the phone layout, and that the view stops redrawing once it is still
+- the 3D sun: its true direction for the date and time, that it lies on the sun-path arc and is drawn bright at that spot, a neutral sky at noon, warm at sunset and dark at night with the fog matching, and the layer switch
 - the area view: snapshot load and render budget; land and sea in the right places (the estate and Sembawang Park on land, two points in the Straits at sea); the coastline-to-land algorithm on synthetic shapes; OSM search and tapping a building; sun hours with the surroundings; the sunlight frame (whole map in the overview, back to the estate when the area is off); a pixel test that buildings 1.6–2.1 km from the estate cast shadows; and the live update.
 - The live update test routes the Overpass request to a fixture built from the exports (`OSM_EXPORT=export.geojson:coastline.geojson`). It uses the real coastline, or a synthetic one if none is given. It then checks that the data matches the snapshot exactly, that land and sea are right in the live query box (Singapore plus a sliver of the Johor shore), that it is cached across reloads, and that switching back to the snapshot works.
 

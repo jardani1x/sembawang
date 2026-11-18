@@ -193,6 +193,33 @@ with sync_playwright() as p:
         sel = ev("__sb.state.selection && [__sb.state.selection.kind, __sb.state.selection.id]")
         check('QA m5: road tap works with context layer off', sel == ['road', 'Admiralty Street'], sel)
         ev("__sb.state.settings.layers.context = true")
+        # ---- 3D sun + time-of-day sky ----
+        ev("(() => { const d = document.getElementById('sunDate'); d.value = '2026-11-17'; d.dispatchEvent(new Event('change')); const t = document.getElementById('sunTime'); t.value = 1050; t.dispatchEvent(new Event('input')); const cb = document.querySelector('input[name=sunPath]'); cb.checked = true; cb.dispatchEvent(new Event('change')); })()")
+        ev("__sb.goPreset('sembawang-dr')"); page.wait_for_timeout(2200)
+        sv = ev("""(() => { const T = __sb.THREE, cam = __sb.camera, s = __sb.sunAt('2026-11-17', 1050), R = __sb.renderer.domElement.getBoundingClientRect(), r = Math.PI / 180;
+            const g = __sb.G.sky.getObjectByName('sun3d'), dome = __sb.sunDome(), d = g.position.clone().sub(dome.c).normalize();
+            const want = new T.Vector3(Math.cos(s.el * r) * Math.sin(s.az * r), Math.sin(s.el * r), -Math.cos(s.el * r) * Math.cos(s.az * r));
+            const a = __sb.G.sunPath.children.find((o) => o.isLine).geometry.attributes.position; let arc = 1e9;
+            for (let i = 0; i < a.count - 1; i++) { const A = new T.Vector3().fromBufferAttribute(a, i), B = new T.Vector3().fromBufferAttribute(a, i + 1), ab = B.clone().sub(A);
+              const t = Math.max(0, Math.min(1, g.position.clone().sub(A).dot(ab) / ab.lengthSq())); arc = Math.min(arc, A.clone().addScaledVector(ab, t).distanceTo(g.position)); }
+            const v = g.position.clone().project(cam);
+            return { visible: g.visible && __sb.G.sky.visible, err: Math.acos(Math.min(1, d.dot(want))) / r, arc, px: [R.left + (v.x + 1) / 2 * R.width, R.top + (1 - v.y) / 2 * R.height],
+                     balls: __sb.G.sunPath.children.filter((o) => o.isMesh).length }; })()""")
+        img = Image.open(io.BytesIO(page.screenshot())).convert('RGB'); page.screenshot(path=f'{SHOTS}/sky01_sun.png')
+        px = img.getpixel((int(sv['px'][0]), int(sv['px'][1])))
+        check('3D sun: true direction for the date/time, on the sun-path arc, drawn bright', sv['visible'] and sv['err'] < 0.01 and sv['arc'] < 0.5 and sum(px[:3]) / 3 > 235 and sv['balls'] == 0,
+              {'dir err °': round(sv['err'], 4), 'from arc m': round(sv['arc'], 2), 'pixel': px, 'old ball': sv['balls']})
+        def sky_state(m):
+            ev(f"(() => {{ const t = document.getElementById('sunTime'); t.value = {m}; t.dispatchEvent(new Event('input')); }})()"); page.wait_for_timeout(300)
+            return ev("(() => { const b = __sb.scene.background, g = __sb.G.sky.getObjectByName('sun3d'); return { sun: g.visible, hor: [b.r, b.g, b.b].map((v) => +v.toFixed(3)), fog: __sb.scene.fog.color.equals(b) }; })()")
+        noon, dusk, night = sky_state(770), sky_state(1118), sky_state(1260)
+        check('sky: day neutral, sunset warm, night dark; fog follows the horizon',
+              noon['sun'] and noon['hor'][2] >= noon['hor'][0] and dusk['hor'][0] > dusk['hor'][2] and not night['sun'] and max(night['hor']) < 0.05 and noon['fog'] and night['fog'],
+              {'noon': noon, '18:38': dusk, '21:00': night})
+        ev("(() => { const t = document.getElementById('sunTime'); t.value = 1050; t.dispatchEvent(new Event('input')); const cb = document.querySelector('input[name=sky]'); cb.checked = false; cb.dispatchEvent(new Event('change')); })()"); page.wait_for_timeout(300)
+        off = ev("(() => ({ vis: __sb.G.sky.visible, bg: __sb.scene.background.getHexString(), balls: __sb.G.sunPath.children.filter((o) => o.isMesh).length }))()")
+        check('Sun & sky off: plain background back, flat sun-path ball returns', not off['vis'] and off['bg'] == 'e3e9ee' and off['balls'] == 1, off)
+        ev("(() => { const cb = document.querySelector('input[name=sky]'); cb.checked = true; cb.dispatchEvent(new Event('change')); const p = document.querySelector('input[name=sunPath]'); p.checked = false; p.dispatchEvent(new Event('change')); const t = document.getElementById('sunTime'); t.value = 600; t.dispatchEvent(new Event('input')); })()")
         # r160 OrbitControls jitter: the view must stop redrawing once nothing changes (top view used to redraw every frame)
         ev("__sb.goPreset('top')"); page.wait_for_timeout(3500)
         idle = ev("new Promise((r) => { const f0 = __sb.renderer.info.render.frame; setTimeout(() => r(__sb.renderer.info.render.frame - f0), 2000); })")
@@ -377,7 +404,7 @@ with sync_playwright() as p:
         # ground points classified by a THIRD method: CPU rays toward the sun (3 slightly different sun directions must agree)
         pts = ev("""(() => {
           const T = __sb.THREE, sc = __sb.scene, cam = __sb.camera, G = __sb.G, s = __sb.sunAt('2026-11-17', 600);
-          const skip = new Set([G.sunPath, G.tools]); const meshes = [];
+          const skip = new Set([G.sunPath, G.tools, G.sky]); const meshes = [];
           sc.traverse((o) => { if (!o.isMesh) return; for (let c = o; c; c = c.parent) { if (skip.has(c) || !c.visible) return; } meshes.push(o); });
           const dir = (az, el) => { const r = Math.PI / 180; return new T.Vector3(Math.cos(el * r) * Math.sin(az * r), Math.sin(el * r), -Math.cos(el * r) * Math.cos(az * r)); };
           const dirs = [dir(s.az, s.el), dir(s.az + 0.6, s.el), dir(s.az, s.el + 0.6)];
@@ -421,6 +448,8 @@ with sync_playwright() as p:
         # vertex colours: the traced scene must hold RGBA colours only (RGB gets read out of step → speckled confetti)
         cs = ev("(() => { const bad = []; __sb.RENDER.scene.traverse((o) => { const c = o.isMesh && o.geometry.attributes.color; if (c && c.itemSize !== 4) bad.push(c.itemSize); }); return bad.length; })()")
         check('render: colour attributes are RGBA in the traced scene', cs == 0, cs)
+        sk = ev("(() => { let n = 0; __sb.RENDER.scene.traverse((o) => { if (o.name === 'skyDome' || o.name === 'sun3d') n++; }); return n; })()")
+        check('render: the live sky and 3D sun are not in the traced scene', sk == 0, sk)
         crowns = ev("""(() => { const T = __sb.THREE, cam = __sb.camera, R = __sb.renderer.domElement.getBoundingClientRect(), out = [];
             __sb.G.landscape.traverse((o) => { if (!o.isInstancedMesh || !o.instanceColor) return; const m = new T.Matrix4(), p = new T.Vector3();
               for (let i = 0; i < o.count && out.length < 60; i += 3) { o.getMatrixAt(i, m); p.setFromMatrixPosition(m).applyMatrix4(o.matrixWorld); const v = p.project(cam);
