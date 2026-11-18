@@ -32,7 +32,7 @@ An interactive 3D model of **Sembawang Brook**, an HDB Build-To-Order estate (20
 | **Facades** | Each block has a dark-glass-grid west tower and a white "light cells" east tower, joined by a link with the 2-Room Flexi stacks and the lift core. Every block has the 4-storey bands, frame fins, roof water tanks and a void deck. |
 | **Blk 436** | An 8-storey multi-storey car park with a spiral ramp and an accessible roof garden: lawn, community-garden plots, playground, shelters, elderly fitness station and the air-well slot. |
 | **Low-rise** | Precinct pavilions 437, 438 and 439, the drop-off porches, shops (440: eating house, shops, mini-mart) and an electrical sub-station (441). |
-| **Site** | Admiralty Street, Admiralty Close and Admiralty Lane (future roads), Sembawang Drive, Woodlands Ave 10, the Sungei Sembawang canal, the paved car-park courtyard, covered linkways and future bus bays. |
+| **Site** | Admiralty Street, Admiralty Close and Admiralty Lane (future roads), Sembawang Drive, Woodlands Ave 10, the Sungei Sembawang canal, the paved car-park courtyard, covered linkways and future bus bays. Admiralty Close and the church and school plots beside it are traced from the plan's colours, so the road fills the band between the plot lines (about 25 m wide, widening to about 50 m at the turning loop). |
 | **Context** | The neighbouring reserved sites (church, school, Chinese temple, Acacia Home, future housing, and others) are flat, labelled plots, and no buildings are invented on them. The nearby heavy vehicle park is pinned; brochure note 9 says it may cause noise. |
 
 <p>
@@ -74,10 +74,12 @@ The model opens on the view from Admiralty Street on landscape screens. On portr
 ### Moving around
 | Action | Mouse | Touch |
 |---|---|---|
-| Orbit | drag | one-finger drag |
-| Pan | right-drag | two-finger drag |
+| Move the map | drag | one-finger drag |
+| Rotate and tilt | right-drag, or <kbd>Ctrl</kbd>/<kbd>⌘</kbd>/<kbd>Shift</kbd> + drag | two-finger drag |
 | Zoom | wheel (zooms towards the cursor) | pinch |
 | Face north | click the compass (red needle = north) | tap the compass |
+
+Dragging moves the map, like an online map. If you prefer dragging to rotate the view, choose **⋯ → Drag rotates the view**; the setting is remembered. You can pan about 900 m around the estate, or across the whole map in the area view.
 
 ### Camera views
 Buttons along the bottom, or keys <kbd>1</kbd>–<kbd>7</kbd>:
@@ -291,7 +293,7 @@ python3 tests/run.py desktop    # or: mobile, area, render
 OSM_EXPORT=export.geojson python3 tests/run.py area   # + converter parity and the live-update flow (Overpass mocked)
 ```
 
-The suite runs headless Chrome (82 checks). It covers:
+The suite runs headless Chrome (90 checks). It covers:
 - console errors and data validation
 - the sun position against independent values: 21 Jun 13:06 SGT at 68.0° due north, and the solstice noon and sunrise/sunset times
 - every camera view, selection, search (including `#12-160`), flat-type filters and the storey band
@@ -299,6 +301,7 @@ The suite runs headless Chrome (82 checks). It covers:
 - the sun bar and playback, measure, walk, the heights editor
 - export, import, and rejection of a bad import
 - persistence, PNG export, the phone layout, and that the view stops redrawing once it is still
+- moving around: drag pans with no rotation and selects nothing; right-drag and Ctrl-drag rotate in place; a drag that starts on a label still pans while a tap on a label still selects it; panning stops at the model's edge; the drag-rotates option and its saving; and a real one-finger touch drag on the phone
 - the 3D sun: its true direction for the date and time, that it lies on the sun-path arc and is drawn bright at that spot, a neutral sky at noon, warm at sunset and dark at night with the fog matching, and the layer switch
 - the area view: snapshot load and render budget; land and sea in the right places (the estate and Sembawang Park on land, two points in the Straits at sea); the coastline-to-land algorithm on synthetic shapes; OSM search and tapping a building; sun hours with the surroundings; the sunlight frame (whole map in the overview, back to the estate when the area is off); a pixel test that buildings 1.6–2.1 km from the estate cast shadows; and the live update.
 - The live update test routes the Overpass request to a fixture built from the exports (`OSM_EXPORT=export.geojson:coastline.geojson`). It uses the real coastline, or a synthetic one if none is given. It then checks that the data matches the snapshot exactly, that land and sea are right in the live query box (Singapore plus a sliver of the Johor shore), that it is cached across reloads, and that switching back to the snapshot works.

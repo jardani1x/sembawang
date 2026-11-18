@@ -44,7 +44,29 @@ controls.zoomToCursor = true;
 // Pin the (unused: infinite radius) cursor to the target so the clamp is exact, and decide "the view changed"
 // ourselves with tolerances far below anything visible.
 const _ocUpdate = controls.update.bind(controls);
-controls.update = (...a) => { controls.cursor.copy(controls.target); return _ocUpdate(...a); };
+controls.update = (...a) => { controls.cursor.copy(controls.target); const r = _ocUpdate(...a); clampPan(); return r; };
+
+/* Navigation. Map style (default): drag moves the map across the ground; right-drag, or Ctrl/⌘/Shift + drag,
+   rotates and tilts; the wheel zooms towards the pointer. Touch: one finger moves the map, two fingers pinch
+   to zoom and rotate/tilt. "Drag rotates" (⋯ menu) swaps drag back to rotating. */
+function applyDragMode(rotate) {
+  controls.mouseButtons = rotate
+    ? { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN }
+    : { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+  controls.touches = rotate ? { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN } : { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+  controls.panSpeed = 1;
+}
+applyDragMode(false);
+/** drop the controls' leftover glide (damping): one undamped update applies and clears it */
+function stopInertia() { controls.enableDamping = false; controls.update(); controls.enableDamping = true; }
+/** keep what you look at on the model: estate ±900 m, or the whole area map (set by the area view) */
+const PAN_BOUNDS = { box: null };
+function clampPan() {
+  const b = PAN_BOUNDS.box; if (!b) return;
+  const t = controls.target, x = clamp(t.x, b[0], b[2]), z = clamp(t.z, b[1], b[3]);
+  if (x === t.x && z === t.z) return;
+  camera.position.x += x - t.x; camera.position.z += z - t.z; t.x = x; t.z = z;
+}
 /** returns a function answering "has the view visibly changed since you last asked?" (pose, fov, projection/offset) */
 function viewWatcher() {
   const p = new THREE.Vector3(NaN, NaN, NaN), t = new THREE.Vector3(), q = new THREE.Quaternion(), m = new Float64Array(16);

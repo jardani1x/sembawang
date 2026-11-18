@@ -187,7 +187,9 @@ assert not any('marker printed' in f['name'] or '(?)' in f['name'] for f in faci
 facilities.append({'name': 'Heavy vehicle park (nearby)', 'where': 'NE of the estate, beyond the school site. Brochure note 9: possible disamenities such as higher noise levels.',
                    'x': r((735 - 221.7) * SCALE), 'z': r((113 - 422.4) * SCALE), 'conf': '[Read: label + dot on the site plan; extent not shown]', 'onRoof': False, 'context': True})
 
-roads = [{'name': x['name'], 'status': x['status'], 'width': x['width_m'], 'line': scl(x['centrelineWorld']), 'conf': x['conf']}
+roads = [{'name': x['name'], 'status': x['status'], 'width': x['width_m'], 'line': scl(x['centrelineWorld']), 'conf': x['conf'],
+          # roads traced as an outline from the plan (e.g. Admiralty Close with its turning loop): drawn as that shape
+          **({'poly': scl(x['polygonWorld']), 'widthRange': x['widthRange_m']} if 'polygonWorld' in x else {})}
          for x in s['roads']]
 canal = s['water'][0]
 water = {'east': scl(canal['eastBankWorld']), 'west': scl(canal['westBankWorld'])}

@@ -95,7 +95,7 @@ function renderInfo() {
   let html = '';
   if (sel.kind === 'building') html = infoBuilding(sel.id, sel);
   else if (sel.kind === 'facility') { const f = sel.f; html = `<h2>${esc(f.name[0].toUpperCase() + f.name.slice(1))}</h2><p class="sub">${esc(f.where)}</p><dl class="kv"><dt>Source</dt><dd>${esc(f.conf)}</dd><dt>Note</dt><dd>Props in the 3D view are representative, not surveyed.</dd></dl>`; }
-  else if (sel.kind === 'road') { const r = SITE.roads.find((x) => x.name === sel.id); html = `<h2>${esc(r.name)}</h2><p class="sub">${r.status === 'future' ? 'Future road' : r.status === 'existing' ? 'Existing road' : 'Status not stated'}</p><dl class="kv"><dt>Width</dt><dd>≈ ${r.width} m ${tag('Measured/inferred')}</dd><dt>Source</dt><dd>${esc(r.conf)}</dd></dl>`; }
+  else if (sel.kind === 'road') { const r = SITE.roads.find((x) => x.name === sel.id); html = `<h2>${esc(r.name)}</h2><p class="sub">${r.status === 'future' ? 'Future road' : r.status === 'existing' ? 'Existing road' : 'Status not stated'}</p><dl class="kv"><dt>Width</dt><dd>${r.widthRange ? `${r.widthRange[0]}–${r.widthRange[1]} m (widens to the turning loop) ${tag('Measured')}` : `≈ ${r.width} m ${tag('Measured/inferred')}`}</dd><dt>Source</dt><dd>${esc(r.conf)}</dd></dl>`; }
   else if (sel.kind === 'osm' && AREA.status === 'ready') html = areaInfoHTML(sel.bi);
   else if (sel.kind === 'reserved') html = `<h2>${esc(sel.id)}</h2><p class="sub">Neighbouring / reserved site (context only)</p><p class="note">Shown as a flat labelled plot. Any future buildings here are not modelled, so views and sun hours could change when they are built.</p>`;
   el.innerHTML = html;
@@ -327,7 +327,7 @@ $('#btnMore').addEventListener('click', (e) => { e.stopPropagation(); menu.hidde
 document.addEventListener('click', (e) => { if (!e.target.closest('#menu, #btnMore')) menu.hidden = true; });
 menu.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return; menu.hidden = true;
-  ({ shot: screenshot, export: exportJSON, import: () => $('#importFile').click(), reset: resetSettings, about: () => $('#about').showModal(), help: () => $('#help').showModal() })[b.dataset.act]?.();
+  ({ drag: () => setDragRotate(!state.settings.dragRotate, true), shot: screenshot, export: exportJSON, import: () => $('#importFile').click(), reset: resetSettings, about: () => $('#about').showModal(), help: () => $('#help').showModal() })[b.dataset.act]?.();
 });
 $$('dialog .close').forEach((b) => b.addEventListener('click', () => b.closest('dialog').close()));
 
@@ -419,6 +419,19 @@ function screenshot() {
   }, 'image/png');
 }
 let toastTimer = 0;
+/** drag = move the map (default) or rotate the view */
+function setDragRotate(on, announce = false) {
+  state.settings.dragRotate = !!on; applyDragMode(state.settings.dragRotate);
+  $('#menuDrag').setAttribute('aria-checked', String(state.settings.dragRotate));
+  saveSettings();
+  if (announce) toast(on ? (IS_TOUCH ? 'One finger rotates; two fingers move and zoom' : 'Drag rotates; right-drag moves the map')
+                         : (IS_TOUCH ? 'One finger moves the map; two fingers zoom and turn' : 'Drag moves the map; right-drag or Ctrl-drag rotates'));
+}
+/** once per browser: how to move around */
+function navHint() {
+  try { if (localStorage.getItem('sembawang-brook-3d.navHint') === '1') return; localStorage.setItem('sembawang-brook-3d.navHint', '1'); } catch (e) { return; }
+  toast(IS_TOUCH ? 'One finger moves the map · two fingers zoom and turn' : 'Drag to move the map · right-drag or Ctrl-drag to rotate · scroll to zoom');
+}
 function toast(msg, bad = false) { const t = $('#toast'); t.textContent = msg; t.className = bad ? 'bad' : ''; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200); }
 
 /* presets bar */

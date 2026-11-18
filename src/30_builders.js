@@ -380,9 +380,20 @@ function buildContext() {
   // roads: kerb/footpath ribbon + asphalt ribbon + name
   for (const rd of SITE.roads) {
     const drive = /driveway|service/i.test(rd.name);
-    const kerb = new THREE.Mesh(ribbonGeometry(rd.line, rd.width + (drive ? 2 : 6), 0.07), new THREE.MeshStandardMaterial({ color: PAL.kerb, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1 }));
-    kerb.receiveShadow = true; kerb.userData.roadName = rd.name; G.roads.add(kerb);
-    const asph = new THREE.Mesh(ribbonGeometry(rd.line, rd.width, 0.1), new THREE.MeshStandardMaterial({ color: drive ? PAL.drive : '#9A9794', map: TEX.asphalt, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -2 }));
+    const kerbMat = new THREE.MeshStandardMaterial({ color: PAL.kerb, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1 });
+    const asphMat = new THREE.MeshStandardMaterial({ color: drive ? PAL.drive : '#9A9794', map: TEX.asphalt, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -2 });
+    let asph;
+    if (rd.poly) {
+      // traced outline (the plan's road band between the plot lines): kerb along the plot-facing edges, asphalt fill
+      const runs = roadKerbRuns(rd.poly);
+      for (const run of runs) { const k = new THREE.Mesh(ribbonGeometry(run, 2.4, 0.07), kerbMat); k.receiveShadow = true; k.userData.roadName = rd.name; G.roads.add(k); }
+      asph = flatPoly(rd.poly, 0.1, asphMat);
+      const uv = asph.geometry.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 12, uv.getY(i) / 12); // ~ribbon texture scale
+    } else {
+      const kerb = new THREE.Mesh(ribbonGeometry(rd.line, rd.width + (drive ? 2 : 6), 0.07), kerbMat);
+      kerb.receiveShadow = true; kerb.userData.roadName = rd.name; G.roads.add(kerb);
+      asph = new THREE.Mesh(ribbonGeometry(rd.line, rd.width, 0.1), asphMat);
+    }
     asph.receiveShadow = true; asph.userData = { owner: 'road:' + rd.name, kind: 'road', roadName: rd.name }; G.roads.add(asph);
     if (!drive && !/unnamed/i.test(rd.name)) {
       // label on the longest segment
@@ -393,6 +404,27 @@ function buildContext() {
       const gt = groundText(nm, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, ang, Math.min(4.5, rd.width * 0.22), '#FFFFFF', 0.16); gt.userData.roadName = rd.name; G.roads.add(gt);
     }
   }
+}
+
+/** kerb runs of a traced road outline: its edges, minus those on the estate boundary (the driveway carries on there)
+ *  and those under another road's asphalt (where it joins Admiralty Street) */
+function roadKerbRuns(poly) {
+  const runs = []; let cur = [];
+  const open = (a, b) => {
+    const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    if (distToPolyline(m[0], m[1], [...SITE.boundary, SITE.boundary[0]]) < 2.5) return true;
+    return SITE.roads.some((r) => !r.poly && distToPolyline(m[0], m[1], r.line) < r.width / 2 + 1);
+  };
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    if (open(a, b)) { if (cur.length > 1) runs.push(cur); cur = []; continue; }
+    if (!cur.length) cur.push(a);
+    cur.push(b);
+  }
+  if (cur.length > 1) runs.push(cur);
+  // a run that ends where the first one starts (the loop wrapped round) is one run
+  if (runs.length > 1) { const f = runs[0], l = runs[runs.length - 1]; if (f[0] === l[l.length - 1]) { runs[0] = [...l, ...f.slice(1)]; runs.pop(); } }
+  return runs;
 }
 
 /* covered linkways (roof ribbons on posts) */
@@ -423,7 +455,9 @@ function buildLinkways() {
 function blocked(x, z, pad = 2) {
   const { u, v } = toLocal(x, z);
   for (const b of REG.walk) if (u > b.u0 - pad - 1.5 && u < b.u1 + pad + 1.5 && v > b.v0 - pad - 1.5 && v < b.v1 + pad + 1.5) return true;
-  for (const rd of SITE.roads) if (distToPolyline(x, z, rd.line) < rd.width / 2 + 3) return true;
+  for (const rd of SITE.roads) {
+    if (rd.poly ? pointInPoly(x, z, rd.poly) || distToPolyline(x, z, [...rd.poly, rd.poly[0]]) < 3 : distToPolyline(x, z, rd.line) < rd.width / 2 + 3) return true;
+  }
   for (const lw of SITE.linkways) if (distToPolyline(x, z, lw.line) < lw.width / 2 + 1.5) return true;
   for (const f of SITE.facilities) if (!f.onRoof && Math.hypot(x - f.x, z - f.z) < 7) return true;
   return false;

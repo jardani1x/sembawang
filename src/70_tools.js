@@ -41,6 +41,7 @@ let tween = null;
 const ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 function flyTo(pos, target, fov = camera.fov, dur = 0.9) {
   if (state.tool === 'walk') exitWalk();
+  stopInertia(); // a drag's leftover glide would otherwise carry on after arriving and drift off the chosen view
   tween = { t0: performance.now(), dur: dur * 1000, p0: camera.position.clone(), t0v: controls.target.clone(), f0: camera.fov, p1: pos.clone(), t1: target.clone(), f1: fov };
   requestRender();
 }
@@ -123,6 +124,18 @@ function surfacePoint(ev) {
   return hits.length ? hits[0].point.clone() : null;
 }
 
+/* Labels and pins let the pointer through (so a drag that starts on one still moves the map); a tap on one is
+   matched here by its on-screen box instead, topmost first. */
+function labelAt(x, y) {
+  const els = document.querySelectorAll('#labels .lbl, #labels .pin');
+  for (let i = els.length - 1; i >= 0; i--) {
+    const el = els[i]; if (el.classList.contains('mine') || el.classList.contains('measure')) continue;
+    if (el.closest('[style*="display: none"]') || el.offsetParent === null) continue;
+    const cs = getComputedStyle(el); if (cs.visibility === 'hidden' || +cs.opacity < 0.35) continue;
+    const r = el.getBoundingClientRect(); if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return el;
+  }
+  return null;
+}
 let downAt = null;
 renderer.domElement.addEventListener('pointerdown', (ev) => { downAt = { x: ev.clientX, y: ev.clientY, t: performance.now() }; });
 renderer.domElement.addEventListener('pointerup', (ev) => {
@@ -130,6 +143,7 @@ renderer.domElement.addEventListener('pointerup', (ev) => {
   const moved = Math.hypot(ev.clientX - downAt.x, ev.clientY - downAt.y), dt = performance.now() - downAt.t; downAt = null;
   if (moved > 6 || dt > 500 || state.tool === 'walk') return;
   if (state.tool === 'measure') { measureClick(ev); return; }
+  const lab = labelAt(ev.clientX, ev.clientY); if (lab) { lab.click(); return; }
   const hit = pickAt(ev);
   if (!hit) { select(null); return; }
   if (hit.kind === 'building') {

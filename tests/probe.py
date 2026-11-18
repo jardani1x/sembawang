@@ -28,6 +28,11 @@ with sync_playwright() as p:
         if 'click' in st: page.click(st['click'])
         if 'mouse' in st: page.mouse.click(*st['mouse'])
         if 'key' in st: page.keyboard.press(st['key'])
+        if 'drag' in st:  # {"drag": [[x0, y0], [x1, y1]], "button": "left"|"right"}
+            (x0, y0), (x1, y1) = st['drag']; btn = st.get('button', 'left')
+            page.mouse.move(x0, y0); page.mouse.down(button=btn)
+            for k in range(1, 13): page.mouse.move(x0 + (x1 - x0) * k / 12, y0 + (y1 - y0) * k / 12); page.wait_for_timeout(16)
+            page.mouse.up(button=btn)
         if 'wait' in st: page.wait_for_timeout(st['wait'])
         if 'shot' in st: page.screenshot(path=os.path.join(SHOTS, st['shot']), clip=st.get('clip'))
     print('errors:', errs[:5])

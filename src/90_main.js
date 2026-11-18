@@ -95,7 +95,7 @@ function init() {
   buildAllBuildings(); buildContext(); buildLinkways(); buildLandscape();
   buildTypeOverlay(); buildStoreyBand(); buildUnitMark();
   PRESETS = presetList(); renderPresets(); buildSearchIndex();
-  bindLayers(); syncControls(); applyMobile(); applyLayers(); updateSun();
+  bindLayers(); syncControls(); applyMobile(); setDragRotate(state.settings.dragRotate); applyLayers(); updateSun();
   resize();
   const v = state.settings.view;
   if (v) { camera.position.fromArray(v.pos); controls.target.fromArray(v.target); camera.fov = v.fov || 50; camera.updateProjectionMatrix(); controls.update(); }
@@ -107,6 +107,7 @@ function init() {
   renderer.setAnimationLoop(loop);
   syncAreaUI(); if (state.settings.layers.area) setAreaOn(true, false);
   document.body.classList.add('ready');
+  setTimeout(navHint, 1200); // once per browser: how to move around
   if (DEBUG) {
     window.__sb = { THREE, sunDome, RENDER, renderStart, renderStop, AREA, osmConvert, osmCoastLand, osmFromGeoJSON, osmProjector, setAreaOn, areaRayBlocked, sunFrame: () => sunFrame, estateCentre: () => ESTATE_CENTRE, state, SITE: () => SITE, REG, UNITS: () => UNITS, sunAt, sunPosition, sunTimes, flatSunHours, goPreset, select, setTool, camera, controls, scene, renderer, render, G, L, validateSite, runSearch, floorY, roofY, toWorld, toLocal, info: () => renderer.info, walk, measure };
   }

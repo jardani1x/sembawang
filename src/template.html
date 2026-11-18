@@ -28,6 +28,7 @@
     <button id="btnMore" type="button" aria-haspopup="menu" title="More"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="5" cy="12" r="2" fill="currentColor"/><circle cx="12" cy="12" r="2" fill="currentColor"/><circle cx="19" cy="12" r="2" fill="currentColor"/></svg><span class="sr">More</span></button>
   </nav>
   <div id="menu" role="menu" hidden>
+    <button type="button" role="menuitemcheckbox" data-act="drag" aria-checked="false" id="menuDrag">Drag rotates the view</button>
     <button type="button" role="menuitem" data-act="shot" class="phone-only">Save image (PNG)</button>
     <button type="button" role="menuitem" data-act="export">Export settings + data (JSON)</button>
     <button type="button" role="menuitem" data-act="import">Import JSON…</button>
@@ -168,7 +169,7 @@
   <button class="close icon" type="button" aria-label="Close">×</button>
   <h2>Controls</h2>
   <ul>
-    <li><b>Orbit</b> drag · <b>Pan</b> right-drag / two-finger drag · <b>Zoom</b> wheel / pinch</li>
+    <li><b>Move the map</b> drag / one finger · <b>Rotate &amp; tilt</b> right-drag, <kbd>Ctrl</kbd>/<kbd>⌘</kbd>-drag / two fingers · <b>Zoom</b> wheel / pinch. Prefer drag to rotate? <b>⋯ → Drag rotates the view</b></li>
     <li><b>Select</b> tap a block (tapping a facade also picks the stack under your finger), a pin, a road or a reserved site</li>
     <li><b>Views</b> buttons at the bottom, or keys <kbd>1</kbd>–<kbd>7</kbd>; <kbd>R</kbd> reset; <kbd>F</kbd> focus selection; compass = face north</li>
     <li><b>Search</b> <kbd>/</kbd>: "437B", "#120", "#12-160", "4-room", "playground", "Admiralty"; with the area on also OSM addresses and places ("355 Sembawang", "Sembawang Park")</li>

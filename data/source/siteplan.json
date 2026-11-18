@@ -3,13 +3,13 @@
  "scale": {
   "m_per_px": 0.70671,
   "px_per_m": 1.415,
-  "method": "scale bar read as 0-200 metres, 20 x 10 m segments; ends at px x=494 and x=777 (dark-pixel scan, \u00b10.5 px \u2192 \u00b10.2%)",
-  "crossCheck": "4R pairs 24.4x7.9 m \u2192 96 m2/unit vs HDB nominal ~93 m2; 5R pairs 29.0x7.9 m \u2192 115 vs ~113; 2RF-T2 pair 11.7x8.5 \u2192 50 vs ~47 m2. Implied linear scale error \u2264 ~2-3% (assumes plan icons drawn to scale)",
+  "method": "scale bar read as 0-200 metres, 20 x 10 m segments; ends at px x=494 and x=777 (dark-pixel scan, ±0.5 px → ±0.2%)",
+  "crossCheck": "4R pairs 24.4x7.9 m → 96 m2/unit vs HDB nominal ~93 m2; 5R pairs 29.0x7.9 m → 115 vs ~113; 2RF-T2 pair 11.7x8.5 → 50 vs ~47 m2. Implied linear scale error ≤ ~2-3% (assumes plan icons drawn to scale)",
   "conf": "[Measured]"
  },
  "north": {
   "imageUpIsNorth": true,
-  "method": "north arrow's thick needle vertical (\u00b11 deg); scale bar row perfectly horizontal \u2192 screenshot not rotated",
+  "method": "north arrow's thick needle vertical (±1 deg); scale bar row perfectly horizontal → screenshot not rotated",
   "conf": "[Measured]"
  },
  "frame": {
@@ -21,7 +21,7 @@
   "axes": "+X east, +Z south, +Y up (Three.js right-handed); metres",
   "localGrid": "u = (cos25.5, -sin25.5) in (X,Z) [bearing 64.5 deg, block long axis]; v = (sin25.5, cos25.5) [bearing 154.5 deg, toward Admiralty Lane]",
   "estateGridAngle_deg": 25.5,
-  "angleConf": "[Measured: linkway Hough 25.4/25.6, canal 24.7-25.3, unit pads median ~26 \u2192 25.5 \u00b11]",
+  "angleConf": "[Measured: linkway Hough 25.4/25.6, canal 24.7-25.3, unit pads median ~26 → 25.5 ±1]",
   "pxToWorld": "X = (px - 221.7) * 0.70671, Z = (py - 422.4) * 0.70671"
  },
  "buildings": [
@@ -75,7 +75,7 @@
        -111.89
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -117,7 +117,7 @@
        -95.16
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -159,7 +159,7 @@
        -123.25
       ]
      ],
-     "conf": "[Measured-manual from 5px grid, \u00b11.5 m]",
+     "conf": "[Measured-manual from 5px grid, ±1.5 m]",
      "note": "salmon fill not segmentable; read manually"
     },
     {
@@ -202,7 +202,7 @@
        -128.35
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -243,7 +243,7 @@
        -112.31
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -284,7 +284,7 @@
        -118.9
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     }
    ],
    "core": {
@@ -322,7 +322,7 @@
       -114.23
      ]
     ],
-    "conf": "[Measured-manual \u00b11.5 m]"
+    "conf": "[Measured-manual ±1.5 m]"
    },
    "extentLocal_m": {
     "u": [
@@ -389,7 +389,7 @@
        -86.77
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -431,7 +431,7 @@
        -68.62
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -473,7 +473,7 @@
        -92.51
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -515,7 +515,7 @@
        -101.95
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -556,7 +556,7 @@
        -92.21
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     }
    ],
    "core": {
@@ -594,7 +594,7 @@
       -87.91
      ]
     ],
-    "conf": "[Measured-manual \u00b11.5 m]"
+    "conf": "[Measured-manual ±1.5 m]"
    },
    "extentLocal_m": {
     "u": [
@@ -660,7 +660,7 @@
        -63.45
       ]
      ],
-     "conf": "[Measured: segmented cluster, \u00b11.5 m]",
+     "conf": "[Measured: segmented cluster, ±1.5 m]",
      "note": "two N + two S of corridor; tower long axis along v"
     },
     {
@@ -702,7 +702,7 @@
        -77.21
       ]
      ],
-     "conf": "[Measured: partial segmentation, \u00b12 m]",
+     "conf": "[Measured: partial segmentation, ±2 m]",
      "note": "assumed same as W tower"
     }
    ],
@@ -741,7 +741,7 @@
       -74.38
      ]
     ],
-    "conf": "[Measured-manual \u00b11.5 m]"
+    "conf": "[Measured-manual ±1.5 m]"
    },
    "extentLocal_m": {
     "u": [
@@ -808,7 +808,7 @@
        -93.49
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -850,7 +850,7 @@
        -78.75
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -892,7 +892,7 @@
        -100.14
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -934,7 +934,7 @@
        -108.3
       ]
      ],
-     "conf": "[Measured-manual; segmentation noisy, \u00b12 m]"
+     "conf": "[Measured-manual; segmentation noisy, ±2 m]"
     },
     {
      "units": [
@@ -976,7 +976,7 @@
        -88.97
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     }
    ],
    "core": {
@@ -1014,7 +1014,7 @@
       -93.91
      ]
     ],
-    "conf": "[Measured-manual \u00b11.5 m]"
+    "conf": "[Measured-manual ±1.5 m]"
    },
    "extentLocal_m": {
     "u": [
@@ -1081,7 +1081,7 @@
        -100.09
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -1122,7 +1122,7 @@
        -95.97
       ]
      ],
-     "conf": "[Measured-partial; width assumed from 2RF-T2 pair/2, \u00b11.5 m]"
+     "conf": "[Measured-partial; width assumed from 2RF-T2 pair/2, ±1.5 m]"
     },
     {
      "units": [
@@ -1164,7 +1164,7 @@
        -81.67
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -1206,7 +1206,7 @@
        -74.3
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -1248,7 +1248,7 @@
        -72.88
       ]
      ],
-     "conf": "[Measured: colour-segmented minAreaRect, \u00b10.7 m]"
+     "conf": "[Measured: colour-segmented minAreaRect, ±0.7 m]"
     },
     {
      "units": [
@@ -1290,7 +1290,7 @@
        -55.7
       ]
      ],
-     "conf": "[Measured-partial; size assumed = other 4R pairs, \u00b11.5 m]",
+     "conf": "[Measured-partial; size assumed = other 4R pairs, ±1.5 m]",
      "note": "a facility marker is printed on this pad"
     }
    ],
@@ -1329,7 +1329,7 @@
       -87.1
      ]
     ],
-    "conf": "[Measured-manual \u00b11.5 m]"
+    "conf": "[Measured-manual ±1.5 m]"
    },
    "extentLocal_m": {
     "u": [
@@ -1418,12 +1418,12 @@
      -19.83
     ],
     "radius_m": 12.7,
-    "conf": "[Measured: white-centre centroid + green ring extent, r \u00b11.5 m]",
-    "note": "circle centre sits on the inner (north) face line of the south wing \u2014 confirmed independently on the 1st-storey mini-plan"
+    "conf": "[Measured: white-centre centroid + green ring extent, r ±1.5 m]",
+    "note": "circle centre sits on the inner (north) face line of the south wing — confirmed independently on the 1st-storey mini-plan"
    },
    "westWing_m": "u 2.0-38.7 (36.7 wide), v -81.0 to -2.0 (79 long)",
    "southWing_m": "u 38.7-107.5, v -19.7 to -2.0 (17.7 wide)",
-   "conf": "[Measured: faces placed 2 m inside the Hough-fitted linkway centrelines; inner faces from roof-garden/courtyard colour edge. West-wing length/width ratio 2.15 here vs 2.4 on the mini-plan \u2192 \u00b18 m on length]",
+   "conf": "[Measured: faces placed 2 m inside the Hough-fitted linkway centrelines; inner faces from roof-garden/courtyard colour edge. West-wing length/width ratio 2.15 here vs 2.4 on the mini-plan → ±8 m on length]",
    "rotationY_rad": 0.4451
   },
   {
@@ -1463,7 +1463,7 @@
      -79.01
     ]
    ],
-   "conf": "[Measured: solid-brown blob \u00b12 m; marker '5' legible; model photo IMG_1988 label 'PRECINCT PAVILION']",
+   "conf": "[Measured: solid-brown blob ±2 m; marker '5' legible; model photo IMG_1988 label 'PRECINCT PAVILION']",
    "rotationY_rad": 0.4451,
    "markers": [
     5
@@ -1471,7 +1471,7 @@
   },
   {
    "id": "(437B porch)",
-   "function": "drop-off porch (6) \u2014 unlabelled brown roof beside 437B/436 courtyard",
+   "function": "drop-off porch (6) — unlabelled brown roof beside 437B/436 courtyard",
    "centrePx": [
     253.5,
     290.0
@@ -1506,7 +1506,7 @@
      -82.24
     ]
    ],
-   "conf": "[Measured \u00b12 m; marker number not legible; IMG_1985 shows 'DROP-OFF PORCH' here \u2192 Inferred]",
+   "conf": "[Measured ±2 m; marker number not legible; IMG_1985 shows 'DROP-OFF PORCH' here → Inferred]",
    "rotationY_rad": 0.4451,
    "markers": [
     6
@@ -1549,7 +1549,7 @@
      -79.64
     ]
    ],
-   "conf": "[Measured \u00b12 m; marker '5' legible]",
+   "conf": "[Measured ±2 m; marker '5' legible]",
    "rotationY_rad": 0.4451,
    "markers": [
     5
@@ -1592,7 +1592,7 @@
      -101.79
     ]
    ],
-   "conf": "[Measured \u00b13 m, irregular brown shape; '5' legible, second marker likely '6' (low confidence)]",
+   "conf": "[Measured ±3 m, irregular brown shape; '5' legible, second marker likely '6' (low confidence)]",
    "rotationY_rad": 0.4451,
    "markers": [
     5,
@@ -1602,7 +1602,7 @@
   {
    "id": "440",
    "function": "commercial: eating house (11?), shops (12?), mini-mart (13?) at 1st storey",
-   "conf": "[Measured: dark-grey segmentation polygons; marker digits not legible \u2014 assignment by legend order is Unverified]",
+   "conf": "[Measured: dark-grey segmentation polygons; marker digits not legible — assignment by legend order is Unverified]",
    "partsWorld": {
     "west_part_marker_at(572,317)": [
      [
@@ -1669,11 +1669,11 @@
      ]
     ]
    },
-   "note": "label '440' sits on a long light-grey strip (548,305)->(630,262) which matches the internal-road colour \u2192 treated as service road, Unverified"
+   "note": "label '440' sits on a long light-grey strip (548,305)->(630,262) which matches the internal-road colour → treated as service road, Unverified"
   },
   {
    "id": "441",
-   "function": "ESS (electrical sub-station, 1st storey) + adjacent light-grey rectangle (service yard or low roof \u2014 Unverified)",
+   "function": "ESS (electrical sub-station, 1st storey) + adjacent light-grey rectangle (service yard or low roof — Unverified)",
    "essWorld": [
     [
      285.02,
@@ -1760,7 +1760,7 @@
     ]
    ],
    "width_m": 25,
-   "conf": "[Measured \u00b14 m width, \u00b13 px line; west of px x=200 the alignment is Unverified]",
+   "conf": "[Measured ±4 m width, ±3 px line; west of px x=200 the alignment is Unverified]",
    "centrelineWorld": [
     [
      -8.27,
@@ -1806,7 +1806,7 @@
     ]
    ],
    "width_m": 15,
-   "conf": "[Measured line \u00b14 px; width Inferred]",
+   "conf": "[Measured: outline traced from the plan’s grey band by colour, ±1 px; centreline as before]",
    "note": "ends at the estate as a turning head near 437B/438A; internal driveway continues SW to the Blk 436 courtyard and ramp",
    "centrelineWorld": [
     [
@@ -1829,10 +1829,218 @@
      124.59,
      -113.36
     ]
+   ],
+   "polygonPx": [
+    [
+     424,
+     116
+    ],
+    [
+     354,
+     144
+    ],
+    [
+     354,
+     155
+    ],
+    [
+     353,
+     156
+    ],
+    [
+     356,
+     157
+    ],
+    [
+     362,
+     163
+    ],
+    [
+     381,
+     189
+    ],
+    [
+     381,
+     199
+    ],
+    [
+     368,
+     223
+    ],
+    [
+     369,
+     233
+    ],
+    [
+     375,
+     235
+    ],
+    [
+     377,
+     234
+    ],
+    [
+     380,
+     238
+    ],
+    [
+     391,
+     267
+    ],
+    [
+     416,
+     256
+    ],
+    [
+     440,
+     242
+    ],
+    [
+     435,
+     230
+    ],
+    [
+     435,
+     227
+    ],
+    [
+     428,
+     213
+    ],
+    [
+     427,
+     208
+    ],
+    [
+     421,
+     196
+    ],
+    [
+     401,
+     145
+    ],
+    [
+     401,
+     137
+    ],
+    [
+     405,
+     129
+    ],
+    [
+     411,
+     123
+    ]
+   ],
+   "polygonWorld": [
+    [
+     142.97,
+     -216.54
+    ],
+    [
+     93.5,
+     -196.75
+    ],
+    [
+     93.5,
+     -188.97
+    ],
+    [
+     92.79,
+     -188.27
+    ],
+    [
+     94.91,
+     -187.56
+    ],
+    [
+     99.15,
+     -183.32
+    ],
+    [
+     112.58,
+     -164.95
+    ],
+    [
+     112.58,
+     -157.88
+    ],
+    [
+     103.39,
+     -140.92
+    ],
+    [
+     104.1,
+     -133.85
+    ],
+    [
+     108.34,
+     -132.44
+    ],
+    [
+     109.75,
+     -133.14
+    ],
+    [
+     111.87,
+     -130.32
+    ],
+    [
+     119.65,
+     -109.82
+    ],
+    [
+     137.31,
+     -117.6
+    ],
+    [
+     154.27,
+     -127.49
+    ],
+    [
+     150.74,
+     -135.97
+    ],
+    [
+     150.74,
+     -138.09
+    ],
+    [
+     145.79,
+     -147.99
+    ],
+    [
+     145.09,
+     -151.52
+    ],
+    [
+     140.85,
+     -160.0
+    ],
+    [
+     126.71,
+     -196.04
+    ],
+    [
+     126.71,
+     -201.7
+    ],
+    [
+     129.54,
+     -207.35
+    ],
+    [
+     133.78,
+     -211.59
+    ]
+   ],
+   "widthRange_m": [
+    16,
+    50
    ]
   },
   {
-   "name": "Internal driveway (Admiralty Close end \u2192 Blk 436 courtyard / drop-off)",
+   "name": "Internal driveway (Admiralty Close end → Blk 436 courtyard / drop-off)",
    "status": "future",
    "centrelinePx": [
     [
@@ -1882,7 +2090,7 @@
    ]
   },
   {
-   "name": "Internal service road (behind 438A/439A \u2192 440/441)",
+   "name": "Internal service road (behind 438A/439A → 440/441)",
    "status": "future",
    "centrelinePx": [
     [
@@ -1961,7 +2169,7 @@
     ]
    ],
    "width_m": 20,
-   "conf": "[Measured line \u00b14 px; width 18-33 m varies with slip lanes \u2192 20 Inferred]",
+   "conf": "[Measured line ±4 px; width 18-33 m varies with slip lanes → 20 Inferred]",
    "centrelineWorld": [
     [
      -1.2,
@@ -2023,7 +2231,7 @@
     ]
    ],
    "width_m": 25,
-   "conf": "[Measured \u00b14 m]",
+   "conf": "[Measured ±4 m]",
    "centrelineWorld": [
     [
      341.55,
@@ -2264,7 +2472,7 @@
      252
     ]
    ],
-   "conf": "[Measured \u00b12 px]",
+   "conf": "[Measured ±2 px]",
    "polygonWorld": [
     [
      -71.87,
@@ -2490,7 +2698,7 @@
     -20.78
    ]
   ],
-  "conf": "[Measured-manual from 10px grids, \u00b13 px (\u00b12 m); the edge around the Admiralty Close turning head (377-410 px) is the least certain]"
+  "conf": "[Measured-manual from 10px grids, ±3 px (±2 m); the edge around the Admiralty Close turning head (377-410 px) is the least certain]"
  },
  "linkways": [
   {
@@ -2516,7 +2724,7 @@
     ]
    ],
    "width_m": 4,
-   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+   "conf": "[Measured: Hough fit on brown mask, ±2 px; width Inferred]"
   },
   {
    "name": "Canal-side (436 west)",
@@ -2541,7 +2749,7 @@
     ]
    ],
    "width_m": 4,
-   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+   "conf": "[Measured: Hough fit on brown mask, ±2 px; width Inferred]"
   },
   {
    "name": "436 north / 437 pavilion",
@@ -2574,7 +2782,7 @@
     ]
    ],
    "width_m": 4,
-   "conf": "[Measured-manual \u00b13 px]"
+   "conf": "[Measured-manual ±3 px]"
   },
   {
    "name": "437A drop-off link",
@@ -2599,10 +2807,10 @@
     ]
    ],
    "width_m": 4,
-   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+   "conf": "[Measured: Hough fit on brown mask, ±2 px; width Inferred]"
   },
   {
-   "name": "Admiralty St bus bay \u2192 437A east \u2192 spine",
+   "name": "Admiralty St bus bay → 437A east → spine",
    "polylinePx": [
     [
      272,
@@ -2673,7 +2881,7 @@
     ]
    ],
    "width_m": 4,
-   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+   "conf": "[Measured: Hough fit on brown mask, ±2 px; width Inferred]"
   },
   {
    "name": "439A south",
@@ -2698,10 +2906,10 @@
     ]
    ],
    "width_m": 4,
-   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+   "conf": "[Measured: Hough fit on brown mask, ±2 px; width Inferred]"
   },
   {
-   "name": "439A\u2013439\u2013441 spine",
+   "name": "439A–439–441 spine",
    "polylinePx": [
     [
      541,
@@ -2723,7 +2931,7 @@
     ]
    ],
    "width_m": 4,
-   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+   "conf": "[Measured: Hough fit on brown mask, ±2 px; width Inferred]"
   },
   {
    "name": "439 links",
@@ -2748,7 +2956,7 @@
     ]
    ],
    "width_m": 4,
-   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+   "conf": "[Measured: Hough fit on brown mask, ±2 px; width Inferred]"
   },
   {
    "name": "441 west",
@@ -2773,7 +2981,7 @@
     ]
    ],
    "width_m": 4,
-   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+   "conf": "[Measured: Hough fit on brown mask, ±2 px; width Inferred]"
   },
   {
    "name": "440 south",
@@ -2806,10 +3014,10 @@
     ]
    ],
    "width_m": 4,
-   "conf": "[Measured: Hough fit on brown mask, \u00b12 px; width Inferred]"
+   "conf": "[Measured: Hough fit on brown mask, ±2 px; width Inferred]"
   },
   {
-   "name": "440A south \u2192 Sembawang Dr bus bay",
+   "name": "440A south → Sembawang Dr bus bay",
    "polylinePx": [
     [
      628,
@@ -2839,7 +3047,7 @@
     ]
    ],
    "width_m": 4,
-   "conf": "[Measured-manual \u00b13 px]"
+   "conf": "[Measured-manual ±3 px]"
   }
  ],
  "facilities": [
@@ -2855,7 +3063,7 @@
     -140.21
    ],
    "where": "437A/437B courtyard",
-   "conf": "[marker low-res; order matches IMG_1983 labels \u2192 Inferred]"
+   "conf": "[marker low-res; order matches IMG_1983 labels → Inferred]"
   },
   {
    "marker": 1,
@@ -3069,7 +3277,7 @@
   },
   {
    "marker": null,
-   "name": "marker printed on 440A units 188/190 \u2014 likely 8 (RNC at 1st storey)",
+   "name": "marker printed on 440A units 188/190 — likely 8 (RNC at 1st storey)",
    "px": [
     656,
     331
@@ -3172,7 +3380,7 @@
     -162.83
    ],
    "road": "Admiralty Street",
-   "conf": "[Read label; position \u00b14 px]"
+   "conf": "[Read label; position ±4 px]"
   },
   {
    "name": "future bus bay & shelter",
@@ -3185,7 +3393,7 @@
     -56.11
    ],
    "road": "Admiralty Lane (N side)",
-   "conf": "[Read label; position \u00b14 px]"
+   "conf": "[Read label; position ±4 px]"
   },
   {
    "name": "future bus bay & shelter",
@@ -3198,7 +3406,7 @@
     -35.62
    ],
    "road": "Admiralty Lane (S side)",
-   "conf": "[Read label; position \u00b14 px]"
+   "conf": "[Read label; position ±4 px]"
   },
   {
    "name": "future bus bay & shelter",
@@ -3211,7 +3419,7 @@
     -82.97
    ],
    "road": "Sembawang Drive",
-   "conf": "[Read label; position \u00b14 px]"
+   "conf": "[Read label; position ±4 px]"
   },
   {
    "name": "future bus bay & shelter",
@@ -3224,7 +3432,7 @@
     68.98
    ],
    "road": "unnamed south road",
-   "conf": "[Read label; position \u00b14 px]"
+   "conf": "[Read label; position ±4 px]"
   }
  ],
  "reservedSites": [
@@ -3232,121 +3440,353 @@
    "name": "Site reserved for church",
    "polygonPx": [
     [
-     292,
-     175
+     351,
+     155
     ],
     [
-     365,
-     140
+     341,
+     154
     ],
     [
-     372,
-     236
+     307,
+     170
     ],
     [
-     321,
-     253
+     288,
+     182
+    ],
+    [
+     322,
+     252
+    ],
+    [
+     330,
+     249
+    ],
+    [
+     334,
+     245
+    ],
+    [
+     345,
+     242
+    ],
+    [
+     360,
+     233
+    ],
+    [
+     366,
+     232
+    ],
+    [
+     368,
+     230
+    ],
+    [
+     368,
+     219
+    ],
+    [
+     379,
+     197
+    ],
+    [
+     379,
+     189
+    ],
+    [
+     376,
+     183
+    ],
+    [
+     358,
+     160
     ]
    ],
    "polygonWorld": [
     [
-     49.68,
-     -174.84
+     91.38,
+     -188.97
     ],
     [
-     101.27,
-     -199.58
+     84.31,
+     -189.68
     ],
     [
-     106.22,
-     -131.73
+     60.28,
+     -178.37
     ],
     [
-     70.18,
-     -119.72
+     46.85,
+     -169.89
+    ],
+    [
+     70.88,
+     -120.42
+    ],
+    [
+     76.54,
+     -122.54
+    ],
+    [
+     79.36,
+     -125.37
+    ],
+    [
+     87.14,
+     -127.49
+    ],
+    [
+     97.74,
+     -133.85
+    ],
+    [
+     101.98,
+     -134.56
+    ],
+    [
+     103.39,
+     -135.97
+    ],
+    [
+     103.39,
+     -143.74
+    ],
+    [
+     111.17,
+     -159.29
+    ],
+    [
+     111.17,
+     -164.95
+    ],
+    [
+     109.05,
+     -169.19
+    ],
+    [
+     96.32,
+     -185.44
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured: traced from the plan by colour, ±1 px]"
   },
   {
    "name": "Site reserved for school",
    "polygonPx": [
     [
-     420,
-     105
+     402,
+     134
     ],
     [
-     600,
-     92
+     402,
+     148
     ],
     [
-     700,
-     92
+     439,
+     238
     ],
     [
-     757,
-     255
+     452,
+     263
     ],
     [
-     687,
+     457,
+     259
+    ],
+    [
+     481,
+     249
+    ],
+    [
+     483,
+     246
+    ],
+    [
+     494,
+     244
+    ],
+    [
+     499,
+     240
+    ],
+    [
+     522,
+     236
+    ],
+    [
+     526,
      233
     ],
     [
-     620,
-     224
+     575,
+     226
     ],
     [
-     520,
-     228
+     608,
+     225
     ],
     [
-     440,
-     243
+     613,
+     223
     ],
     [
-     415,
+     654,
+     226
+    ],
+    [
+     694,
      232
+    ],
+    [
+     724,
+     241
+    ],
+    [
+     731,
+     241
+    ],
+    [
+     738,
+     246
+    ],
+    [
+     746,
+     246
+    ],
+    [
+     750,
+     250
+    ],
+    [
+     755,
+     251
+    ],
+    [
+     696,
+     84
+    ],
+    [
+     495,
+     84
+    ],
+    [
+     412,
+     122
+    ],
+    [
+     405,
+     128
     ]
    ],
    "polygonWorld": [
     [
-     140.14,
-     -224.31
+     127.42,
+     -203.82
     ],
     [
-     267.35,
-     -233.5
+     127.42,
+     -193.92
     ],
     [
-     338.02,
-     -233.5
+     153.57,
+     -130.32
     ],
     [
-     378.3,
-     -118.3
+     162.76,
+     -112.65
     ],
     [
-     328.83,
+     166.29,
+     -115.48
+    ],
+    [
+     183.25,
+     -122.54
+    ],
+    [
+     184.66,
+     -124.66
+    ],
+    [
+     192.44,
+     -126.08
+    ],
+    [
+     195.97,
+     -128.9
+    ],
+    [
+     212.23,
+     -131.73
+    ],
+    [
+     215.05,
      -133.85
     ],
     [
-     281.48,
-     -140.21
+     249.68,
+     -138.8
     ],
     [
-     210.81,
-     -137.39
+     273.0,
+     -139.5
     ],
     [
-     154.28,
-     -126.78
+     276.54,
+     -140.92
     ],
     [
-     136.61,
+     305.51,
+     -138.8
+    ],
+    [
+     333.78,
      -134.56
+    ],
+    [
+     354.98,
+     -128.2
+    ],
+    [
+     359.93,
+     -128.2
+    ],
+    [
+     364.87,
+     -124.66
+    ],
+    [
+     370.53,
+     -124.66
+    ],
+    [
+     373.35,
+     -121.84
+    ],
+    [
+     376.89,
+     -121.13
+    ],
+    [
+     335.19,
+     -239.15
+    ],
+    [
+     193.14,
+     -239.15
+    ],
+    [
+     134.49,
+     -212.3
+    ],
+    [
+     129.54,
+     -208.06
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured: traced from the plan by colour, ±1 px; split from the heavy vehicle park on the earlier traced line]"
   },
   {
    "name": "Heavy vehicle park (label + dot at px 735,113; extent not drawn)",
@@ -3386,7 +3826,7 @@
      -118.3
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured-manual ±5 px; boundaries outside the estate are faint/unclear — treat as context only]"
   },
   {
    "name": "Acacia Home",
@@ -3426,7 +3866,7 @@
      -128.9
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured-manual ±5 px; boundaries outside the estate are faint/unclear — treat as context only]"
   },
   {
    "name": "Chinese temple",
@@ -3466,7 +3906,7 @@
      -181.91
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured-manual ±5 px; boundaries outside the estate are faint/unclear — treat as context only]"
   },
   {
    "name": "Site reserved for Chinese temple",
@@ -3506,7 +3946,7 @@
      -210.18
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured-manual ±5 px; boundaries outside the estate are faint/unclear — treat as context only]"
   },
   {
    "name": "North Link Building",
@@ -3546,7 +3986,7 @@
      -208.06
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured-manual ±5 px; boundaries outside the estate are faint/unclear — treat as context only]"
   },
   {
    "name": "Site reserved for public housing (incl. rental) under BTO (Sembawang Portico)",
@@ -3602,7 +4042,7 @@
      83.11
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured-manual ±5 px; boundaries outside the estate are faint/unclear — treat as context only]"
   },
   {
    "name": "Site reserved for future high-rise residential development (SW)",
@@ -3642,7 +4082,7 @@
      83.11
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured-manual ±5 px; boundaries outside the estate are faint/unclear — treat as context only]"
   },
   {
    "name": "Site reserved for future high-rise residential development (SE)",
@@ -3682,7 +4122,7 @@
      83.11
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured-manual ±5 px; boundaries outside the estate are faint/unclear — treat as context only]"
   },
   {
    "name": "Site reserved for future high-rise industrial development (W of Woodlands Ave 10, partly out of frame)",
@@ -3722,7 +4162,7 @@
      40.71
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured-manual ±5 px; boundaries outside the estate are faint/unclear — treat as context only]"
   },
   {
    "name": "Site reserved for civic & community institution (W of Woodlands Ave 10, partly out of frame)",
@@ -3762,10 +4202,10 @@
      83.11
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured-manual ±5 px; boundaries outside the estate are faint/unclear — treat as context only]"
   },
   {
-   "name": "Public housing (inclusive of rental) (U/C) \u2014 Blks 443, 443B, E of Sembawang Drive",
+   "name": "Public housing (inclusive of rental) (U/C) — Blks 443, 443B, E of Sembawang Drive",
    "polygonPx": [
     [
      800,
@@ -3802,7 +4242,7 @@
      -1.7
     ]
    ],
-   "conf": "[Measured-manual \u00b15 px; boundaries outside the estate are faint/unclear \u2014 treat as context only]"
+   "conf": "[Measured-manual ±5 px; boundaries outside the estate are faint/unclear — treat as context only]"
   }
  ],
  "unitTable": {
@@ -3900,7 +4340,7 @@
    1360
   ],
   "conf": "[Read: table]",
-  "checks": "all 5 row sums and all 9 column totals verified in code; no mismatches. Brochure model plaque (IMG_1989) '261 units of 2-room Flexi' = 58 T1 + 203 T2 \u2713"
+  "checks": "all 5 row sums and all 9 column totals verified in code; no mismatches. Brochure model plaque (IMG_1989) '261 units of 2-room Flexi' = 58 T1 + 203 T2 ✓"
  },
  "legendColours_rgb": {
   "2RF_T1": [

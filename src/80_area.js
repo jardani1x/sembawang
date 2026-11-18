@@ -231,10 +231,16 @@ function areaRecolour() {
 }
 
 /* ---------- show/hide: estate context that OSM replaces ---------- */
-const OSM_REPLACES_ROADS = new Set(['Admiralty Street', 'Sembawang Drive', 'Woodlands Avenue 10', 'Admiralty Lane (existing, east of Sembawang Drive)']);
+const OSM_REPLACES_ROADS = new Set(['Admiralty Street', 'Sembawang Drive', 'Woodlands Avenue 10', 'Admiralty Lane (existing, east of Sembawang Drive)',
+  // 64% of its line lies on OSM's Sembawang Drive: in the area view it would be a second, slightly-off copy
+  'Unnamed road south from Admiralty Lane (between Sembawang Portico site and SE high-rise site)']);
 function applyArea() {
   const on = !!state.settings.layers.area && AREA.status === 'ready';
   AREA.group.visible = on; setCssVisible(AREA.group, on);
+  // how far you can pan: the whole area map, or ±900 m around the estate
+  const E = ESTATE_CENTRE, ab = on && (AREA.data.ext || AREA.data.bbox);
+  PAN_BOUNDS.box = on ? [ab[0] - 200, ab[1] - 200, ab[2] + 200, ab[3] + 200] : [E.x - 900, E.z - 900, E.x + 900, E.z + 900];
+  if (controls.update) clampPan();
   const gp = G.ground.getObjectByName('groundPlane'); if (gp) gp.visible = !on;
   const cp = G.ground.getObjectByName('canalPatch'); if (cp) cp.visible = !on && !state.settings.layers.canal;
   G.canal.visible = !on && state.settings.layers.canal;

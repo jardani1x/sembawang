@@ -192,6 +192,7 @@ const DEFAULT_SETTINGS = () => ({
   layers: { labels: true, facilities: true, roads: true, landscape: true, linkways: true, context: true, canal: true, shadows: true, sunPath: false, sky: true, area: false, areaEstimated: false },
   heights: { floorToFloor: SITE_DEFAULT.heights.floorToFloor, voidDeck: SITE_DEFAULT.heights.voidDeck },
   colourByType: false,
+  dragRotate: false, // false: drag moves the map (default); true: drag rotates the view
   typeFilter: [],
   storey: { on: false, n: PRESET_FLAT ? PRESET_FLAT.storey : 10 },
   myUnit: PRESET_FLAT ? { ...PRESET_FLAT } : null,
@@ -216,6 +217,7 @@ function sanitizeSettings(raw, d = DEFAULT_SETTINGS()) {
     if (v >= 2.4 && v <= 6) s.heights.voidDeck = v;
   }
   s.colourByType = !!raw.colourByType;
+  s.dragRotate = !!raw.dragRotate;
   if (Array.isArray(raw.typeFilter)) s.typeFilter = raw.typeFilter.filter((t) => typeof t === 'string');
   if (raw.storey) { s.storey.on = !!raw.storey.on; const n = parseInt(raw.storey.n, 10); if (n >= 2 && n <= 30) s.storey.n = n; }
   if ('myUnit' in raw) { // null = user cleared it; keep that choice

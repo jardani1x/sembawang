@@ -193,6 +193,65 @@ with sync_playwright() as p:
         sel = ev("__sb.state.selection && [__sb.state.selection.kind, __sb.state.selection.id]")
         check('QA m5: road tap works with context layer off', sel == ['road', 'Admiralty Street'], sel)
         ev("__sb.state.settings.layers.context = true")
+        # ---- navigation: drag moves the map; right-/Ctrl-drag rotates; labels don't block drags; bounded ----
+        def settle():
+            last = None
+            for _ in range(40):
+                p = ev("(() => { const t = __sb.controls.target, c = __sb.camera.position; return [t.x, t.z, c.x, c.y, c.z]; })()")
+                if last and max(abs(u - v) for u, v in zip(p, last)) < 0.01: return
+                last = p; page.wait_for_timeout(250)
+        def pose():
+            settle()
+            return ev("(() => { const t = __sb.controls.target, c = __sb.camera.position; return { t: [t.x, t.z], o: [c.x - t.x, c.y - t.y, c.z - t.z] }; })()")
+        def mdrag(x0, y0, x1, y1, button='left', mods=()):
+            for m in mods: page.keyboard.down(m)
+            page.mouse.move(x0, y0); page.mouse.down(button=button)
+            for k in range(1, 13): page.mouse.move(x0 + (x1 - x0) * k / 12, y0 + (y1 - y0) * k / 12); page.wait_for_timeout(16)
+            page.mouse.up(button=button)
+            for m in mods: page.keyboard.up(m)
+            page.wait_for_timeout(1600)
+        def turned(a, b):  # horizontal angle between camera offsets, degrees
+            return abs(math.degrees(math.atan2(a['o'][0] * b['o'][2] - a['o'][2] * b['o'][0], a['o'][0] * b['o'][0] + a['o'][2] * b['o'][2])))
+        ev("(() => { document.getElementById('left').classList.remove('open'); window.dispatchEvent(new Event('resize')); __sb.select(null); })()")
+        ev("__sb.goPreset('adm-st')"); page.wait_for_timeout(2200)
+        R = ev("(() => { const r = __sb.renderer.domElement.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; })()")
+        cx, cy = R[0] + R[2] * 0.62, R[1] + R[3] * 0.62
+        a = pose(); mdrag(cx, cy, cx - 220, cy); b = pose()
+        moved = math.hypot(b['t'][0] - a['t'][0], b['t'][1] - a['t'][1])
+        check('navigation: drag moves the map (no rotation, nothing selected)', moved > 30 and turned(a, b) < 0.5 and ev('__sb.state.selection') is None,
+              {'moved m': round(moved, 1), 'turned °': round(turned(a, b), 2)})
+        a = pose(); mdrag(cx, cy, cx - 220, cy, button='right'); b = pose()
+        check('navigation: right-drag rotates in place', turned(a, b) > 25 and math.hypot(b['t'][0] - a['t'][0], b['t'][1] - a['t'][1]) < 1.5, {'turned °': round(turned(a, b), 1)})
+        a = pose(); mdrag(cx, cy, cx + 220, cy, mods=('Control',)); b = pose()
+        check('navigation: Ctrl-drag rotates too', turned(a, b) > 25, {'turned °': round(turned(a, b), 1)})
+        # labels: a drag that starts on one still moves the map; a tap on one still selects its block
+        ev("__sb.goPreset('adm-st')"); page.wait_for_timeout(2200)
+        lab = ev("""(() => { for (const el of document.querySelectorAll('#labels .lbl')) { const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+            const x = r.left + r.width / 2, y = r.top + r.height / 2, under = el.style.pointerEvents, top = document.elementFromPoint(x, y);
+            if (el.dataset.owner && r.width > 0 && el.offsetParent !== null && +cs.opacity > 0.6 && top && top.id === 'gl') return { x, y, owner: el.dataset.owner }; } return null; })()""")
+        a = pose(); mdrag(lab['x'], lab['y'], lab['x'] - 200, lab['y'] + 40); b = pose()
+        check('navigation: a drag starting on a label still moves the map', math.hypot(b['t'][0] - a['t'][0], b['t'][1] - a['t'][1]) > 25 and ev('__sb.state.selection') is None, {'label': lab['owner']})
+        ev("__sb.goPreset('adm-st')"); page.wait_for_timeout(2200)
+        lab = ev("""(() => { for (const el of document.querySelectorAll('#labels .lbl')) { const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+            const x = r.left + r.width / 2, y = r.top + r.height / 2, under = el.style.pointerEvents, top = document.elementFromPoint(x, y);
+            if (el.dataset.owner && r.width > 0 && el.offsetParent !== null && +cs.opacity > 0.6 && top && top.id === 'gl') return { x, y, owner: el.dataset.owner }; } return null; })()""")
+        page.mouse.click(lab['x'], lab['y']); page.wait_for_timeout(500)
+        sel = ev('__sb.state.selection')
+        check('navigation: tapping a label still selects its block', sel and sel.get('id') == lab['owner'], {'label': lab['owner'], 'selected': sel})
+        ev("__sb.select(null)")
+        # bounded: dragging far keeps what you look at on the model (±900 m around the estate)
+        for _ in range(6): mdrag(R[0] + 60, cy, R[0] + R[2] - 60, cy)
+        e = ev("(() => { const t = __sb.controls.target, E = __sb.estateCentre(); return [Math.abs(t.x - E.x), Math.abs(t.z - E.z)]; })()")
+        check('navigation: panning stops at the edge of the model (±900 m)', max(e) <= 900.5, [round(v) for v in e])
+        # option: drag rotates instead (remembered)
+        page.click('#btnMore'); page.click('#menuDrag'); page.wait_for_timeout(300)
+        ev("__sb.goPreset('adm-st')"); page.wait_for_timeout(2200)
+        a = pose(); mdrag(cx, cy, cx - 220, cy); b = pose()
+        saved = ev("JSON.parse(localStorage.getItem('sembawang-brook-3d.settings.v1') || '{}').dragRotate")
+        check('navigation: "Drag rotates the view" swaps drag to rotating, and is remembered', turned(a, b) > 25 and saved is True and ev("document.getElementById('menuDrag').getAttribute('aria-checked')") == 'true',
+              {'turned °': round(turned(a, b), 1), 'saved': saved})
+        page.click('#btnMore'); page.click('#menuDrag'); page.wait_for_timeout(300)
+        ev("__sb.goPreset('adm-st')"); page.wait_for_timeout(1500)
         # ---- 3D sun + time-of-day sky ----
         ev("(() => { const d = document.getElementById('sunDate'); d.value = '2026-11-17'; d.dispatchEvent(new Event('change')); const t = document.getElementById('sunTime'); t.value = 1050; t.dispatchEvent(new Event('input')); const cb = document.querySelector('input[name=sunPath]'); cb.checked = true; cb.dispatchEvent(new Event('change')); })()")
         ev("__sb.goPreset('sembawang-dr')"); page.wait_for_timeout(2200)
@@ -236,6 +295,19 @@ with sync_playwright() as p:
         page.screenshot(path=f'{SHOTS}/m03_info.png')
         page.tap('#infoClose'); page.wait_for_timeout(300)
         page.tap('#btnSun'); page.wait_for_timeout(300); page.screenshot(path=f'{SHOTS}/m04_sun.png')
+        page.tap('#btnSun'); page.wait_for_timeout(400)
+        # one-finger drag moves the map (real touch input through Chrome)
+        cdp = ctx.new_cdp_session(page)
+        before = page.evaluate("(() => { const t = __sb.controls.target, c = __sb.camera.position; return { t: [t.x, t.z], o: [c.x - t.x, c.z - t.z] }; })()")
+        x0, y0 = 200, 520
+        cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': x0, 'y': y0}]})
+        for k in range(1, 13):
+            cdp.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': x0 - 10 * k, 'y': y0 + 6 * k}]}); page.wait_for_timeout(16)
+        cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []}); page.wait_for_timeout(1600)
+        after = page.evaluate("(() => { const t = __sb.controls.target, c = __sb.camera.position; return { t: [t.x, t.z], o: [c.x - t.x, c.z - t.z] }; })()")
+        mv = math.hypot(after['t'][0] - before['t'][0], after['t'][1] - before['t'][1])
+        rot = abs(math.degrees(math.atan2(before['o'][0] * after['o'][1] - before['o'][1] * after['o'][0], before['o'][0] * after['o'][0] + before['o'][1] * after['o'][1])))
+        check('mobile: one-finger drag moves the map (no rotation)', mv > 10 and rot < 0.5, {'moved m': round(mv, 1), 'turned °': round(rot, 2)})
         check('mobile: no console errors', not errors, errors[:5])
         ctx.close()
     if not only or 'area' in only:
