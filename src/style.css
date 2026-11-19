@@ -16,6 +16,11 @@ button{cursor:pointer}
 .title{display:flex;flex-direction:column;line-height:1.15;min-width:0}
 .title b{font-size:15px;letter-spacing:-.01em}
 .title span{font-size:11.5px;color:var(--muted)}
+/* page switch: Estate | Singapore */
+.pagetabs{display:flex;background:rgba(0,0,0,.06);border-radius:9px;padding:2px;flex:none}
+.pagetabs a,.pagetabs span{padding:5px 12px;border-radius:7px;font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;white-space:nowrap}
+.pagetabs [aria-current=page]{background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.pagetabs a:hover{color:var(--text)}
 .search{position:relative;flex:1;max-width:460px;display:flex;align-items:center;margin-left:auto}
 .search svg{position:absolute;left:11px;color:var(--muted);pointer-events:none}
 #search{width:100%;height:36px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 12px 0 32px;outline:none}
@@ -35,6 +40,8 @@ button{cursor:pointer}
 #menu{position:absolute;right:12px;top:calc(var(--top) - 4px);background:#fff;border-radius:12px;box-shadow:var(--shadow);border:1px solid var(--line);padding:6px;min-width:240px;z-index:30}
 #menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:8px}
 #menu button:hover{background:#F2F6FF}
+#menu a{display:block;padding:9px 10px;border-radius:8px;color:inherit;text-decoration:none}
+#menu a:hover{background:#F2F6FF}
 #menu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
 
 /* viewport */
@@ -206,3 +213,4 @@ body.mobile #renderbar .rb-hint{display:none}
 #menu .phone-only{display:none}
 body.mobile #menu .phone-only{display:block}
 body.mobile #btnShot{display:none}
+body.mobile .pagetabs{display:none} /* phones: the Singapore map is in the ⋯ menu */

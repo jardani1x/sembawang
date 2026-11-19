@@ -3,11 +3,12 @@
 
 Setup:  pip install playwright && python -m playwright install chromium
         sh tools/fetch_three.sh          # local three.js r160 (CDN requests are intercepted)
-Run:    python3 tests/run.py [desktop|mobile|area]
+Run:    python3 tests/run.py [desktop|mobile|area|render|sg]
+        (sg = the Singapore map page: needs vendor/maplibre-gl and node for the fixture tiles)
         OSM_EXPORT=export.geojson[:coastline.geojson] python3 tests/run.py area   # + live-update tests
 """
 import http.server, threading, functools, os, sys, json, time, math, re, io
-from PIL import Image
+from PIL import Image, ImageChops
 from playwright.sync_api import sync_playwright
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -38,7 +39,8 @@ def route_cdn(route):
     f = vendor_file(route.request.url) or ''
 
     if os.path.isfile(f):
-        route.fulfill(path=f, headers={'content-type': 'application/javascript', 'access-control-allow-origin': '*'})
+        ct = 'text/css' if f.endswith('.css') else 'application/javascript'
+        route.fulfill(path=f, headers={'content-type': ct, 'access-control-allow-origin': '*'})
     else:
         route.abort()
 
@@ -283,6 +285,8 @@ with sync_playwright() as p:
         ev("__sb.goPreset('top')"); page.wait_for_timeout(3500)
         idle = ev("new Promise((r) => { const f0 = __sb.renderer.info.render.frame; setTimeout(() => r(__sb.renderer.info.render.frame - f0), 2000); })")
         check('idle: no redraws once the view is still (render on demand)', idle == 0, idle)
+        tab = ev("(() => { const a = document.getElementById('tabSG'), r = a.getBoundingClientRect(); return { href: a.getAttribute('href'), target: a.target, w: r.width, cur: document.querySelector('.pagetabs [aria-current=page]').textContent }; })()")
+        check('tabs: Estate | Singapore switch in the header (Singapore -> singapore.html)', tab['href'] == 'singapore.html' and tab['target'] == '' and tab['w'] > 40 and tab['cur'] == 'Estate', tab)
         check('no console errors at end (desktop)', not errors, errors[:5])
         ctx.close()
     if not only or 'mobile' in only:
@@ -308,6 +312,8 @@ with sync_playwright() as p:
         mv = math.hypot(after['t'][0] - before['t'][0], after['t'][1] - before['t'][1])
         rot = abs(math.degrees(math.atan2(before['o'][0] * after['o'][1] - before['o'][1] * after['o'][0], before['o'][0] * after['o'][0] + before['o'][1] * after['o'][1])))
         check('mobile: one-finger drag moves the map (no rotation)', mv > 10 and rot < 0.5, {'moved m': round(mv, 1), 'turned °': round(rot, 2)})
+        mt = page.evaluate("(() => { const a = document.querySelector('#menu a[href]'); const tabs = getComputedStyle(document.querySelector('.pagetabs')).display; const sr = document.querySelector('.search').getBoundingClientRect(); return { href: a && a.getAttribute('href'), tabs, search: sr.width }; })()")
+        check('mobile: Singapore map is in the ⋯ menu; header tabs hidden so search keeps its width', mt['href'] == 'singapore.html' and mt['tabs'] == 'none' and mt['search'] >= 100, mt)
         check('mobile: no console errors', not errors, errors[:5])
         ctx.close()
     if not only or 'area' in only:
@@ -583,6 +589,206 @@ with sync_playwright() as p:
         back = ev("(() => { __sb.render(); return { on: __sb.RENDER.on, labels: document.getElementById('labels').style.visibility, calls: __sb.info().render.calls, open: document.body.classList.contains('render-open') }; })()")
         check('render: Stop restores the live view', not back['on'] and back['labels'] == '' and back['calls'] > 20 and not back['open'], back)
         check('render: no console errors', not errors, errors[:5])
+        ctx.close()
+    if not only or 'sg' in only:
+        # ---------- Singapore 3D map page (MapLibre + OpenFreeMap), fully offline ----------
+        # tiles: OpenMapTiles-shaped fixture made from data/area-snapshot.json (Sembawang only) by tools/make_sg_tiles.mjs
+        TILES = os.path.join(ROOT, 'tests', 'fixtures', 'sg-tiles')
+        if not os.path.isfile(os.path.join(TILES, 'meta.json')):
+            os.system(f'node "{os.path.join(ROOT, "tools", "make_sg_tiles.mjs")}"')
+        tmeta = json.load(open(os.path.join(TILES, 'meta.json')))
+        OFM = 'https://tiles.openfreemap.org'
+        FIX_STYLE = {'version': 8, 'name': 'fixture (liberty-shaped)', 'sources': {'openmaptiles': {'type': 'vector', 'url': f'{OFM}/planet'}}, 'layers': [
+            {'id': 'background', 'type': 'background', 'paint': {'background-color': '#F8F4F0'}},
+            {'id': 'park', 'type': 'fill', 'source': 'openmaptiles', 'source-layer': 'park', 'paint': {'fill-color': '#D8E8C8'}},
+            {'id': 'water', 'type': 'fill', 'source': 'openmaptiles', 'source-layer': 'water', 'paint': {'fill-color': '#A0C8F0'}},
+            {'id': 'road', 'type': 'line', 'source': 'openmaptiles', 'source-layer': 'transportation', 'paint': {'line-color': '#FFFFFF', 'line-width': 2}},
+            {'id': 'building', 'type': 'fill', 'source': 'openmaptiles', 'source-layer': 'building', 'minzoom': 13, 'maxzoom': 14, 'paint': {'fill-color': 'hsl(35,8%,85%)'}},
+            {'id': 'building-3d', 'type': 'fill-extrusion', 'source': 'openmaptiles', 'source-layer': 'building', 'minzoom': 14, 'filter': ['!', ['has', 'hide_3d']],
+             'paint': {'fill-extrusion-base': ['get', 'render_min_height'], 'fill-extrusion-color': 'hsl(35,8%,85%)', 'fill-extrusion-height': ['get', 'render_height'], 'fill-extrusion-opacity': 0.8}},
+            {'id': 'road_label', 'type': 'symbol', 'source': 'openmaptiles', 'source-layer': 'transportation', 'layout': {}},
+        ]}
+        FIX_TJ = {'tilejson': '3.0.0', 'tiles': [f'{OFM}/fixture/{{z}}/{{x}}/{{y}}.pbf'], 'minzoom': 0, 'maxzoom': 14,
+                  'attribution': '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> <a href="https://www.openmaptiles.org/" target="_blank">&copy; OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>'}
+        net = {'geo': [], 'blocked': [], 'tiles': 0, 'style_fail': False, 'geo_fail': False}
+        GEO_HIT = [{'lat': '1.4573', 'lon': '103.8163', 'name': 'Sembawang Drive', 'display_name': 'Sembawang Drive, Sembawang, North Region, Singapore',
+                    'boundingbox': ['1.4521', '1.4632', '103.8098', '103.8215']}]
+        def route_ofm(route):
+            u = route.request.url
+            if u.startswith(f'{OFM}/styles/liberty'):
+                return route.abort() if net['style_fail'] else route.fulfill(body=json.dumps(FIX_STYLE), headers={'content-type': 'application/json', 'access-control-allow-origin': '*'})
+            if u.startswith(f'{OFM}/planet'):
+                return route.fulfill(body=json.dumps(FIX_TJ), headers={'content-type': 'application/json', 'access-control-allow-origin': '*'})
+            m = re.match(rf'{re.escape(OFM)}/fixture/(\d+)/(\d+)/(\d+)\.pbf', u)
+            if m:
+                net['tiles'] += 1
+                f = os.path.join(TILES, m[1], m[2], m[3] + '.pbf')
+                return route.fulfill(body=open(f, 'rb').read() if os.path.isfile(f) else b'', headers={'content-type': 'application/x-protobuf', 'access-control-allow-origin': '*'})
+            net['blocked'].append(u); route.abort()
+        def route_geo(route):
+            net['geo'].append((time.time(), route.request.url))
+            if net['geo_fail']: return route.fulfill(status=503, body='busy', headers={'access-control-allow-origin': '*'})
+            route.fulfill(body=json.dumps(GEO_HIT), headers={'content-type': 'application/json', 'access-control-allow-origin': '*'})
+        SG_URL = URL.replace('index.html?debug', 'singapore.html?debug')
+        def open_sg(w, h, mobile=False, url=SG_URL, ctx=None):
+            ctx = ctx or browser.new_context(viewport={'width': w, 'height': h}, device_scale_factor=2 if mobile else 1, is_mobile=mobile, has_touch=mobile)
+            page = ctx.new_page(); errs = []
+            page.on('console', lambda m: errs.append(f'{m.type}: {m.text}') if m.type == 'error' else None)
+            page.on('pageerror', lambda e: errs.append(f'pageerror: {e}'))
+            page.route('https://cdn.jsdelivr.net/npm/**', route_cdn)
+            page.route(f'{OFM}/**', route_ofm)
+            page.route('https://nominatim.openstreetmap.org/**', route_geo)
+            page.goto(url)
+            return ctx, page, errs
+        IDLE = "() => new Promise((r) => { const m = __sg.map; const done = () => r(true); if (m.loaded() && !m.isMoving()) done(); else m.once('idle', done); setTimeout(() => r(false), 30000); })"
+        def shot_px(page):
+            return Image.open(io.BytesIO(page.screenshot())).convert('RGB')
+        def patch(im, x, y, r=3):
+            px = [im.getpixel((int(x) + i, int(y) + j)) for i in range(-r, r + 1) for j in range(-r, r + 1)]
+            return sum(sum(p) for p in px) / (3 * len(px))
+
+        ctx, page, errs = open_sg(1440, 900)
+        ev = page.evaluate
+        page.wait_for_function('window.__sg && __sg.styleReady()', timeout=60000)
+        idle = ev(IDLE)
+        check('sg: page loads, style + tiles ready, no console errors', idle and not errs and net['tiles'] > 0, {'errors': errs[:4], 'tiles': net['tiles'], 'blocked': net['blocked'][:3]})
+        st = ev("(() => { const ids = __sg.map.getStyle().layers.map((l) => l.id); return { ids, light: __sg.map.getLight(), sky: __sg.map.getSky(), view: { c: __sg.map.getCenter().toArray(), z: __sg.map.getZoom(), p: __sg.map.getPitch() }, est: __sg.PLACES[0].ll, hash: location.hash }; })()")
+        ids = st['ids']
+        check('sg: style 3D layer replaced by sg-3d, under the labels and over the 2D map',
+              'building-3d' not in ids and 'sg-3d' in ids and ids.index('sg-3d') < ids.index('road_label') and ids.index('sg-3d') > ids.index('building'), ids)
+        check('sg: estate outline drawn under the 3D buildings', ids.index('estate-fill') < ids.index('sg-3d') and ids.index('estate-line') < ids.index('sg-3d'), ids)
+        dkm = math.hypot((st['view']['c'][0] - st['est'][0]) * 111.3, (st['view']['c'][1] - st['est'][1]) * 110.6)
+        check('sg: first visit opens over the estate in 3D (z15.6, pitch 60) and writes the view to the URL', dkm < 0.05 and abs(st['view']['z'] - 15.6) < 0.01 and abs(st['view']['p'] - 60) < 0.5 and st['hash'].startswith('#view='), {**st['view'], 'km off': round(dkm, 3), 'hash': st['hash']})
+        q = ev("(() => { const f = __sg.map.queryRenderedFeatures({ layers: ['sg-3d'] }); return { n: f.length, hidden: f.filter((x) => x.properties.hide_3d).length, tall: Math.max(0, ...f.map((x) => x.properties.render_height || 0)) }; })()")
+        check('sg: OSM buildings extruded in view; hide_3d parts skipped', q['n'] > 50 and q['hidden'] == 0 and q['tall'] > 20, {**q, 'fixture hide_3d': tmeta['hidden']})
+        im3d = shot_px(page); im3d.save(f'{SHOTS}/sg01_estate.png')
+        ev("__sg.map.setLayoutProperty('sg-3d', 'visibility', 'none')"); ev(IDLE)
+        im2d = shot_px(page)
+        ev("__sg.map.setLayoutProperty('sg-3d', 'visibility', 'visible')"); ev(IDLE)
+        d = ImageChops.difference(im3d, im2d).split()
+        diff = sum(ImageChops.add(ImageChops.add(d[0], d[1]), d[2]).point(lambda v: 255 if v > 30 else 0).histogram()[255:]) / (im3d.width * im3d.height)
+        check('sg: 3D buildings visibly change the picture (pixels differing vs hidden)', diff > 0.05, f'{diff:.1%}')
+        hint = ev("getComputedStyle(document.getElementById('zoomHint')).opacity")
+        check('sg: zoom hint hidden at building zoom', float(hint) < 0.05, hint)
+        lt = st['light']; sp = ev("(() => { const c = __sg.map.getCenter(), s = __sg.sun; return sunPosition(sgtDate(s.date, s.min), c.lat, c.lng); })()")
+        check('sg: light comes from the sun position (map anchor, azimuth, polar = 90° - elevation)', lt.get('anchor') == 'map' and abs(lt['position'][1] - sp['az']) < 0.01 and abs(lt['position'][2] - min(89, max(0, 90 - sp['el']))) < 0.01, {'light': lt['position'], 'sun': [round(sp['az'], 2), round(sp['el'], 2)]})
+
+        # light direction convention, checked in pixels: a white test tower, camera south-west of it looking north-east
+        ev("""(() => { const m = __sg.map, c = [103.8300, 1.4700], dx = 30 / 111284, dy = 30 / 110574;
+          m.addSource('tbox', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[c[0]-dx, c[1]-dy], [c[0]+dx, c[1]-dy], [c[0]+dx, c[1]+dy], [c[0]-dx, c[1]+dy], [c[0]-dx, c[1]-dy]]] } } });
+          m.addLayer({ id: 'tbox', type: 'fill-extrusion', source: 'tbox', paint: { 'fill-extrusion-color': '#FFFFFF', 'fill-extrusion-height': 90, 'fill-extrusion-vertical-gradient': false } });
+          m.setLayoutProperty('sg-3d', 'visibility', 'none'); m.jumpTo({ center: c, zoom: 17.2, pitch: 55, bearing: 45 }); })()""")
+        def faces(minutes):
+            ev(f"(() => {{ __sg.sun.date = '2026-11-19'; __sg.sun.min = {minutes}; __sg.applySun(); }})()"); ev(IDLE); page.wait_for_timeout(300)
+            im = shot_px(page)
+            pw = ev("(() => { const m = __sg.map, c = [103.8300, 1.4700], dx = 30 / 111284, dy = 30 / 110574, r = m.getContainer().getBoundingClientRect(); const P = (x, y) => { const p = m.project([x, y]); return [p.x + r.left, p.y + r.top]; }; return { w: P(c[0] - dx, c[1]), s: P(c[0], c[1] - dy) }; })()")
+            return {'W': round(patch(im, pw['w'][0], pw['w'][1] - 40)), 'S': round(patch(im, pw['s'][0], pw['s'][1] - 40)), 'sun': ev('__sg.lastSun()')}
+        am, pm = faces(9 * 60), faces(16 * 60 + 30)
+        check('sg: west wall lit in the afternoon, dark in the morning (sun azimuth sign); south wall changes less',
+              pm['W'] - am['W'] > 20 and abs(pm['S'] - am['S']) < (pm['W'] - am['W']),
+              {'09:00 W/S': [am['W'], am['S']], '16:30 W/S': [pm['W'], pm['S']], 'az 09:00': round(am['sun']['az']), 'az 16:30': round(pm['sun']['az'])})
+        page.screenshot(path=f'{SHOTS}/sg02_lightbox_pm.png')
+        ev("(() => { const m = __sg.map; m.removeLayer('tbox'); m.removeSource('tbox'); m.setLayoutProperty('sg-3d', 'visibility', 'visible'); })()")
+
+        # sun bar: date + time inputs, readout, sky colours, play/pause
+        page.fill('#sunDate', '2026-06-21')
+        page.eval_on_selector('#sunTime', "(e) => { e.value = 780; e.dispatchEvent(new Event('input')); }")
+        noon = ev("({ read: document.getElementById('sunRead').textContent, sun: __sg.lastSun(), sky: __sg.map.getSky() })")
+        check('sg: date + time controls drive the sun (21 Jun 13:00 → high, from the north)', noon['sun']['date'] == '2026-06-21' and noon['sun']['el'] > 60 and (noon['sun']['az'] < 30 or noon['sun']['az'] > 330) and '13:00' in noon['read'], noon['read'])
+        page.eval_on_selector('#sunTime', "(e) => { e.value = 1165; e.dispatchEvent(new Event('input')); }")
+        dusk = ev("({ read: document.getElementById('sunRead').textContent, sun: __sg.lastSun(), sky: __sg.map.getSky(), light: __sg.map.getLight() })")
+        lum = lambda h: sum(int(h[i:i + 2], 16) for i in (1, 3, 5))
+        check('sg: sky and light follow the time (dusk sky darker, warm low light)', lum(dusk['sky']['sky-color']) < lum(noon['sky']['sky-color']) and dusk['sun']['el'] < 3 and dusk['light']['color'] != '#FFFFFF',
+              {'noon sky': noon['sky']['sky-color'], 'dusk sky': dusk['sky']['sky-color'], 'dusk light': dusk['light']['color'], 'read': dusk['read']})
+        page.eval_on_selector('#sunTime', "(e) => { e.value = 600; e.dispatchEvent(new Event('input')); }")
+        m0 = ev('__sg.sun.min'); page.click('#sunPlay'); page.wait_for_timeout(1500)
+        m1 = ev('__sg.sun.min'); pr = page.get_attribute('#sunPlay', 'aria-pressed'); page.click('#sunPlay'); page.wait_for_timeout(500)
+        m2 = ev('__sg.sun.min'); page.wait_for_timeout(500); m3 = ev('__sg.sun.min')
+        check('sg: play runs the day by elapsed time (~1 h per second) and pause stops it', pr == 'true' and 50 < m1 - m0 < 130 and m3 == m2, {'played min': round(m1 - m0), 'after pause': round(m3 - m2, 2)})
+        page.click('#btnSun'); off = ev("({ hidden: getComputedStyle(document.getElementById('sunbar')).display, pressed: document.getElementById('btnSun').getAttribute('aria-pressed') })")
+        page.click('#btnSun')
+        check('sg: Sun button hides and shows the sun bar', off['hidden'] == 'none' and off['pressed'] == 'false' and page.is_visible('#sunbar'), off)
+
+        # search: built-in places (keyboard) and OpenStreetMap (Nominatim) only on request
+        page.click('#search'); page.keyboard.type('marina')
+        opts = ev("[...document.querySelectorAll('#results [role=option]')].map((b) => b.firstChild.textContent)")
+        check('sg: typing filters the built-in places (no network lookups while typing)', 'Marina Bay Sands' in opts and not net['geo'], {'options': opts, 'geocoder calls': len(net['geo'])})
+        page.keyboard.press('ArrowDown'); page.keyboard.press('Enter')
+        page.wait_for_timeout(300); ev(IDLE)
+        c = ev('__sg.map.getCenter().toArray()')
+        check('sg: Arrow + Enter flies to the place (Marina Bay Sands)', math.hypot((c[0] - 103.8607) * 111.3, (c[1] - 1.2834) * 110.6) < 0.1 and ev('document.getElementById("results").hidden'), c)
+        page.fill('#search', 'sembawang drive'); page.wait_for_timeout(200)
+        page.click('#res-osm'); page.wait_for_selector('#results [role=option]', timeout=8000)
+        url0 = net['geo'][-1][1] if net['geo'] else ''
+        check('sg: "Search OpenStreetMap" asks Nominatim once, limited to Singapore', len(net['geo']) == 1 and 'countrycodes=sg' in url0 and 'bounded=1' in url0 and 'q=sembawang%20drive' in url0, url0)
+        page.click('#results [role=option]'); page.wait_for_timeout(300); ev(IDLE)
+        c = ev('__sg.map.getCenter().toArray()')
+        check('sg: picking an OpenStreetMap result frames it', math.hypot((c[0] - 103.81565) * 111.3, (c[1] - 1.45765) * 110.6) < 0.25, c)
+        page.fill('#search', 'sembawang drive'); page.click('#res-osm'); page.wait_for_selector('#results [role=option]', timeout=8000)
+        check('sg: repeated searches are cached (no second request)', len(net['geo']) == 1, len(net['geo']))
+        net['geo_fail'] = True; t0 = time.time()
+        page.fill('#search', 'admiralty road'); page.click('#res-osm'); page.wait_for_function("document.getElementById('results').textContent.includes('unavailable')", timeout=8000)
+        gap = net['geo'][-1][0] - net['geo'][-2][0] if len(net['geo']) >= 2 else 0
+        check('sg: geocoder errors are reported; requests stay ≥1 s apart (Nominatim policy)', len(net['geo']) == 2 and gap >= 0.95, {'gap s': round(gap, 2), 'text': ev("document.getElementById('results').textContent")[:90]})
+        net['geo_fail'] = False; page.keyboard.press('Escape')
+
+        # places panel, island overview, estate pin + links
+        page.click('#btnPlaces'); page.click('#placeList button[data-id="island"]'); page.wait_for_timeout(300); ev(IDLE)
+        ov = ev("({ z: __sg.map.getZoom(), hint: getComputedStyle(document.getElementById('zoomHint')).opacity, n: __sg.map.queryRenderedFeatures({ layers: ['sg-3d'] }).length })")
+        page.screenshot(path=f'{SHOTS}/sg03_island.png')
+        check('sg: "All of Singapore" zooms out; hint says to zoom in; no buildings below z13', abs(ov['z'] - 10.9) < 0.3 and float(ov['hint']) > 0.9 and ov['n'] == 0, ov)
+        page.click('#placeList button[data-id="estate"]'); page.wait_for_timeout(300); ev(IDLE)
+        page.click('.estate-pin'); page.wait_for_selector('.maplibregl-popup a', timeout=5000)
+        links = ev("({ pop: document.querySelector('.maplibregl-popup a').getAttribute('href'), tab: document.querySelector('.pagetabs a').getAttribute('href'), cur: document.querySelector('.pagetabs [aria-current=page]').textContent, attr: document.querySelector('.maplibregl-ctrl-attrib').textContent })")
+        page.screenshot(path=f'{SHOTS}/sg04_pin.png')
+        check('sg: estate pin popup + Estate tab link back to the estate model; tile attribution shown', links['pop'] == 'index.html' and links['tab'] == 'index.html' and links['cur'] == 'Singapore' and 'OpenStreetMap' in links['attr'] and 'OpenMapTiles' in links['attr'], links)
+        page.click('.pagetabs a'); page.wait_for_selector('body.ready', timeout=60000)
+        check('sg: Estate tab opens the estate model', page.url.endswith('/index.html'), page.url)
+        page.go_back(); page.wait_for_function('window.__sg && __sg.styleReady()', timeout=60000)
+        # remembered view: reopen without a #view hash → last camera, sun bar state
+        ev("__sg.map.jumpTo({ center: [103.8205, 1.4485], zoom: 16.8, pitch: 50, bearing: 30 })"); page.wait_for_timeout(900)
+        page.click('#btnSun')
+        page.goto(SG_URL); page.wait_for_function('window.__sg && __sg.styleReady()', timeout=60000)
+        rv = ev("({ c: __sg.map.getCenter().toArray(), z: __sg.map.getZoom(), b: __sg.map.getBearing(), sunOff: document.body.classList.contains('sun-off') })")
+        check('sg: reopening restores the last view and sun-bar setting', abs(rv['c'][0] - 103.8205) < 1e-4 and abs(rv['z'] - 16.8) < 0.02 and abs(rv['b'] - 30) < 0.2 and rv['sunOff'], rv)
+        page.click('#btnSun')
+        errs_real = [e for e in errs if 'status of 503' not in e]  # the 503 is the geocoder failure this test injects
+        check('sg: no console errors (desktop; ignoring the injected geocoder 503)', not errs_real and len(errs) - len(errs_real) <= 1, errs[:5])
+        ctx.close()
+
+        # style unreachable → clear message instead of a blank page
+        net['style_fail'] = True
+        ctx, page, errs = open_sg(1024, 700)
+        page.wait_for_selector('#status:not([hidden])', timeout=20000)
+        msg = page.text_content('#status')
+        check('sg: offline / blocked tiles → visible error message', 'Could not load the map style' in msg, msg)
+        ctx.close(); net['style_fail'] = False
+
+        # phone
+        ctx, page, errs = open_sg(390, 844, mobile=True)
+        page.wait_for_function('window.__sg && __sg.styleReady()', timeout=60000); page.evaluate(IDLE)
+        page.screenshot(path=f'{SHOTS}/sg05_mobile.png')
+        lay = page.evaluate("""(() => { const R = (s) => { const r = document.querySelector(s).getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.right), Math.round(r.bottom)]; };
+          return { search: R('.search'), tabs: R('.pagetabs'), sun: R('#sunbar'), vw: innerWidth, vh: innerHeight, title: getComputedStyle(document.querySelector('.title')).display, n: __sg.map.queryRenderedFeatures({ layers: ['sg-3d'] }).length }; })()""")
+        check('sg mobile: header fits (tabs + search ≥ 140 px), sun bar inside the screen, buildings drawn',
+              lay['search'][2] - lay['search'][0] >= 140 and lay['tabs'][2] <= lay['search'][0] and lay['sun'][0] >= 0 and lay['sun'][2] <= lay['vw'] and lay['sun'][3] <= lay['vh'] and lay['title'] == 'none' and lay['n'] > 30, lay)
+        page.tap('#btnPlaces'); page.wait_for_timeout(300)
+        pl = page.evaluate("(() => { const r = document.getElementById('places').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right), innerWidth]; })()")
+        page.screenshot(path=f'{SHOTS}/sg06_mobile_places.png')
+        page.tap('#placeList button[data-id="raffles"]'); page.wait_for_timeout(400)
+        check('sg mobile: places panel spans the screen and closes after a pick', pl[0] <= 8 and pl[1] >= pl[2] - 8 and not page.is_visible('#places'), pl)
+        # one-finger drag pans (MapLibre default touch gestures)
+        page.evaluate("__sg.map.jumpTo({ center: [103.8130, 1.4599], zoom: 16, pitch: 50, bearing: 0 })"); page.evaluate(IDLE)
+        c0 = page.evaluate('__sg.map.getCenter().toArray()'); b0 = page.evaluate('__sg.map.getBearing()')
+        cdp = ctx.new_cdp_session(page); x0, y0 = 200, 500
+        cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': x0, 'y': y0}]})
+        for k in range(1, 13):
+            cdp.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': x0 - 10 * k, 'y': y0 + 6 * k}]}); page.wait_for_timeout(16)
+        cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []}); page.wait_for_timeout(1200)
+        c1 = page.evaluate('__sg.map.getCenter().toArray()'); b1 = page.evaluate('__sg.map.getBearing()')
+        mv = math.hypot((c1[0] - c0[0]) * 111300, (c1[1] - c0[1]) * 110600)
+        check('sg mobile: one-finger drag pans the map (no rotation)', mv > 20 and abs(b1 - b0) < 0.5, {'moved m': round(mv), 'bearing change': round(b1 - b0, 2)})
+        check('sg mobile: no console errors', not errs, errs[:5])
         ctx.close()
     browser.close()
 fails = [r for r in results if not r[1]]

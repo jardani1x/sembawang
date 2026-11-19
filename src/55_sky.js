@@ -17,15 +17,7 @@ function sunDome() {
 }
 
 /* sky colours by sun elevation (deg): zenith, horizon, warm glow towards the sun, glow amount */
-const SKY_KEYS = [
-  { el: -18, zen: '#070D18', hor: '#141D2E', warm: '#141D2E', amt: 0 },
-  { el: -9, zen: '#0E1830', hor: '#2B3754', warm: '#5B4A63', amt: 0.35 },
-  { el: -3, zen: '#2E4468', hor: '#9E8E9A', warm: '#E8946A', amt: 0.85 },
-  { el: 2, zen: '#5F83B0', hor: '#E2CDB8', warm: '#F4B27A', amt: 0.8 },
-  { el: 8, zen: '#7FA4CC', hor: '#E8E2D6', warm: '#F6CF9C', amt: 0.4 },
-  { el: 16, zen: '#8AB1D8', hor: '#E4EAEF', warm: '#F3E2C2', amt: 0.1 },
-  { el: 90, zen: '#8DB4DA', hor: '#E3E9EE', warm: '#E3E9EE', amt: 0 },
-].map((k) => ({ ...k, zen: new THREE.Color(k.zen), hor: new THREE.Color(k.hor), warm: new THREE.Color(k.warm) }));
+const SKY_KEYS = SKY_KEYS_HEX.map((k) => ({ ...k, zen: new THREE.Color(k.zen), hor: new THREE.Color(k.hor), warm: new THREE.Color(k.warm) }));
 function skyAt(el) {
   let i = 0; while (i < SKY_KEYS.length - 2 && el > SKY_KEYS[i + 1].el) i++;
   const a = SKY_KEYS[i], b = SKY_KEYS[i + 1], t = clamp((el - a.el) / (b.el - a.el), 0, 1);
