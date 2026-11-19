@@ -7,7 +7,7 @@ Run:    python3 tests/run.py [desktop|mobile|area|render|sg]
         (sg = the Singapore map page: needs vendor/maplibre-gl and node for the fixture tiles)
         OSM_EXPORT=export.geojson[:coastline.geojson] python3 tests/run.py area   # + live-update tests
 """
-import http.server, threading, functools, os, sys, json, time, math, re, io
+import subprocess, http.server, threading, functools, os, sys, json, time, math, re, io
 from PIL import Image, ImageChops
 from playwright.sync_api import sync_playwright
 
@@ -774,58 +774,90 @@ with sync_playwright() as p:
             moving: !!(me && me.classList.contains('moving')), ring0: ring[0] || null, n: ring.length, chip: document.getElementById('locChip').hidden ? '' : document.getElementById('locChip').textContent,
             heading: __sg.LOC.heading, hash: location.hash, stored: JSON.stringify(localStorage) }; }"""
         def rocket_mask(page):
-            # pixels the 3D rocket layer changes: screenshot with it, then without it
+            # pixels the 3D pin layer changes: screenshot with it, then without it
             page.evaluate(IDLE); a = shot_px(page)
-            page.evaluate("__sg.map.setLayoutProperty('me-rocket3d', 'visibility', 'none')"); page.evaluate(IDLE); page.wait_for_timeout(150); b = shot_px(page)
-            page.evaluate("__sg.map.setLayoutProperty('me-rocket3d', 'visibility', 'visible')"); page.evaluate(IDLE)
+            page.evaluate("__sg.map.setLayoutProperty('me-craft3d', 'visibility', 'none')"); page.evaluate(IDLE); page.wait_for_timeout(150); b = shot_px(page)
+            page.evaluate("__sg.map.setLayoutProperty('me-craft3d', 'visibility', 'visible')"); page.evaluate(IDLE)
             d = ImageChops.difference(a, b).convert('L').point(lambda v: 255 if v > 12 else 0)
             box = d.getbbox(); n = d.histogram()[255]
             lum = 0
             if n:
                 px = [p for p, m in zip(a.convert('L').getdata(), d.getdata()) if m]
                 lum = sum(px) / len(px)
-            return {'n': n, 'box': box, 'lum': round(lum, 1)}, a
+            return {'n': n, 'box': box, 'lum': round(lum, 1), 'd': d}, a, b
         lctx = browser.new_context(viewport={'width': 1280, 'height': 800}, geolocation={'latitude': HOME[0], 'longitude': HOME[1], 'accuracy': 25}, permissions=['geolocation'])
         lctx, page, lerrs = open_sg(0, 0, ctx=lctx)
         ev = page.evaluate
         page.wait_for_function('window.__sg && __sg.styleReady()', timeout=60000); ev(IDLE)
         s0 = ev(LSTATE); hash0 = s0['hash']
         page.click('.sg-locate'); page.wait_for_selector('.me', timeout=15000)
-        page.wait_for_function("__sg.rocket() && __sg.rocket().state !== 'loading'", timeout=60000); page.wait_for_timeout(200); ev(IDLE)
+        page.wait_for_function("__sg.CR.loaded.starship && __sg.CR.loaded.starship.state !== 'loading'", timeout=60000); page.wait_for_timeout(200); ev(IDLE)
         s1 = ev(LSTATE); me = [HOME[1], HOME[0]]
         check('location: off until asked; one tap finds you, flies there (z ≥ 16.5) and follows', s0['state'] == 'off' and s0['ll'] is None and s1['state'] == 'follow' and s1['pressed'] == 'true'
               and hav(s1['ll'], me) < 0.5 and hav(s1['c'], me) < 3 and s1['z'] >= 16.5, {k: s1[k] for k in ('state', 'c', 'z', 'll')})
         check('location: accuracy circle = reported accuracy (25 m), chip says ±25 m; rocket upright while still',
               s1['n'] == 65 and abs(hav(s1['ring0'], me) - 25) < 0.3 and '±25 m' in s1['chip'] and s1['align'] == 'viewport' and s1['rot'] == 0 and not s1['moving'],
               {'ring r m': round(hav(s1['ring0'], me), 2), 'chip': s1['chip'], 'align': s1['align']})
-        r3 = ev("(() => { const r = __sg.rocket(), svg = getComputedStyle(document.querySelector('.me-rocket')).display; return { state: r.state, layer: !!__sg.map.getLayer('me-rocket3d'), svg, h: __sg.rocketHeightM(), chip: document.getElementById('locChip').textContent, attr: document.querySelector('.maplibregl-ctrl-attrib').textContent }; })()")
-        check('3D rocket: model loads on demand and replaces the flat rocket; maker credited (CC BY)', r3['state'] == 'ready' and r3['layer'] and r3['svg'] == 'none'
-              and 'Clarence365' in r3['attr'] and 'CC BY 4.0' in r3['attr'], {k: r3[k] for k in ('state', 'layer', 'svg')})
-        check('3D rocket: real height (124 m) at z16.5, and the chip says so', abs(r3['h'] - 124) < 1e-9 and 'rocket true size' in r3['chip'], {'h': r3['h'], 'chip': r3['chip']})
+        r3 = ev("""(() => { const rec = __sg.CR.loaded.starship, svg = getComputedStyle(document.querySelector('.me-rocket')).display;
+          const pins = Object.fromEntries([...document.querySelectorAll('.sg-pin')].map((b) => [b.dataset.pin, b.getAttribute('aria-pressed')]));
+          return { state: rec && rec.state, layer: !!__sg.map.getLayer('me-craft3d'), svg, L: __sg.craftLengthM(), chip: document.getElementById('locChip').textContent,
+            attr: document.querySelector('.maplibregl-ctrl-attrib').textContent, pins, f22: !!__sg.CR.loaded.f22, yaw: __sg.CR.yawNow, bearing: __sg.map.getBearing() }; })()""")
+        check('3D pin: Starship (default) loads on demand and replaces the flat rocket; the F-22 is not fetched until chosen; maker credited (CC BY)',
+              r3['state'] == 'ready' and r3['layer'] and r3['svg'] == 'none' and not r3['f22'] and r3['pins'] in ({'starship': 'true', 'f22': 'false'}, {}) and 'Clarence365' in r3['attr'] and 'CC BY 4.0' in r3['attr'],
+              {k: r3[k] for k in ('state', 'layer', 'svg', 'pins', 'f22')})
+        check('3D pin: before you move it is side-on, nose to the right of the screen (map bearing + 90°); real 124 m length at z16.5, and the chip says so',
+              abs(((r3['yaw'] - r3['bearing'] - 90) + 540) % 360 - 180) < 0.5 and abs(r3['L'] - 124) < 1e-9 and 'Starship true size' in r3['chip'], {'yaw': r3['yaw'], 'map bearing': r3['bearing'], 'L': r3['L'], 'chip': r3['chip']})
         page.screenshot(path=f'{SHOTS}/sg07_location.png')
-        # scale + anchoring, checked against MapLibre's own extrusion: a red 124 m column 60 m east, same northing
-        ev("""(() => { const m = __sg.map, f = __sg.LOC.fix.ll, kx = 111320 * Math.cos(f[1] * Math.PI / 180), dx = 60 / kx, w = 1 / kx, h = 1 / 110574;
-          __sg.LOC.follow = false;
-          m.addSource('tcol', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[f[0]+dx-w, f[1]-h], [f[0]+dx+w, f[1]-h], [f[0]+dx+w, f[1]+h], [f[0]+dx-w, f[1]+h], [f[0]+dx-w, f[1]-h]]] } } });
-          m.addLayer({ id: 'tcol', type: 'fill-extrusion', source: 'tcol', paint: { 'fill-extrusion-color': '#FF0000', 'fill-extrusion-height': 124, 'fill-extrusion-vertical-gradient': false } });
-          m.setLayoutProperty('sg-3d', 'visibility', 'none'); m.jumpTo({ center: [f[0] + dx / 2, f[1]], zoom: 17, pitch: 50, bearing: 0 }); })()""")
-        ev("(() => { __sg.sun.date = '2026-11-19'; __sg.sun.min = 780; __sg.applySun(); })()")
-        mk, im = rocket_mask(page)
-        im.save(f'{SHOTS}/sg07c_rocket_scale.png')
-        reds = [(x, y) for y in range(0, im.height) for x in range(0, im.width) if (lambda p: p[0] > 150 and p[1] < 90 and p[2] < 90)(im.getpixel((x, y)))]
-        col_top = min(y for x, y in reds) if reds else -1
-        base = ev("(() => { const p = __sg.map.project(__sg.LOC.fix.ll), r = __sg.map.getContainer().getBoundingClientRect(); return [p.x + r.left, p.y + r.top]; })()")
-        rk_top, rk_bot = (mk['box'][1], mk['box'][3]) if mk['box'] else (-1, -1)
-        check('3D rocket: as tall as a 124 m MapLibre extrusion (2 m column) beside it, standing on your position (pixels)',
-              mk['n'] > 1500 and abs(rk_top - col_top) <= 4 and abs(rk_bot - base[1]) <= 6 and mk['box'][0] < base[0] < mk['box'][2],
-              {'rocket top/bottom px': (rk_top, rk_bot), 'column top px': col_top, 'ground point y': round(base[1], 1), 'rocket px': mk['n']})
+
+        def level_flight(key, tag):
+            """Heading east, camera looking north: compare the craft's pixels with a red MapLibre extrusion of the same
+            length at the same height (an independent renderer), drawn in the same place with the craft hidden."""
+            ev(f"""(() => {{ const L = __sg.LOC; L.follow = false; L.heading = null; L.lastHeading = 90; __sg.CR.yawNow = 90; const f = L.fix.ll;
+              __sg.map.setLayoutProperty('sg-3d', 'visibility', 'none'); __sg.map.jumpTo({{ center: f, zoom: 17, pitch: 50, bearing: 0 }}); }})()""")
+            ev("(() => { __sg.sun.date = '2026-11-19'; __sg.sun.min = 780; __sg.applySun(); })()")
+            mk, im, base_im = rocket_mask(page)
+            im.save(f'{SHOTS}/sg07c_{tag}_level.png')
+            geo = ev("(() => { const L = __sg.craftLengthM(), H = __sg.craftAltM(L), p = __sg.map.project(__sg.LOC.fix.ll), r = __sg.map.getContainer().getBoundingClientRect(); return { L, H, dot: [p.x + r.left, p.y + r.top] }; })()")
+            ev(f"""(() => {{ const m = __sg.map, f = __sg.LOC.fix.ll, kx = 111320 * Math.cos(f[1] * Math.PI / 180), hx = {geo['L']} / 2 / kx, hy = 2 / 110574;
+              m.addSource('tbar', {{ type: 'geojson', data: {{ type: 'Feature', properties: {{}}, geometry: {{ type: 'Polygon', coordinates: [[[f[0]-hx, f[1]-hy], [f[0]+hx, f[1]-hy], [f[0]+hx, f[1]+hy], [f[0]-hx, f[1]+hy], [f[0]-hx, f[1]-hy]]] }} }} }});
+              m.addLayer({{ id: 'tbar', type: 'fill-extrusion', source: 'tbar', paint: {{ 'fill-extrusion-color': '#FF0000', 'fill-extrusion-base': {geo['H']} - 2, 'fill-extrusion-height': {geo['H']} + 2, 'fill-extrusion-vertical-gradient': false }} }});
+              m.setLayoutProperty('me-craft3d', 'visibility', 'none'); }})()""")
+            ev(IDLE); page.wait_for_timeout(150); bim = shot_px(page)
+            ev("(() => { const m = __sg.map; m.removeLayer('tbar'); m.removeSource('tbar'); m.setLayoutProperty('me-craft3d', 'visibility', 'visible'); })()"); ev(IDLE)
+            rp = [(x, y) for y in range(bim.height) for x in range(0, bim.width) if (lambda p: p[0] > 150 and p[1] < 90 and p[2] < 90)(bim.getpixel((x, y)))]
+            bx0, bx1 = min(x for x, y in rp), max(x for x, y in rp); by = sorted(y for x, y in rp)[len(rp) // 2]
+            cx0, cy0, cx1, cy1 = mk['box']
+            # the craft's own rows (wider than the tether): level flight = a thin band that contains the bar's middle row
+            d = mk['d']; widths = {y: sum(1 for x in range(cx0, cx1 + 1) if d.getpixel((x, y))) for y in range(cy0, cy1 + 1)}
+            rows = [y for y, w in widths.items() if w > 8]
+            row = (min(rows), max(rows)) if rows else (-1, -1)
+            # tether: blue pixels in a narrow column between the dot and the craft
+            dx, dy = geo['dot']
+            teth = sum(1 for y in range(row[1] + 3, int(dy) - 12) if any((lambda p: p[2] > 200 and p[2] - p[0] > 80)(im.getpixel((x, y))) for x in range(int(dx) - 2, int(dx) + 3)))
+            span = max(1, int(dy) - 12 - (row[1] + 3))
+            return {'craft x': (cx0, cx1), 'bar x': (bx0, bx1), 'craft rows': row, 'bar row': by, 'bar w': bx1 - bx0, 'tether': round(teth / span, 2), 'L': round(geo['L'], 1), 'H': round(geo['H'], 1), 'mask': mk, 'im': im, 'base': base_im}
+        def centroid_x(im, box, test):
+            xs = [x for y in range(box[1], box[3] + 1) for x in range(box[0], box[2] + 1) if test(im.getpixel((x, y)))]
+            return (sum(xs) / len(xs), len(xs)) if xs else (None, 0)
+        lf = level_flight('starship', 'starship')
+        check('3D pin: Starship flies level and nose-first at its real length: ends within 4 px of a 124 m MapLibre bar at the same height; tethered to your dot (pixels)',
+              abs(lf['craft x'][0] - lf['bar x'][0]) <= 4 and abs(lf['craft x'][1] - lf['bar x'][1]) <= 4 and lf['craft rows'][0] <= lf['bar row'] <= lf['craft rows'][1]
+              and lf['craft rows'][1] - lf['craft rows'][0] < 0.35 * lf['bar w'] and lf['tether'] > 0.8,
+              {k: lf[k] for k in ('craft x', 'bar x', 'craft rows', 'bar row', 'bar w', 'tether', 'L', 'H')})
+        # nose first: while "moving" east the engine flame must be at the west (left) end
+        ev("(() => { __sg.LOC.heading = 90; __sg.map.triggerRepaint(); })()"); ev(IDLE); page.wait_for_timeout(300)
+        mv, mim, _ = rocket_mask(page)
+        fx, fn = centroid_x(mim, mv['box'], lambda p: p[0] > 220 and 60 < p[1] < 215 and p[2] < 110)
+        ev("(() => { __sg.LOC.heading = null; __sg.map.triggerRepaint(); })()"); ev(IDLE)
+        check('3D pin: Starship nose leads: heading east, its flame is at the west (left) end (pixels)', fn > 40 and fx < (mv['box'][0] + mv['box'][2]) / 2 - 0.3 * (mv['box'][2] - mv['box'][0]),
+              {'flame px': fn, 'flame x': round(fx or 0), 'craft x': (mv['box'][0], mv['box'][2])})
         ev("(() => { __sg.sun.min = 1230; __sg.applySun(); })()")
-        mk_night, _ = rocket_mask(page)
-        check('3D rocket: lit by the map sun (darker at 20:30 than at 13:00)', mk['lum'] - mk_night['lum'] > 25, {'13:00 mean': mk['lum'], '20:30 mean': mk_night['lum']})
-        ev("(() => { const m = __sg.map; m.removeLayer('tcol'); m.removeSource('tcol'); m.setLayoutProperty('sg-3d', 'visibility', 'visible'); __sg.sun.min = 780; __sg.applySun(); })()")
+        mk_night, _, _ = rocket_mask(page)
+        check('3D pin: lit by the map sun (darker at 20:30 than at 13:00)', lf['mask']['lum'] - mk_night['lum'] > 25, {'13:00 mean': lf['mask']['lum'], '20:30 mean': mk_night['lum']})
+        ev("(() => { __sg.map.setLayoutProperty('sg-3d', 'visibility', 'visible'); __sg.sun.min = 780; __sg.applySun(); })()")
         ev("__sg.map.jumpTo({ zoom: 13 })"); ev(IDLE)
-        z13 = ev("({ h: __sg.rocketHeightM(), chip: document.getElementById('locChip').textContent })")
-        check('3D rocket: zoomed far out it is drawn bigger so it stays visible, and the chip says by how much', z13['h'] > 124 * 2 and '×' in z13['chip'], z13)
+        z13 = ev("({ L: __sg.craftLengthM(), chip: document.getElementById('locChip').textContent })")
+        check('3D pin: zoomed far out it is drawn bigger so it stays visible, and the chip says by how much', z13['L'] > 124 * 2 and 'Starship ×' in z13['chip'], z13)
         page.click('.sg-locate'); page.wait_for_timeout(300); ev(IDLE)  # back to following
         hash0 = ev('location.hash'); stored0 = ev('JSON.stringify(localStorage)')
         # walk 60 m north-east: the rocket turns to point that way and the camera follows
@@ -833,16 +865,38 @@ with sync_playwright() as p:
         page.wait_for_function('__sg.LOC.heading !== null', timeout=10000); page.wait_for_timeout(900); ev(IDLE)
         s2 = ev(LSTATE); me2 = [p2[1], p2[0]]
         page.screenshot(path=f'{SHOTS}/sg07b_location_moving.png')
-        page.wait_for_timeout(1500); ev(IDLE)
-        pose = ev("(() => { const r = __sg.rocket(); return { tilt: r.pose.tilt, lift: r.pose.lift, plume: r.plume.visible, yaw: r.yaw.rotation.y * 180 / Math.PI }; })()")
-        page.screenshot(path=f'{SHOTS}/sg07d_rocket_flying.png')
+        page.wait_for_function("Math.abs(((__sg.CR.yawNow - 45) + 540) % 360 - 180) < 0.3", timeout=20000); ev(IDLE)
+        pose = ev("(() => { const r = __sg.CR.loaded.starship; return { yaw: __sg.CR.yawNow, flame: r.flame.visible, heading: __sg.LOC.heading }; })()")
+        page.screenshot(path=f'{SHOTS}/sg07d_starship_flying.png')
         ev("__sg.map.setLayoutProperty('sg-3d', 'visibility', 'none')"); ev(IDLE); page.wait_for_timeout(200)
-        fim = shot_px(page); fim.save(f'{SHOTS}/sg07e_rocket_flame.png')
+        fim = shot_px(page); fim.save(f'{SHOTS}/sg07e_starship_flame.png')
         fpt = ev("(() => { const p = __sg.map.project(__sg.LOC.fix.ll), r = __sg.map.getContainer().getBoundingClientRect(); return [p.x + r.left, p.y + r.top]; })()")
-        orange = sum(1 for x in range(int(fpt[0]) - 60, int(fpt[0]) + 61) for y in range(int(fpt[1]) - 120, int(fpt[1]) + 10)
+        orange = sum(1 for x in range(max(0, int(fpt[0]) - 260), min(fim.width, int(fpt[0]) + 261)) for y in range(max(0, int(fpt[1]) - 420), int(fpt[1]))
                      if (lambda p: p[0] > 220 and 60 < p[1] < 215 and p[2] < 110)(fim.getpixel((x, y))))
         ev("__sg.map.setLayoutProperty('sg-3d', 'visibility', 'visible')"); ev(IDLE)
-        check('3D rocket: moving → hovers 30 m up, leans 20° towards the heading, engine flame visible (pixels)', abs(pose['tilt'] - 20) < 0.5 and abs(pose['lift'] - 30) < 1 and pose['plume'] and abs(pose['yaw'] + 45) < 0.01 and orange > 60, {**pose, 'flame px': orange})
+        check('3D pin: moving 60 m NE → nose turns to the heading (45°) and the engines fire (pixels)', abs(pose['yaw'] - 45) < 0.3 and pose['flame'] and orange > 40, {**pose, 'flame px': orange})  # flame points nearly at the camera here; its placement is checked in level flight
+        has_f22 = ev("Object.keys(__sg.CRAFTS).includes('f22')")
+        if not has_f22:
+            print('SKIP F-22 pin checks: assets/f22-raptor.glb is not in this build')
+        else:
+            # choose the F-22
+            page.click('.sg-pin[data-pin="f22"]')
+            page.wait_for_function("__sg.CR.loaded.f22 && __sg.CR.loaded.f22.state !== 'loading'", timeout=60000); page.wait_for_timeout(300); ev(IDLE)
+            f2 = ev("""(() => { const C = __sg.CR.loaded; return { state: C.f22.state, pins: Object.fromEntries([...document.querySelectorAll('.sg-pin')].map((b) => [b.dataset.pin, b.getAttribute('aria-pressed')])),
+              chip: document.getElementById('locChip').textContent, L: __sg.craftLengthM(), vis: [C.starship.size.visible, C.f22.size.visible], pin: JSON.parse(localStorage.getItem('sembawang-brook-3d.sg')).pin }; })()""")
+            page.screenshot(path=f'{SHOTS}/sg07f_f22.png')
+            check('3D pin: choosing F-22 swaps the pin and saves the choice; at z16.5 its 18.9 m would be ~22 px, so it is enlarged and the chip says so',
+                  f2['state'] == 'ready' and f2['pins'] == {'starship': 'false', 'f22': 'true'} and f2['vis'] == [False, True] and f2['pin'] == 'f22' and f2['L'] > 18.9 * 2 and 'F\u201122 ×' in f2['chip'],
+                  {k: f2[k] for k in ('state', 'pins', 'vis', 'pin', 'chip')})
+            lf2 = level_flight('f22', 'f22')
+            cx, cn = centroid_x(lf2['im'], lf2['mask']['box'], lambda p: p[0] > p[1] + 25 and p[1] > p[2] + 10)  # the canopy's amber tint
+            mid = (lf2['mask']['box'][0] + lf2['mask']['box'][2]) / 2
+            check('3D pin: F-22 flies level and nose-first: ends within 4 px of a MapLibre bar of its drawn length at the same height; canopy at the east end; tethered (pixels)',
+                  abs(lf2['craft x'][0] - lf2['bar x'][0]) <= 4 and abs(lf2['craft x'][1] - lf2['bar x'][1]) <= 4 and lf2['craft rows'][0] <= lf2['bar row'] <= lf2['craft rows'][1]
+                  and lf2['tether'] > 0.8 and cn > 5 and cx > mid + 0.2 * lf2['bar w'],
+                  {**{k: lf2[k] for k in ('craft x', 'bar x', 'craft rows', 'bar row', 'bar w', 'tether', 'L', 'H')}, 'canopy px': cn, 'canopy x': round(cx or 0), 'mid': mid})
+            ev("__sg.map.setLayoutProperty('sg-3d', 'visibility', 'visible')")
+            page.click('.sg-locate'); page.wait_for_timeout(300); ev(IDLE)  # follow again (level_flight paused it)
         check('location: moving 60 m NE → rocket points along the way (heading 45°), camera follows', abs(s2['heading'] - 45) < 1 and s2['align'] == 'map' and abs(s2['rot'] - s2['heading']) < 1e-6
               and s2['moving'] and 'heading NE' in s2['chip'] and hav(s2['c'], me2) < 3 and hav(s2['ll'], me2) < 0.5, {'heading': round(s2['heading'], 2), 'chip': s2['chip'], 'centre off m': round(hav(s2['c'], me2), 2)})
         check('location: while following, your position stays out of the #view link and saved settings',
@@ -869,8 +923,8 @@ with sync_playwright() as p:
         s7 = ev(LSTATE)
         lctx.set_geolocation({'latitude': HOME[0], 'longitude': HOME[1], 'accuracy': 25}); page.wait_for_timeout(1200)
         s8 = ev(LSTATE)
-        gone, _ = rocket_mask(page)
-        check('3D rocket: gone when tracking stops', gone['n'] == 0, gone)
+        gone, _, _ = rocket_mask(page)
+        check('3D pin: gone when tracking stops', gone['n'] == 0, gone)
         check('location: tapping while following stops tracking (pin, circle and chip gone; no more updates)', s7['state'] == 'off' and s7['ll'] is None and s7['n'] == 0 and not s7['chip'] and s8['ll'] is None and s8['state'] == 'off', {'after stop': s7['state'], 'later': s8['state']})
         page.keyboard.press('l'); page.wait_for_selector('.me', timeout=15000)
         check('location: the L key starts it', ev("document.querySelector('.sg-locate').dataset.state") in ('follow', 'wait'), ev("document.querySelector('.sg-locate').dataset.state"))
@@ -878,18 +932,18 @@ with sync_playwright() as p:
         lctx.close()
         # 3D model can't load → the flat rocket stays
         fctx = browser.new_context(viewport={'width': 1024, 'height': 700}, geolocation={'latitude': HOME[0], 'longitude': HOME[1], 'accuracy': 25}, permissions=['geolocation'])
-        fctx.route('**/assets/starship-block3.glb', lambda r: r.fulfill(status=404, body='missing'))
+        fctx.route('**/assets/*.glb', lambda r: r.fulfill(status=404, body='missing'))
         fctx, page, ferrs = open_sg(0, 0, ctx=fctx)
         page.wait_for_function('window.__sg && __sg.styleReady()', timeout=60000)
         page.click('.sg-locate'); page.wait_for_selector('.me', timeout=15000)
-        page.wait_for_function("__sg.rocket() && __sg.rocket().state === 'failed'", timeout=60000); page.wait_for_timeout(300); page.evaluate(IDLE)
+        page.wait_for_function("__sg.CR.loaded.starship && __sg.CR.loaded.starship.state === 'failed'", timeout=60000); page.wait_for_timeout(300); page.evaluate(IDLE)
         im = shot_px(page)
         pt = page.evaluate("(() => { const p = __sg.map.project(__sg.meMarker.getLngLat()), r = __sg.map.getContainer().getBoundingClientRect(); return [p.x + r.left, p.y + r.top]; })()")
         red = sum(1 for x in range(int(pt[0]) - 20, int(pt[0]) + 21) for y in range(int(pt[1]) - 75, int(pt[1]) - 5)
                   if (lambda p: p[0] > 200 and p[1] < 110 and p[2] < 110)(im.getpixel((x, y))))
         blue = sum(1 for x in range(int(pt[0]) - 6, int(pt[0]) + 7) for y in range(int(pt[1]) - 6, int(pt[1]) + 7) if (lambda p: p[2] > 200 and p[0] < 60)(im.getpixel((x, y))))
         ferrs_real = [e for e in ferrs if '404' not in e]
-        check('3D rocket: if the model can\'t load, the flat rocket stays over the blue dot (pixels)', red > 40 and blue > 20 and not ferrs_real, {'red px': red, 'blue px': blue, 'errors': ferrs_real[:2]})
+        check('3D pin: if the model can\'t load, the flat rocket stays over the blue dot (pixels)', red > 40 and blue > 20 and not ferrs_real, {'red px': red, 'blue px': blue, 'errors': ferrs_real[:2]})
         fctx.close()
         # permission refused
         dctx = browser.new_context(viewport={'width': 1024, 'height': 700})
@@ -899,6 +953,14 @@ with sync_playwright() as p:
         dn = page.evaluate("({ chip: document.getElementById('locChip').textContent, pin: !!document.querySelector('.me') })")
         check('location: permission refused → clear message, no pin', 'blocked' in dn['chip'] and not dn['pin'], dn)
         dctx.close()
+        # the build offers only pins whose model files ship next to the page
+        import shutil, tempfile
+        tmp = tempfile.mkdtemp(); os.makedirs(os.path.join(tmp, 'assets'))
+        shutil.copy(os.path.join(ROOT, 'assets', 'starship-block3.glb'), os.path.join(tmp, 'assets'))
+        out = subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'build.py'), '--out', os.path.join(tmp, 'index.html')], capture_output=True, text=True)
+        pins = re.search(r'"pins":(\[[^\]]*\])', open(os.path.join(tmp, 'singapore.html')).read())
+        check('build: a model that is not shipped is not offered (Starship only → no chooser, no F-22)', out.returncode == 0 and pins and json.loads(pins[1]) == ['starship'], pins and pins[1])
+        shutil.rmtree(tmp, ignore_errors=True)
         # style unreachable → clear message instead of a blank page
         net['style_fail'] = True
         ctx, page, errs = open_sg(1024, 700)
@@ -926,6 +988,14 @@ with sync_playwright() as p:
         page.screenshot(path=f'{SHOTS}/sg08_mobile_location.png')
         mst = page.evaluate("document.querySelector('.sg-locate').dataset.state")
         check('sg mobile: location button (≥ 38 px touch target, top-right) tracks you', lb[2] >= 38 and lb[0] + lb[2] <= lb[4] and lb[1] > 56 and mst == 'follow', {'button': lb, 'state': mst})
+        pb = page.evaluate("[...document.querySelectorAll('.sg-pin')].map((b) => { const r = b.getBoundingClientRect(); return [b.dataset.pin, Math.round(r.width), Math.round(r.height), Math.round(r.right) <= innerWidth]; })")
+        if page.evaluate("Object.keys(__sg.CRAFTS).includes('f22')"):
+            page.tap('.sg-pin[data-pin="f22"]'); page.wait_for_function("__sg.CR.loaded.f22 && __sg.CR.loaded.f22.state === 'ready'", timeout=60000); page.wait_for_timeout(800)
+            page.screenshot(path=f'{SHOTS}/sg09_mobile_f22.png')
+            check('sg mobile: pin chooser buttons are touch-sized (≥ 38 px) and tapping F-22 switches the pin', all(w >= 38 and h >= 38 and inside for _, w, h, inside in pb) and page.evaluate("__sg.pin()") == 'f22', pb)
+            page.tap('.sg-pin[data-pin="starship"]')
+        else:
+            check('sg mobile: with only the Starship shipped there is no chooser', pb == [], pb)
         page.tap('.sg-locate'); page.wait_for_timeout(300)
         # one-finger drag pans (MapLibre default touch gestures)
         page.evaluate("__sg.map.jumpTo({ center: [103.8130, 1.4599], zoom: 16, pitch: 50, bearing: 0 })"); page.evaluate(IDLE)

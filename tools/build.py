@@ -55,7 +55,10 @@ if not sg_abs:
     ring = [lonlat(x, z) for x, z in pts]; ring.append(ring[0])
     sg_out = os.path.join(os.path.dirname(os.path.abspath(a.out)), a.sg_url)
     sg = {'estate': {'name': site['meta']['name'], 'centre': centre, 'ring': ring,
-                     'url': os.path.relpath(os.path.abspath(a.out), os.path.dirname(sg_out))}}
+                     'url': os.path.relpath(os.path.abspath(a.out), os.path.dirname(sg_out))},
+          # 3D location pins whose model files are present next to the page (assets/); the page offers only these
+          'pins': [k for k, f in (('starship', 'starship-block3.glb'), ('f22', 'f22-raptor.glb'))
+                   if os.path.isfile(os.path.join(os.path.dirname(sg_out), 'assets', f))]}
     sjs = open(os.path.join(ROOT, 'src', '01_suncalc.js')).read() + '\n' + open(os.path.join(ROOT, 'src', 'sg', 'main.js')).read()
     sjs = sjs.replace('/*__SG_JSON__*/null', json.dumps(sg, separators=(',', ':')))
     assert '__SG_JSON__' not in sjs
@@ -64,4 +67,4 @@ if not sg_abs:
     spage = spage.replace('/*__ESTATE_URL__*/', html.escape(sg['estate']['url'], quote=True))
     assert '/*__' not in spage.replace('/*__SG_JSON', '')
     open(sg_out, 'w').write(spage)
-    print('built', sg_out, os.path.getsize(sg_out), 'bytes', 'estate centre', centre)
+    print('built', sg_out, os.path.getsize(sg_out), 'bytes', 'estate centre', centre, 'pins', sg['pins'])

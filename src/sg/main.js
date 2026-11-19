@@ -313,7 +313,7 @@
       'sky-color': k.zen, 'horizon-color': mixHex(k.hor, k.warm, k.amt * 0.7), 'fog-color': k.hor,
       'sky-horizon-blend': 0.7, 'horizon-fog-blend': 0.5, 'fog-ground-blend': 0.6,
     });
-    rocketSun(p);
+    craftSun(p);
   }
   dateIn.addEventListener('change', () => { if (dateIn.value) { sun.date = dateIn.value; applySun(); } });
   timeIn.addEventListener('input', () => { sun.min = +timeIn.value; applySun(); });
@@ -347,7 +347,7 @@
      Uses the browser's Geolocation API only. The position stays on this device: it is not sent
      anywhere and not saved. The rocket stands upright while you are still and points along your
      direction of travel while you move (the device's heading, else the bearing between fixes). */
-  const LOC = { watch: null, on: false, follow: false, fix: null, prev: null, heading: null, movedAt: 0, first: false, shown: false };
+  const LOC = { watch: null, on: false, follow: false, fix: null, prev: null, heading: null, lastHeading: null, movedAt: 0, first: false, shown: false };
   const R_EARTH = 6371008.8;
   const distM = (a, b) => { const p1 = a[1] * Math.PI / 180, p2 = b[1] * Math.PI / 180, dp = p2 - p1, dl = (b[0] - a[0]) * Math.PI / 180;
     const h = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2; return 2 * R_EARTH * Math.asin(Math.sqrt(h)); };
@@ -403,9 +403,9 @@
     const c = pos.coords, now = Date.now();
     const fix = { ll: [c.longitude, c.latitude], acc: Math.max(1, c.accuracy || 0) };
     // direction of travel: the device's own heading when it is moving, else the bearing since the last clearly-separate fix
-    if (Number.isFinite(c.heading) && c.heading !== null && (c.speed == null || c.speed > 0.7)) { LOC.heading = c.heading; LOC.movedAt = now; LOC.prev = fix; }
+    if (Number.isFinite(c.heading) && c.heading !== null && (c.speed == null || c.speed > 0.7)) { LOC.heading = LOC.lastHeading = c.heading; LOC.movedAt = now; LOC.prev = fix; }
     else if (!LOC.prev) LOC.prev = fix;
-    else if (distM(LOC.prev.ll, fix.ll) > Math.max(8, 0.5 * (fix.acc + LOC.prev.acc))) { LOC.heading = bearingDeg(LOC.prev.ll, fix.ll); LOC.movedAt = now; LOC.prev = fix; }
+    else if (distM(LOC.prev.ll, fix.ll) > Math.max(8, 0.5 * (fix.acc + LOC.prev.acc))) { LOC.heading = LOC.lastHeading = bearingDeg(LOC.prev.ll, fix.ll); LOC.movedAt = now; LOC.prev = fix; }
     if (LOC.heading != null && now - LOC.movedAt > 20000) LOC.heading = null; // still for 20 s: back on the pad
     LOC.fix = fix;
     meMarker.setLngLat(fix.ll);
@@ -424,7 +424,7 @@
     setLocState(LOC.follow ? 'follow' : 'free');
   }
   function meChipText() {
-    return `You are here · ±${Math.round(LOC.fix.acc)} m${LOC.heading != null ? ` · heading ${compass(LOC.heading)}` : ''}${rocketNote()}`;
+    return `You are here · ±${Math.round(LOC.fix.acc)} m${LOC.heading != null ? ` · heading ${compass(LOC.heading)}` : ''}${craftNote()}`;
   }
   function onLocErr(err) {
     if (!LOC.on) return;
@@ -435,9 +435,9 @@
   function locStart() {
     if (!('geolocation' in navigator)) { setLocState('error'); locChip('This browser has no location service.', 'err'); return; }
     if (!window.isSecureContext) { setLocState('error'); locChip('Location needs a secure (https) page.', 'err'); return; }
-    Object.assign(LOC, { on: true, follow: true, first: true, fix: null, prev: null, heading: null });
+    Object.assign(LOC, { on: true, follow: true, first: true, fix: null, prev: null, heading: null, lastHeading: (map.getBearing() + 450) % 360 }); // until you move: side-on, nose to the right of the screen
     setLocState('wait'); locChip('Finding your location…');
-    loadRocket3D(); // fetch the 3D rocket while the GPS warms up
+    loadCraft(pinChoice); // fetch the chosen 3D pin while the GPS warms up
     LOC.watch = navigator.geolocation.watchPosition(onFix, onLocErr, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
   }
   function locStop() {
@@ -456,107 +456,201 @@
   map.on('dragstart', () => { if (LOC.on && LOC.follow) { LOC.follow = false; setLocState(LOC.fix ? 'free' : 'wait'); } });
   function stopFollowing() { if (LOC.on && LOC.follow) { LOC.follow = false; setLocState(LOC.fix ? 'free' : 'wait'); } }
 
-  /* ---------------- 3D Starship pin ----------------
-     Model: "SpaceX Starship Block 3" by Clarence365
-     (https://sketchfab.com/3d-models/spacex-starship-block-3-6f6c6f88a3eb4b4d822fdca66733fbb2), CC BY 4.0.
-     Adapted (tools/slim_rocket.mjs): logo decal removed; meshes merged and simplified for the web.
-     Loaded with three.js r160 the first time location is switched on, and drawn in a MapLibre custom 3D
-     layer that shares the map's depth buffer, so buildings in front hide it. Shown at its real height
-     (124 m, the V3 stack), and drawn bigger only when that would be under ~90 px on screen. While you
-     move it hovers 30 m up, leans 20° the way you are going and fires its engines; when you stop it lands. */
-  var ROCKET = null; // { state: 'loading' | 'ready' | 'failed', … } — var: applySun may run before this line
-  const RK = { url: 'assets/starship-block3.glb', realM: 124, minPx: 90, tiltDeg: 20, liftM: 30 };
-  function rocketHeightM() {
-    if (!LOC.fix) return RK.realM;
+  /* ---------------- 3D location pins: Starship or F-22 (you choose) ----------------
+     Each craft flies level above your position with its nose pointing the way you are going (the last
+     known direction when you stop; at first, side-on with its nose to the right of the screen), joined to the blue dot by a thin
+     tether. Drawn with three.js r160 in a MapLibre custom 3D layer that shares the map's depth buffer,
+     so taller buildings in front hide it. Models load on demand, the first time each is needed.
+     - Starship: "SpaceX Starship Block 3" by Clarence365
+       (https://sketchfab.com/3d-models/spacex-starship-block-3-6f6c6f88a3eb4b4d822fdca66733fbb2), CC BY 4.0,
+       adapted with tools/slim_model.mjs (logo decal removed, simplified). Real length 124 m (V3 stack).
+       Flies belly (heat-shield tiles) down; fires its engines while you move.
+     - F-22 Raptor: model supplied by the project owner (see README for its source); adapted with
+       tools/slim_model.mjs. Real length 18.9 m (USAF fact sheet).
+     Both are drawn at real size unless that would be shorter than ~100 px on screen; then they are enlarged
+     and the status line says by how much. */
+  const CRAFTS = {
+    starship: { label: 'Starship', url: 'assets/starship-block3.glb', lengthM: 124, flame: true,
+      icon: '<path d="M12 2.5c2.6 2.3 3.6 5.6 3.4 9.4l2.4 3.3-.3 3.3-3.2-1.8H9.7l-3.2 1.8-.3-3.3 2.4-3.3C8.4 8.1 9.4 4.8 12 2.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="1.6" fill="currentColor"/><path d="M10.5 19.5l1.5 2.5 1.5-2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>' },
+    f22: { label: 'F\u201122', url: 'assets/f22-raptor.glb', lengthM: 18.9, flame: false, // non-breaking hyphen
+      icon: '<path d="M12 2.5l1.6 4.7v3.1l7.4 5v1.9l-7.4-2.4v3.6l2.3 1.9v1.4L12 20.4l-3.9 1.3v-1.4l2.3-1.9v-3.6L3 17.2v-1.9l7.4-5V7.2z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>' },
+  };
+  for (const k of Object.keys(CRAFTS)) if (Array.isArray(SG.pins) && !SG.pins.includes(k)) delete CRAFTS[k]; // only models this build ships
+  const CR = { minPx: 100, altM: 120, loaded: {}, active: null, three: null, layerAdded: false };
+  let pinChoice = CRAFTS[saved.pin] ? saved.pin : Object.keys(CRAFTS)[0] || null;
+  function craftLengthM(key = pinChoice) {
+    if (!CRAFTS[key]) return 0;
+    const real = CRAFTS[key].lengthM;
+    if (!LOC.fix) return real;
     const mpp = 40075016.686 * Math.cos(LOC.fix.ll[1] * Math.PI / 180) / (512 * 2 ** map.getZoom()); // metres per CSS pixel
-    return Math.max(RK.realM, RK.minPx * mpp);
+    return Math.max(real, CR.minPx * mpp);
   }
-  function rocketNote() {
-    if (!ROCKET || ROCKET.state !== 'ready') return '';
-    const k = rocketHeightM() / RK.realM;
-    return k < 1.05 ? ' · rocket true size' : ` · rocket ×${k < 10 ? k.toFixed(1) : Math.round(k)} size`;
+  const craftAltM = (L) => Math.max(CR.altM, 0.5 * L); // clear of most HDB blocks, and always above its own size
+  function craftReady() { const c = pinChoice && CR.loaded[pinChoice]; return !!(c && c.state === 'ready'); }
+  function craftNote() {
+    if (!craftReady()) return '';
+    const k = craftLengthM() / CRAFTS[pinChoice].lengthM;
+    return k < 1.05 ? ` · ${CRAFTS[pinChoice].label} true size` : ` · ${CRAFTS[pinChoice].label} ×${k < 10 ? k.toFixed(1) : Math.round(k)} size`;
   }
-  function rocketSun(p) {
-    if (!ROCKET || ROCKET.state !== 'ready' || !p) return;
+  function craftHeading() { return LOC.heading != null ? LOC.heading : (LOC.lastHeading != null ? LOC.lastHeading : 0); }
+  function craftSun(p) {
+    if (!CR.three || !p) return;
     const az = p.az * Math.PI / 180, el = Math.max(p.el, -5) * Math.PI / 180, day = smooth(-4, 12, p.el), L = lightFor(p.el);
-    ROCKET.sunL.position.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).multiplyScalar(100); // model frame: +x east, +y up, +z south
-    ROCKET.sunL.color.set(L.color);
-    ROCKET.sunL.intensity = p.el > 0 ? 0.6 + 1.8 * smooth(0, 25, p.el) : 0.05;
-    ROCKET.hemi.intensity = 0.15 + 0.55 * day;
-    for (const m of ROCKET.mats) m.envMapIntensity = 0.2 + 0.8 * day;
+    CR.sunL.position.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).multiplyScalar(100); // scene frame: +x east, +y up, +z south
+    CR.sunL.color.set(L.color);
+    CR.sunL.intensity = p.el > 0 ? 0.6 + 1.8 * smooth(0, 25, p.el) : 0.05;
+    CR.hemi.intensity = 0.15 + 0.55 * day;
+    for (const c of Object.values(CR.loaded)) if (c.mats) for (const m of c.mats) m.envMapIntensity = 0.2 + 0.8 * day;
     map.triggerRepaint();
   }
-  async function loadRocket3D() {
-    if (ROCKET) return;
-    ROCKET = { state: 'loading' };
-    try {
-      const [THREE, { GLTFLoader }, { MeshoptDecoder }, { RoomEnvironment }] = await Promise.all([
-        import('three'), import('three/addons/loaders/GLTFLoader.js'),
-        import('three/addons/libs/meshopt_decoder.module.js'), import('three/addons/environments/RoomEnvironment.js')]);
-      const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(RK.url);
-      const model = gltf.scene, box = new THREE.Box3().setFromObject(model), modelH = box.max.y - box.min.y;
-      model.position.y = -box.min.y; // engines on the ground; the body axis is the model's own origin
-      const mats = new Set();
-      model.traverse((o) => { if (o.isMesh) { mats.add(o.material); o.frustumCulled = false; } });
-      // engine plume (two plain cones), shown only while flying
-      const plume = new THREE.Group();
-      const cone = (r, h, col, op) => {
-        const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 24, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, depthWrite: false, side: THREE.DoubleSide }));
-        m.rotation.x = Math.PI; m.position.y = -h / 2; m.frustumCulled = false; return m;
-      };
-      plume.add(cone(modelH * 0.05, modelH * 0.2, 0xff6a14, 0.8), cone(modelH * 0.03, modelH * 0.12, 0xffd060, 0.95)); // inner cone drawn last
-      plume.children[1].renderOrder = 1;
-      plume.visible = false;
-      const yaw = new THREE.Group(), pivot = new THREE.Group();
-      yaw.add(pivot); pivot.add(model, plume);
-      const scene = new THREE.Scene(); scene.add(yaw);
-      const sunL = new THREE.DirectionalLight(0xffffff, 2), hemi = new THREE.HemisphereLight(0xdfe9f3, 0x8a8a80, 0.6);
-      scene.add(sunL, sunL.target, hemi);
-      const camera = new THREE.Camera(), ROT_X = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
-      const pose = { tilt: 0, lift: 0 };
-      let renderer = null, last = 0, flickerT = 0;
-      const layer = {
-        id: 'me-rocket3d', type: 'custom', renderingMode: '3d',
-        onAdd(m, gl) {
-          renderer = new THREE.WebGLRenderer({ canvas: m.getCanvas(), context: gl, antialias: true });
-          renderer.autoClear = false;
-          const pm = new THREE.PMREMGenerator(renderer);
-          scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose();
-        },
-        render(gl, args) {
-          if (!LOC.fix) { last = 0; return; }
-          const now = performance.now(), dt = last ? Math.min(0.1, (now - last) / 1000) : 1; last = now;
-          const moving = LOC.heading != null, still = reducedMotion();
-          const tT = moving ? RK.tiltDeg : 0, lT = moving ? RK.liftM : 0, k = still ? 1 : 1 - Math.exp(-dt / 0.35);
-          pose.tilt += (tT - pose.tilt) * k; pose.lift += (lT - pose.lift) * k;
-          const settling = Math.abs(tT - pose.tilt) > 0.05 || Math.abs(lT - pose.lift) > 0.05;
-          const unitM = rocketHeightM() / modelH; // metres per model unit
-          if (moving) yaw.rotation.y = -LOC.heading * Math.PI / 180;
-          pivot.rotation.x = -pose.tilt * Math.PI / 180; // lean the nose towards the heading
-          yaw.position.y = pose.lift / unitM;
-          plume.visible = pose.lift > 1;
-          if (plume.visible && !still) plume.scale.set(1, 0.85 + 0.15 * Math.sin(now / 55), 1);
-          const mc = maplibregl.MercatorCoordinate.fromLngLat(LOC.fix.ll, 0), s = mc.meterInMercatorCoordinateUnits() * unitM;
-          const l = new THREE.Matrix4().makeTranslation(mc.x, mc.y, mc.z).scale(new THREE.Vector3(s, -s, s)).multiply(ROT_X);
-          camera.projectionMatrix = new THREE.Matrix4().fromArray(args.defaultProjectionData.mainMatrix).multiply(l);
-          renderer.resetState();
-          renderer.render(scene, camera);
-          if (settling) map.triggerRepaint();
-          else if (plume.visible && !still && !flickerT) flickerT = setTimeout(() => { flickerT = 0; map.triggerRepaint(); }, 60); // ~15 fps flicker, not 60
-        },
-      };
-      Object.assign(ROCKET, { state: 'ready', sunL, hemi, mats: [...mats], pose, modelH, plume, yaw });
-      map.addLayer(layer);
-      meEl.classList.add('has3d');
-      rocketSun(lastSun);
-      if (LOC.fix && inBounds(LOC.fix.ll)) locChip(meChipText());
-    } catch (e) {
-      ROCKET.state = 'failed';
-      console.warn('[sg] 3D rocket unavailable, keeping the flat rocket:', e && (e.message || e));
-    }
+  async function loadThree() {
+    if (CR.three) return CR.three;
+    const [THREE, { GLTFLoader }, { MeshoptDecoder }, { RoomEnvironment }] = await Promise.all([
+      import('three'), import('three/addons/loaders/GLTFLoader.js'),
+      import('three/addons/libs/meshopt_decoder.module.js'), import('three/addons/environments/RoomEnvironment.js')]);
+    const scene = new THREE.Scene();
+    const sunL = new THREE.DirectionalLight(0xffffff, 2), hemi = new THREE.HemisphereLight(0xdfe9f3, 0x8a8a80, 0.6);
+    scene.add(sunL, sunL.target, hemi);
+    const tether = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 8, 1, true), new THREE.MeshBasicMaterial({ color: 0x0a84ff, transparent: true, opacity: 0.7, depthWrite: false }));
+    tether.frustumCulled = false; scene.add(tether);
+    const yaw = new THREE.Group(); scene.add(yaw);
+    Object.assign(CR, { THREE, GLTFLoader, MeshoptDecoder, RoomEnvironment, scene, sunL, hemi, tether, yaw, camera: new THREE.Camera(),
+      rotX: new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2), yawNow: null });
+    CR.three = THREE;
+    craftSun(lastSun);
+    return THREE;
   }
-  map.on('zoomend', () => { if (LOC.fix && inBounds(LOC.fix.ll) && ROCKET && ROCKET.state === 'ready') locChip(meChipText()); });
+  /* put a model in a common frame: nose along -Z, up +Y, centred, 1 unit long */
+  function normaliseCraft(key, model, THREE) {
+    const inner = new THREE.Group(), outer = new THREE.Group(), norm = new THREE.Group();
+    inner.add(model); outer.add(inner); norm.add(outer);
+    if (key === 'starship') {
+      // modelled standing (nose +Y): pitch it nose-forward, then roll so the heat-shield tiles face the ground
+      let tiles = null;
+      model.traverse((o) => { if (o.isMesh && o.material && o.material.name === 'Heatshield_Tiles') tiles = o; });
+      inner.rotation.x = -Math.PI / 2;
+      if (tiles) {
+        model.updateMatrixWorld(true);
+        const c = new THREE.Box3().setFromObject(tiles).getCenter(new THREE.Vector3()); // model frame; body axis = model origin
+        outer.rotation.z = -Math.PI / 2 - Math.atan2(c.z, c.x); // after the pitch, model (x, z) lies in the craft's (x, y) plane
+      }
+    } else {
+      inner.rotation.y = Math.PI / 2; // F-22: modelled nose +X, canopy +Y
+    }
+    norm.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(outer), c = box.getCenter(new THREE.Vector3());
+    outer.position.copy(c).multiplyScalar(-1);
+    const len = box.max.z - box.min.z;
+    norm.scale.setScalar(1 / len);
+    return { norm, len, box };
+  }
+  async function loadCraft(key) {
+    if (!CRAFTS[key]) return null;
+    if (CR.loaded[key]) return CR.loaded[key].promise;
+    const rec = CR.loaded[key] = { state: 'loading' };
+    rec.promise = (async () => {
+      try {
+        const THREE = await loadThree();
+        const gltf = await new CR.GLTFLoader().setMeshoptDecoder(CR.MeshoptDecoder).loadAsync(CRAFTS[key].url);
+        const model = gltf.scene, mats = new Set();
+        model.traverse((o) => { if (o.isMesh) { mats.add(o.material); o.frustumCulled = false; } });
+        const { norm } = normaliseCraft(key, model, THREE);
+        let flame = null;
+        if (CRAFTS[key].flame) { // engine plume: two plain cones off the tail (craft frame: tail at +Z 0.5)
+          flame = new THREE.Group();
+          const cone = (r, h, col, op) => {
+            const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 24, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, depthWrite: false, side: THREE.DoubleSide }));
+            m.rotation.x = -Math.PI / 2; m.position.z = 0.5 + h / 2; m.frustumCulled = false; return m;
+          };
+          flame.add(cone(0.05, 0.28, 0xff6a14, 0.8), cone(0.03, 0.16, 0xffd060, 0.95)); flame.children[1].renderOrder = 1;
+          flame.visible = false;
+        }
+        const size = new THREE.Group(); // unit-length craft, scaled to metres each frame
+        size.add(norm); if (flame) size.add(flame);
+        size.visible = false;
+        CR.yaw.add(size);
+        Object.assign(rec, { state: 'ready', size, flame, mats: [...mats] });
+        craftSun(lastSun);
+      } catch (e) {
+        rec.state = 'failed';
+        console.warn(`[sg] 3D ${CRAFTS[key].label} unavailable, keeping the flat rocket:`, e && (e.message || e));
+      }
+      showCraft();
+    })();
+    return rec.promise;
+  }
+  function addCraftLayer() {
+    if (CR.layerAdded || !CR.three) return;
+    const THREE = CR.three;
+    let renderer = null, last = 0, flickerT = 0;
+    map.addLayer({
+      id: 'me-craft3d', type: 'custom', renderingMode: '3d',
+      onAdd(m, gl) {
+        renderer = new THREE.WebGLRenderer({ canvas: m.getCanvas(), context: gl, antialias: true });
+        renderer.autoClear = false;
+        const pm = new THREE.PMREMGenerator(renderer);
+        CR.scene.environment = pm.fromScene(new CR.RoomEnvironment(), 0.04).texture; pm.dispose();
+      },
+      render(gl, args) {
+        const rec = CR.loaded[pinChoice];
+        if (!LOC.fix || !rec || rec.state !== 'ready') { last = 0; return; }
+        const now = performance.now(), dt = last ? Math.min(0.25, (now - last) / 1000) : 1; last = now;
+        const still = reducedMotion(), k = still ? 1 : 1 - Math.exp(-dt / 0.35); // time-based turn, ~1 s to settle
+        const target = craftHeading();
+        if (CR.yawNow == null) CR.yawNow = target;
+        const dYaw = ((target - CR.yawNow + 540) % 360) - 180; // shortest turn
+        CR.yawNow = (CR.yawNow + dYaw * k + 360) % 360;
+        const settling = Math.abs(dYaw) * (1 - k) > 0.05;
+        const L = craftLengthM(), H = craftAltM(L);
+        for (const [key, c] of Object.entries(CR.loaded)) if (c.size) c.size.visible = key === pinChoice;
+        rec.size.scale.setScalar(L);
+        CR.yaw.position.set(0, H, 0);
+        CR.yaw.rotation.y = -CR.yawNow * Math.PI / 180; // nose (-Z) to the heading, clockwise from north
+        if (rec.flame) {
+          rec.flame.visible = LOC.heading != null;
+          if (rec.flame.visible && !still) rec.flame.scale.set(1, 1, 0.85 + 0.15 * Math.sin(now / 55));
+        }
+        const px = 40075016.686 * Math.cos(LOC.fix.ll[1] * Math.PI / 180) / (512 * 2 ** map.getZoom());
+        CR.tether.scale.set(0.8 * px, H, 0.8 * px); CR.tether.position.set(0, H / 2, 0);
+        const mc = maplibregl.MercatorCoordinate.fromLngLat(LOC.fix.ll, 0), s = mc.meterInMercatorCoordinateUnits(); // scene units: metres
+        const l = new THREE.Matrix4().makeTranslation(mc.x, mc.y, mc.z).scale(new THREE.Vector3(s, -s, s)).multiply(CR.rotX);
+        CR.camera.projectionMatrix = new THREE.Matrix4().fromArray(args.defaultProjectionData.mainMatrix).multiply(l);
+        renderer.resetState();
+        renderer.render(CR.scene, CR.camera);
+        if (settling) map.triggerRepaint();
+        else if (rec.flame && rec.flame.visible && !still && !flickerT) flickerT = setTimeout(() => { flickerT = 0; map.triggerRepaint(); }, 60); // ~15 fps flicker, not 60
+      },
+    });
+    CR.layerAdded = true;
+  }
+  function showCraft() {
+    const ok = craftReady();
+    if (ok) addCraftLayer();
+    meEl.classList.toggle('has3d', !!ok); // the flat rocket stands in while loading or if a model fails
+    if (LOC.fix && inBounds(LOC.fix.ll)) locChip(meChipText());
+    map.triggerRepaint();
+  }
+  function setPin(key) {
+    if (!CRAFTS[key]) return;
+    pinChoice = key; store.set({ pin: key });
+    for (const b of pinBtns) b.setAttribute('aria-pressed', String(b.dataset.pin === key));
+    if (LOC.on) loadCraft(key);
+    showCraft();
+  }
+  // the chooser: two buttons under the location button
+  const pinBtns = Object.entries(CRAFTS).map(([key, c]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'sg-pin'; b.dataset.pin = key;
+    b.title = `Location pin: ${key === 'f22' ? 'F-22 Raptor' : 'Starship + Super Heavy'}`; b.setAttribute('aria-label', b.title);
+    b.setAttribute('aria-pressed', String(key === pinChoice));
+    b.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">${c.icon}</svg>`;
+    b.addEventListener('click', () => setPin(key));
+    return b;
+  });
+  if (pinBtns.length > 1) map.addControl({ onAdd() { const d = document.createElement('div'); d.className = 'maplibregl-ctrl maplibregl-ctrl-group sg-pins'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', 'Location pin'); pinBtns.forEach((b) => d.appendChild(b)); return d; }, onRemove() {} }, 'top-right');
+  map.on('zoomend', () => { if (LOC.fix && inBounds(LOC.fix.ll) && craftReady()) locChip(meChipText()); });
+
 
   /* debug / test hooks (?debug) */
-  if (/[?&]debug\b/.test(location.search)) window.__sg = { map, PLACES, goTo, applySun, sun, lastSun: () => lastSun, setPlaying, geocode, matchPlaces, CFG, styleReady: () => styleReady, LOC, meMarker, rocket: () => ROCKET, rocketHeightM };
+  if (/[?&]debug\b/.test(location.search)) window.__sg = { map, PLACES, goTo, applySun, sun, lastSun: () => lastSun, setPlaying, geocode, matchPlaces, CFG, styleReady: () => styleReady, LOC, meMarker, CR, CRAFTS, craftLengthM, craftAltM, pin: () => pinChoice, setPin };
 })();
