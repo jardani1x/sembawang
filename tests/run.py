@@ -773,33 +773,80 @@ with sync_playwright() as p:
             c: m.getCenter().toArray(), z: m.getZoom(), ll: me ? mk.getLngLat().toArray() : null, align: mk.getRotationAlignment(), rot: mk.getRotation(),
             moving: !!(me && me.classList.contains('moving')), ring0: ring[0] || null, n: ring.length, chip: document.getElementById('locChip').hidden ? '' : document.getElementById('locChip').textContent,
             heading: __sg.LOC.heading, hash: location.hash, stored: JSON.stringify(localStorage) }; }"""
+        def rocket_mask(page):
+            # pixels the 3D rocket layer changes: screenshot with it, then without it
+            page.evaluate(IDLE); a = shot_px(page)
+            page.evaluate("__sg.map.setLayoutProperty('me-rocket3d', 'visibility', 'none')"); page.evaluate(IDLE); page.wait_for_timeout(150); b = shot_px(page)
+            page.evaluate("__sg.map.setLayoutProperty('me-rocket3d', 'visibility', 'visible')"); page.evaluate(IDLE)
+            d = ImageChops.difference(a, b).convert('L').point(lambda v: 255 if v > 12 else 0)
+            box = d.getbbox(); n = d.histogram()[255]
+            lum = 0
+            if n:
+                px = [p for p, m in zip(a.convert('L').getdata(), d.getdata()) if m]
+                lum = sum(px) / len(px)
+            return {'n': n, 'box': box, 'lum': round(lum, 1)}, a
         lctx = browser.new_context(viewport={'width': 1280, 'height': 800}, geolocation={'latitude': HOME[0], 'longitude': HOME[1], 'accuracy': 25}, permissions=['geolocation'])
         lctx, page, lerrs = open_sg(0, 0, ctx=lctx)
         ev = page.evaluate
         page.wait_for_function('window.__sg && __sg.styleReady()', timeout=60000); ev(IDLE)
         s0 = ev(LSTATE); hash0 = s0['hash']
-        page.click('.sg-locate'); page.wait_for_selector('.me', timeout=15000); page.wait_for_timeout(200); ev(IDLE)
+        page.click('.sg-locate'); page.wait_for_selector('.me', timeout=15000)
+        page.wait_for_function("__sg.rocket() && __sg.rocket().state !== 'loading'", timeout=60000); page.wait_for_timeout(200); ev(IDLE)
         s1 = ev(LSTATE); me = [HOME[1], HOME[0]]
         check('location: off until asked; one tap finds you, flies there (z ≥ 16.5) and follows', s0['state'] == 'off' and s0['ll'] is None and s1['state'] == 'follow' and s1['pressed'] == 'true'
               and hav(s1['ll'], me) < 0.5 and hav(s1['c'], me) < 3 and s1['z'] >= 16.5, {k: s1[k] for k in ('state', 'c', 'z', 'll')})
         check('location: accuracy circle = reported accuracy (25 m), chip says ±25 m; rocket upright while still',
               s1['n'] == 65 and abs(hav(s1['ring0'], me) - 25) < 0.3 and '±25 m' in s1['chip'] and s1['align'] == 'viewport' and s1['rot'] == 0 and not s1['moving'],
               {'ring r m': round(hav(s1['ring0'], me), 2), 'chip': s1['chip'], 'align': s1['align']})
-        im = shot_px(page); page.screenshot(path=f'{SHOTS}/sg07_location.png')
-        pt = ev("(() => { const p = __sg.map.project(__sg.meMarker.getLngLat()), r = __sg.map.getContainer().getBoundingClientRect(); return [p.x + r.left, p.y + r.top]; })()")
-        red = sum(1 for x in range(int(pt[0]) - 20, int(pt[0]) + 21) for y in range(int(pt[1]) - 70, int(pt[1]) - 5)
-                  if (lambda p: p[0] > 200 and p[1] < 110 and p[2] < 110)(im.getpixel((x, y))))
-        blue = sum(1 for x in range(int(pt[0]) - 6, int(pt[0]) + 7) for y in range(int(pt[1]) - 6, int(pt[1]) + 7) if (lambda p: p[2] > 200 and p[0] < 60)(im.getpixel((x, y))))
-        check('location: the rocket is drawn above the blue dot at your position (pixels)', red > 40 and blue > 20, {'red px over dot': red, 'blue dot px': blue})
+        r3 = ev("(() => { const r = __sg.rocket(), svg = getComputedStyle(document.querySelector('.me-rocket')).display; return { state: r.state, layer: !!__sg.map.getLayer('me-rocket3d'), svg, h: __sg.rocketHeightM(), chip: document.getElementById('locChip').textContent, attr: document.querySelector('.maplibregl-ctrl-attrib').textContent }; })()")
+        check('3D rocket: model loads on demand and replaces the flat rocket; maker credited (CC BY)', r3['state'] == 'ready' and r3['layer'] and r3['svg'] == 'none'
+              and 'Clarence365' in r3['attr'] and 'CC BY 4.0' in r3['attr'], {k: r3[k] for k in ('state', 'layer', 'svg')})
+        check('3D rocket: real height (124 m) at z16.5, and the chip says so', abs(r3['h'] - 124) < 1e-9 and 'rocket true size' in r3['chip'], {'h': r3['h'], 'chip': r3['chip']})
+        page.screenshot(path=f'{SHOTS}/sg07_location.png')
+        # scale + anchoring, checked against MapLibre's own extrusion: a red 124 m column 60 m east, same northing
+        ev("""(() => { const m = __sg.map, f = __sg.LOC.fix.ll, kx = 111320 * Math.cos(f[1] * Math.PI / 180), dx = 60 / kx, w = 1 / kx, h = 1 / 110574;
+          __sg.LOC.follow = false;
+          m.addSource('tcol', { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [[[f[0]+dx-w, f[1]-h], [f[0]+dx+w, f[1]-h], [f[0]+dx+w, f[1]+h], [f[0]+dx-w, f[1]+h], [f[0]+dx-w, f[1]-h]]] } } });
+          m.addLayer({ id: 'tcol', type: 'fill-extrusion', source: 'tcol', paint: { 'fill-extrusion-color': '#FF0000', 'fill-extrusion-height': 124, 'fill-extrusion-vertical-gradient': false } });
+          m.setLayoutProperty('sg-3d', 'visibility', 'none'); m.jumpTo({ center: [f[0] + dx / 2, f[1]], zoom: 17, pitch: 50, bearing: 0 }); })()""")
+        ev("(() => { __sg.sun.date = '2026-11-19'; __sg.sun.min = 780; __sg.applySun(); })()")
+        mk, im = rocket_mask(page)
+        im.save(f'{SHOTS}/sg07c_rocket_scale.png')
+        reds = [(x, y) for y in range(0, im.height) for x in range(0, im.width) if (lambda p: p[0] > 150 and p[1] < 90 and p[2] < 90)(im.getpixel((x, y)))]
+        col_top = min(y for x, y in reds) if reds else -1
+        base = ev("(() => { const p = __sg.map.project(__sg.LOC.fix.ll), r = __sg.map.getContainer().getBoundingClientRect(); return [p.x + r.left, p.y + r.top]; })()")
+        rk_top, rk_bot = (mk['box'][1], mk['box'][3]) if mk['box'] else (-1, -1)
+        check('3D rocket: as tall as a 124 m MapLibre extrusion (2 m column) beside it, standing on your position (pixels)',
+              mk['n'] > 1500 and abs(rk_top - col_top) <= 4 and abs(rk_bot - base[1]) <= 6 and mk['box'][0] < base[0] < mk['box'][2],
+              {'rocket top/bottom px': (rk_top, rk_bot), 'column top px': col_top, 'ground point y': round(base[1], 1), 'rocket px': mk['n']})
+        ev("(() => { __sg.sun.min = 1230; __sg.applySun(); })()")
+        mk_night, _ = rocket_mask(page)
+        check('3D rocket: lit by the map sun (darker at 20:30 than at 13:00)', mk['lum'] - mk_night['lum'] > 25, {'13:00 mean': mk['lum'], '20:30 mean': mk_night['lum']})
+        ev("(() => { const m = __sg.map; m.removeLayer('tcol'); m.removeSource('tcol'); m.setLayoutProperty('sg-3d', 'visibility', 'visible'); __sg.sun.min = 780; __sg.applySun(); })()")
+        ev("__sg.map.jumpTo({ zoom: 13 })"); ev(IDLE)
+        z13 = ev("({ h: __sg.rocketHeightM(), chip: document.getElementById('locChip').textContent })")
+        check('3D rocket: zoomed far out it is drawn bigger so it stays visible, and the chip says by how much', z13['h'] > 124 * 2 and '×' in z13['chip'], z13)
+        page.click('.sg-locate'); page.wait_for_timeout(300); ev(IDLE)  # back to following
+        hash0 = ev('location.hash'); stored0 = ev('JSON.stringify(localStorage)')
         # walk 60 m north-east: the rocket turns to point that way and the camera follows
         p2 = off(HOME[0], HOME[1], 60, 45); lctx.set_geolocation({'latitude': p2[0], 'longitude': p2[1], 'accuracy': 10})
         page.wait_for_function('__sg.LOC.heading !== null', timeout=10000); page.wait_for_timeout(900); ev(IDLE)
         s2 = ev(LSTATE); me2 = [p2[1], p2[0]]
         page.screenshot(path=f'{SHOTS}/sg07b_location_moving.png')
+        page.wait_for_timeout(1500); ev(IDLE)
+        pose = ev("(() => { const r = __sg.rocket(); return { tilt: r.pose.tilt, lift: r.pose.lift, plume: r.plume.visible, yaw: r.yaw.rotation.y * 180 / Math.PI }; })()")
+        page.screenshot(path=f'{SHOTS}/sg07d_rocket_flying.png')
+        ev("__sg.map.setLayoutProperty('sg-3d', 'visibility', 'none')"); ev(IDLE); page.wait_for_timeout(200)
+        fim = shot_px(page); fim.save(f'{SHOTS}/sg07e_rocket_flame.png')
+        fpt = ev("(() => { const p = __sg.map.project(__sg.LOC.fix.ll), r = __sg.map.getContainer().getBoundingClientRect(); return [p.x + r.left, p.y + r.top]; })()")
+        orange = sum(1 for x in range(int(fpt[0]) - 60, int(fpt[0]) + 61) for y in range(int(fpt[1]) - 120, int(fpt[1]) + 10)
+                     if (lambda p: p[0] > 220 and 60 < p[1] < 215 and p[2] < 110)(fim.getpixel((x, y))))
+        ev("__sg.map.setLayoutProperty('sg-3d', 'visibility', 'visible')"); ev(IDLE)
+        check('3D rocket: moving → hovers 30 m up, leans 20° towards the heading, engine flame visible (pixels)', abs(pose['tilt'] - 20) < 0.5 and abs(pose['lift'] - 30) < 1 and pose['plume'] and abs(pose['yaw'] + 45) < 0.01 and orange > 60, {**pose, 'flame px': orange})
         check('location: moving 60 m NE → rocket points along the way (heading 45°), camera follows', abs(s2['heading'] - 45) < 1 and s2['align'] == 'map' and abs(s2['rot'] - s2['heading']) < 1e-6
               and s2['moving'] and 'heading NE' in s2['chip'] and hav(s2['c'], me2) < 3 and hav(s2['ll'], me2) < 0.5, {'heading': round(s2['heading'], 2), 'chip': s2['chip'], 'centre off m': round(hav(s2['c'], me2), 2)})
         check('location: while following, your position stays out of the #view link and saved settings',
-              s2['hash'] == hash0 and f"{p2[0]:.4f}" not in s2['stored'] and f"{HOME[0]:.4f}" not in s2['stored'] and f"{HOME[0]:.4f}" not in s2['hash'], {'hash': s2['hash']})
+              s2['hash'] == hash0 and s2['stored'] == stored0 and f"{p2[0]:.4f}" not in s2['stored'] and f"{p2[0]:.4f}" not in s2['hash'], {'hash': s2['hash']})
         # drag the map: following pauses; the dot still moves; the button re-centres
         page.mouse.move(640, 450); page.mouse.down(); page.mouse.move(540, 400, steps=8); page.mouse.up(); page.wait_for_timeout(300); ev(IDLE)
         cA = ev('__sg.map.getCenter().toArray()')
@@ -822,11 +869,28 @@ with sync_playwright() as p:
         s7 = ev(LSTATE)
         lctx.set_geolocation({'latitude': HOME[0], 'longitude': HOME[1], 'accuracy': 25}); page.wait_for_timeout(1200)
         s8 = ev(LSTATE)
+        gone, _ = rocket_mask(page)
+        check('3D rocket: gone when tracking stops', gone['n'] == 0, gone)
         check('location: tapping while following stops tracking (pin, circle and chip gone; no more updates)', s7['state'] == 'off' and s7['ll'] is None and s7['n'] == 0 and not s7['chip'] and s8['ll'] is None and s8['state'] == 'off', {'after stop': s7['state'], 'later': s8['state']})
         page.keyboard.press('l'); page.wait_for_selector('.me', timeout=15000)
         check('location: the L key starts it', ev("document.querySelector('.sg-locate').dataset.state") in ('follow', 'wait'), ev("document.querySelector('.sg-locate').dataset.state"))
         check('location: no console errors', not lerrs, lerrs[:5])
         lctx.close()
+        # 3D model can't load → the flat rocket stays
+        fctx = browser.new_context(viewport={'width': 1024, 'height': 700}, geolocation={'latitude': HOME[0], 'longitude': HOME[1], 'accuracy': 25}, permissions=['geolocation'])
+        fctx.route('**/assets/starship-block3.glb', lambda r: r.fulfill(status=404, body='missing'))
+        fctx, page, ferrs = open_sg(0, 0, ctx=fctx)
+        page.wait_for_function('window.__sg && __sg.styleReady()', timeout=60000)
+        page.click('.sg-locate'); page.wait_for_selector('.me', timeout=15000)
+        page.wait_for_function("__sg.rocket() && __sg.rocket().state === 'failed'", timeout=60000); page.wait_for_timeout(300); page.evaluate(IDLE)
+        im = shot_px(page)
+        pt = page.evaluate("(() => { const p = __sg.map.project(__sg.meMarker.getLngLat()), r = __sg.map.getContainer().getBoundingClientRect(); return [p.x + r.left, p.y + r.top]; })()")
+        red = sum(1 for x in range(int(pt[0]) - 20, int(pt[0]) + 21) for y in range(int(pt[1]) - 75, int(pt[1]) - 5)
+                  if (lambda p: p[0] > 200 and p[1] < 110 and p[2] < 110)(im.getpixel((x, y))))
+        blue = sum(1 for x in range(int(pt[0]) - 6, int(pt[0]) + 7) for y in range(int(pt[1]) - 6, int(pt[1]) + 7) if (lambda p: p[2] > 200 and p[0] < 60)(im.getpixel((x, y))))
+        ferrs_real = [e for e in ferrs if '404' not in e]
+        check('3D rocket: if the model can\'t load, the flat rocket stays over the blue dot (pixels)', red > 40 and blue > 20 and not ferrs_real, {'red px': red, 'blue px': blue, 'errors': ferrs_real[:2]})
+        fctx.close()
         # permission refused
         dctx = browser.new_context(viewport={'width': 1024, 'height': 700})
         dctx, page, derrs = open_sg(0, 0, ctx=dctx)

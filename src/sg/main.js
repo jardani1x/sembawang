@@ -80,7 +80,7 @@
   }
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+  map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: 'Rocket: <a href="https://sketchfab.com/3d-models/spacex-starship-block-3-6f6c6f88a3eb4b4d822fdca66733fbb2" target="_blank" rel="noopener">“SpaceX Starship Block 3”</a> by <a href="https://sketchfab.com/clarence365" target="_blank" rel="noopener">Clarence365</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, simplified' }), 'bottom-right');
 
   let styleReady = false, buildingSource = null, tilesLoaded = 0, tileErrors = 0;
   map.on('error', (e) => {
@@ -313,6 +313,7 @@
       'sky-color': k.zen, 'horizon-color': mixHex(k.hor, k.warm, k.amt * 0.7), 'fog-color': k.hor,
       'sky-horizon-blend': 0.7, 'horizon-fog-blend': 0.5, 'fog-ground-blend': 0.6,
     });
+    rocketSun(p);
   }
   dateIn.addEventListener('change', () => { if (dateIn.value) { sun.date = dateIn.value; applySun(); } });
   timeIn.addEventListener('input', () => { sun.min = +timeIn.value; applySun(); });
@@ -416,11 +417,14 @@
     const src = map.getSource('me-acc'); if (src) src.setData(circle(fix.ll, fix.acc));
     if (!inBounds(fix.ll)) { locChip('You are outside the map area (Singapore), so the map stays where it is.', 'warn'); }
     else {
-      locChip(`You are here · ±${Math.round(fix.acc)} m${moving ? ` · heading ${compass(LOC.heading)}` : ''}`);
+      locChip(meChipText());
       if (LOC.follow && (LOC.first || !map.isMoving())) centreOnMe(LOC.first);
     }
     LOC.first = false;
     setLocState(LOC.follow ? 'follow' : 'free');
+  }
+  function meChipText() {
+    return `You are here · ±${Math.round(LOC.fix.acc)} m${LOC.heading != null ? ` · heading ${compass(LOC.heading)}` : ''}${rocketNote()}`;
   }
   function onLocErr(err) {
     if (!LOC.on) return;
@@ -433,6 +437,7 @@
     if (!window.isSecureContext) { setLocState('error'); locChip('Location needs a secure (https) page.', 'err'); return; }
     Object.assign(LOC, { on: true, follow: true, first: true, fix: null, prev: null, heading: null });
     setLocState('wait'); locChip('Finding your location…');
+    loadRocket3D(); // fetch the 3D rocket while the GPS warms up
     LOC.watch = navigator.geolocation.watchPosition(onFix, onLocErr, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
   }
   function locStop() {
@@ -441,6 +446,7 @@
     if (LOC.shown) { meMarker.remove(); LOC.shown = false; }
     const src = map.getSource('me-acc'); if (src) src.setData(EMPTY);
     setLocState('off'); locChip('');
+    map.triggerRepaint(); // clears the 3D rocket
   }
   locBtn.addEventListener('click', () => {
     if (!LOC.on) return locStart();
@@ -450,6 +456,107 @@
   map.on('dragstart', () => { if (LOC.on && LOC.follow) { LOC.follow = false; setLocState(LOC.fix ? 'free' : 'wait'); } });
   function stopFollowing() { if (LOC.on && LOC.follow) { LOC.follow = false; setLocState(LOC.fix ? 'free' : 'wait'); } }
 
+  /* ---------------- 3D Starship pin ----------------
+     Model: "SpaceX Starship Block 3" by Clarence365
+     (https://sketchfab.com/3d-models/spacex-starship-block-3-6f6c6f88a3eb4b4d822fdca66733fbb2), CC BY 4.0.
+     Adapted (tools/slim_rocket.mjs): logo decal removed; meshes merged and simplified for the web.
+     Loaded with three.js r160 the first time location is switched on, and drawn in a MapLibre custom 3D
+     layer that shares the map's depth buffer, so buildings in front hide it. Shown at its real height
+     (124 m, the V3 stack), and drawn bigger only when that would be under ~90 px on screen. While you
+     move it hovers 30 m up, leans 20° the way you are going and fires its engines; when you stop it lands. */
+  var ROCKET = null; // { state: 'loading' | 'ready' | 'failed', … } — var: applySun may run before this line
+  const RK = { url: 'assets/starship-block3.glb', realM: 124, minPx: 90, tiltDeg: 20, liftM: 30 };
+  function rocketHeightM() {
+    if (!LOC.fix) return RK.realM;
+    const mpp = 40075016.686 * Math.cos(LOC.fix.ll[1] * Math.PI / 180) / (512 * 2 ** map.getZoom()); // metres per CSS pixel
+    return Math.max(RK.realM, RK.minPx * mpp);
+  }
+  function rocketNote() {
+    if (!ROCKET || ROCKET.state !== 'ready') return '';
+    const k = rocketHeightM() / RK.realM;
+    return k < 1.05 ? ' · rocket true size' : ` · rocket ×${k < 10 ? k.toFixed(1) : Math.round(k)} size`;
+  }
+  function rocketSun(p) {
+    if (!ROCKET || ROCKET.state !== 'ready' || !p) return;
+    const az = p.az * Math.PI / 180, el = Math.max(p.el, -5) * Math.PI / 180, day = smooth(-4, 12, p.el), L = lightFor(p.el);
+    ROCKET.sunL.position.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).multiplyScalar(100); // model frame: +x east, +y up, +z south
+    ROCKET.sunL.color.set(L.color);
+    ROCKET.sunL.intensity = p.el > 0 ? 0.6 + 1.8 * smooth(0, 25, p.el) : 0.05;
+    ROCKET.hemi.intensity = 0.15 + 0.55 * day;
+    for (const m of ROCKET.mats) m.envMapIntensity = 0.2 + 0.8 * day;
+    map.triggerRepaint();
+  }
+  async function loadRocket3D() {
+    if (ROCKET) return;
+    ROCKET = { state: 'loading' };
+    try {
+      const [THREE, { GLTFLoader }, { MeshoptDecoder }, { RoomEnvironment }] = await Promise.all([
+        import('three'), import('three/addons/loaders/GLTFLoader.js'),
+        import('three/addons/libs/meshopt_decoder.module.js'), import('three/addons/environments/RoomEnvironment.js')]);
+      const gltf = await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(RK.url);
+      const model = gltf.scene, box = new THREE.Box3().setFromObject(model), modelH = box.max.y - box.min.y;
+      model.position.y = -box.min.y; // engines on the ground; the body axis is the model's own origin
+      const mats = new Set();
+      model.traverse((o) => { if (o.isMesh) { mats.add(o.material); o.frustumCulled = false; } });
+      // engine plume (two plain cones), shown only while flying
+      const plume = new THREE.Group();
+      const cone = (r, h, col, op) => {
+        const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 24, 1, true), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, depthWrite: false, side: THREE.DoubleSide }));
+        m.rotation.x = Math.PI; m.position.y = -h / 2; m.frustumCulled = false; return m;
+      };
+      plume.add(cone(modelH * 0.05, modelH * 0.2, 0xff6a14, 0.8), cone(modelH * 0.03, modelH * 0.12, 0xffd060, 0.95)); // inner cone drawn last
+      plume.children[1].renderOrder = 1;
+      plume.visible = false;
+      const yaw = new THREE.Group(), pivot = new THREE.Group();
+      yaw.add(pivot); pivot.add(model, plume);
+      const scene = new THREE.Scene(); scene.add(yaw);
+      const sunL = new THREE.DirectionalLight(0xffffff, 2), hemi = new THREE.HemisphereLight(0xdfe9f3, 0x8a8a80, 0.6);
+      scene.add(sunL, sunL.target, hemi);
+      const camera = new THREE.Camera(), ROT_X = new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2);
+      const pose = { tilt: 0, lift: 0 };
+      let renderer = null, last = 0, flickerT = 0;
+      const layer = {
+        id: 'me-rocket3d', type: 'custom', renderingMode: '3d',
+        onAdd(m, gl) {
+          renderer = new THREE.WebGLRenderer({ canvas: m.getCanvas(), context: gl, antialias: true });
+          renderer.autoClear = false;
+          const pm = new THREE.PMREMGenerator(renderer);
+          scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose();
+        },
+        render(gl, args) {
+          if (!LOC.fix) { last = 0; return; }
+          const now = performance.now(), dt = last ? Math.min(0.1, (now - last) / 1000) : 1; last = now;
+          const moving = LOC.heading != null, still = reducedMotion();
+          const tT = moving ? RK.tiltDeg : 0, lT = moving ? RK.liftM : 0, k = still ? 1 : 1 - Math.exp(-dt / 0.35);
+          pose.tilt += (tT - pose.tilt) * k; pose.lift += (lT - pose.lift) * k;
+          const settling = Math.abs(tT - pose.tilt) > 0.05 || Math.abs(lT - pose.lift) > 0.05;
+          const unitM = rocketHeightM() / modelH; // metres per model unit
+          if (moving) yaw.rotation.y = -LOC.heading * Math.PI / 180;
+          pivot.rotation.x = -pose.tilt * Math.PI / 180; // lean the nose towards the heading
+          yaw.position.y = pose.lift / unitM;
+          plume.visible = pose.lift > 1;
+          if (plume.visible && !still) plume.scale.set(1, 0.85 + 0.15 * Math.sin(now / 55), 1);
+          const mc = maplibregl.MercatorCoordinate.fromLngLat(LOC.fix.ll, 0), s = mc.meterInMercatorCoordinateUnits() * unitM;
+          const l = new THREE.Matrix4().makeTranslation(mc.x, mc.y, mc.z).scale(new THREE.Vector3(s, -s, s)).multiply(ROT_X);
+          camera.projectionMatrix = new THREE.Matrix4().fromArray(args.defaultProjectionData.mainMatrix).multiply(l);
+          renderer.resetState();
+          renderer.render(scene, camera);
+          if (settling) map.triggerRepaint();
+          else if (plume.visible && !still && !flickerT) flickerT = setTimeout(() => { flickerT = 0; map.triggerRepaint(); }, 60); // ~15 fps flicker, not 60
+        },
+      };
+      Object.assign(ROCKET, { state: 'ready', sunL, hemi, mats: [...mats], pose, modelH, plume, yaw });
+      map.addLayer(layer);
+      meEl.classList.add('has3d');
+      rocketSun(lastSun);
+      if (LOC.fix && inBounds(LOC.fix.ll)) locChip(meChipText());
+    } catch (e) {
+      ROCKET.state = 'failed';
+      console.warn('[sg] 3D rocket unavailable, keeping the flat rocket:', e && (e.message || e));
+    }
+  }
+  map.on('zoomend', () => { if (LOC.fix && inBounds(LOC.fix.ll) && ROCKET && ROCKET.state === 'ready') locChip(meChipText()); });
+
   /* debug / test hooks (?debug) */
-  if (/[?&]debug\b/.test(location.search)) window.__sg = { map, PLACES, goTo, applySun, sun, lastSun: () => lastSun, setPlaying, geocode, matchPlaces, CFG, styleReady: () => styleReady, LOC, meMarker };
+  if (/[?&]debug\b/.test(location.search)) window.__sg = { map, PLACES, goTo, applySun, sun, lastSun: () => lastSun, setPlaying, geocode, matchPlaces, CFG, styleReady: () => styleReady, LOC, meMarker, rocket: () => ROCKET, rocketHeightM };
 })();
