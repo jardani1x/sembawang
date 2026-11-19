@@ -883,10 +883,10 @@ with sync_playwright() as p:
             page.click('.sg-pin[data-pin="f22"]')
             page.wait_for_function("__sg.CR.loaded.f22 && __sg.CR.loaded.f22.state !== 'loading'", timeout=60000); page.wait_for_timeout(300); ev(IDLE)
             f2 = ev("""(() => { const C = __sg.CR.loaded; return { state: C.f22.state, pins: Object.fromEntries([...document.querySelectorAll('.sg-pin')].map((b) => [b.dataset.pin, b.getAttribute('aria-pressed')])),
-              chip: document.getElementById('locChip').textContent, L: __sg.craftLengthM(), vis: [C.starship.size.visible, C.f22.size.visible], pin: JSON.parse(localStorage.getItem('sembawang-brook-3d.sg')).pin }; })()""")
+              chip: document.getElementById('locChip').textContent, L: __sg.craftLengthM(), vis: [C.starship.size.visible, C.f22.size.visible], pin: JSON.parse(localStorage.getItem('sembawang-brook-3d.sg')).pin, attr: document.querySelector('.maplibregl-ctrl-attrib').textContent }; })()""")
             page.screenshot(path=f'{SHOTS}/sg07f_f22.png')
-            check('3D pin: choosing F-22 swaps the pin and saves the choice; at z16.5 its 18.9 m would be ~22 px, so it is enlarged and the chip says so',
-                  f2['state'] == 'ready' and f2['pins'] == {'starship': 'false', 'f22': 'true'} and f2['vis'] == [False, True] and f2['pin'] == 'f22' and f2['L'] > 18.9 * 2 and 'F\u201122 ×' in f2['chip'],
+            check('3D pin: choosing F-22 swaps the pin and saves the choice; at z16.5 its 18.9 m would be ~22 px, so it is enlarged and the chip says so; its source is credited (CC BY-NC)',
+                  f2['state'] == 'ready' and f2['pins'] == {'starship': 'false', 'f22': 'true'} and f2['vis'] == [False, True] and f2['pin'] == 'f22' and f2['L'] > 18.9 * 2 and 'F\u201122 ×' in f2['chip'] and 'cutechicken' in f2['attr'] and 'CC BY-NC 4.0' in f2['attr'],
                   {k: f2[k] for k in ('state', 'pins', 'vis', 'pin', 'chip')})
             lf2 = level_flight('f22', 'f22')
             cx, cn = centroid_x(lf2['im'], lf2['mask']['box'], lambda p: p[0] > p[1] + 25 and p[1] > p[2] + 10)  # the canopy's amber tint

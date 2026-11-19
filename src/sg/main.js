@@ -80,7 +80,13 @@
   }
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
-  map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: 'Rocket: <a href="https://sketchfab.com/3d-models/spacex-starship-block-3-6f6c6f88a3eb4b4d822fdca66733fbb2" target="_blank" rel="noopener">“SpaceX Starship Block 3”</a> by <a href="https://sketchfab.com/clarence365" target="_blank" rel="noopener">Clarence365</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, simplified' }), 'bottom-right');
+  // credits for the 3D location pins this build ships (SG.pins)
+  const PIN_CREDITS = {
+    starship: 'Starship: <a href="https://sketchfab.com/3d-models/spacex-starship-block-3-6f6c6f88a3eb4b4d822fdca66733fbb2" target="_blank" rel="noopener">“SpaceX Starship Block 3”</a> by <a href="https://sketchfab.com/clarence365" target="_blank" rel="noopener">Clarence365</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, simplified',
+    f22: 'F-22: from <a href="https://huggingface.co/spaces/cutechicken/3D-Airforce-Simulator" target="_blank" rel="noopener">3D Air Combat Simulator</a> by cutechicken, <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0</a>, simplified',
+  };
+  const pinCredits = (Array.isArray(SG.pins) ? SG.pins : Object.keys(PIN_CREDITS)).map((k) => PIN_CREDITS[k]).filter(Boolean);
+  map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: pinCredits.length ? pinCredits : undefined }), 'bottom-right');
 
   let styleReady = false, buildingSource = null, tilesLoaded = 0, tileErrors = 0;
   map.on('error', (e) => {
@@ -465,8 +471,10 @@
        (https://sketchfab.com/3d-models/spacex-starship-block-3-6f6c6f88a3eb4b4d822fdca66733fbb2), CC BY 4.0,
        adapted with tools/slim_model.mjs (logo decal removed, simplified). Real length 124 m (V3 stack).
        Flies belly (heat-shield tiles) down; fires its engines while you move.
-     - F-22 Raptor: model supplied by the project owner (see README for its source); adapted with
-       tools/slim_model.mjs. Real length 18.9 m (USAF fact sheet).
+     - F-22 Raptor: from the Hugging Face Space "3D Air Combat Simulator" by cutechicken
+       (https://huggingface.co/spaces/cutechicken/3D-Airforce-Simulator), CC BY-NC 4.0 (non-commercial);
+       the Space does not name the original modeller. Adapted with tools/slim_model.mjs.
+       Real length 18.9 m (USAF fact sheet).
      Both are drawn at real size unless that would be shorter than ~100 px on screen; then they are enlarged
      and the status line says by how much. */
   const CRAFTS = {

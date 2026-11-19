@@ -237,7 +237,7 @@ function skyHexAt(el) {
    ===================================================================== */
 (() => {
   'use strict';
-  const SG = {"estate":{"name":"Sembawang Brook","centre":[103.8130484,1.4599073],"ring":[[103.8118546,1.4588867],[103.8112502,1.4602377],[103.8118228,1.4605002],[103.8122873,1.4606923],[103.8124782,1.4602249],[103.8128408,1.4603401],[103.8129235,1.4601289],[103.8130507,1.4601801],[103.8132416,1.4602889],[103.8137505,1.460385],[103.8140687,1.4604106],[103.8143867,1.4604106],[103.814813,1.4603529],[103.8150866,1.4602889],[103.8152774,1.4602121],[103.8151503,1.4598598],[103.815023,1.4596678],[103.8148958,1.4595206],[103.8145968,1.4595525],[103.8143041,1.459655],[103.8139605,1.4597127],[103.8135406,1.459687],[103.8132416,1.4596167],[103.8129552,1.459463],[103.8125671,1.4593285],[103.8118546,1.4588867]],"url":"index.html"},"pins":["starship"]}; // { estate: { name, centre:[lon,lat], ring:[[lon,lat]…], url } } — injected by tools/build.py
+  const SG = {"estate":{"name":"Sembawang Brook","centre":[103.8130484,1.4599073],"ring":[[103.8118546,1.4588867],[103.8112502,1.4602377],[103.8118228,1.4605002],[103.8122873,1.4606923],[103.8124782,1.4602249],[103.8128408,1.4603401],[103.8129235,1.4601289],[103.8130507,1.4601801],[103.8132416,1.4602889],[103.8137505,1.460385],[103.8140687,1.4604106],[103.8143867,1.4604106],[103.814813,1.4603529],[103.8150866,1.4602889],[103.8152774,1.4602121],[103.8151503,1.4598598],[103.815023,1.4596678],[103.8148958,1.4595206],[103.8145968,1.4595525],[103.8143041,1.459655],[103.8139605,1.4597127],[103.8135406,1.459687],[103.8132416,1.4596167],[103.8129552,1.459463],[103.8125671,1.4593285],[103.8118546,1.4588867]],"url":"index.html"},"pins":["starship","f22"]}; // { estate: { name, centre:[lon,lat], ring:[[lon,lat]…], url } } — injected by tools/build.py
 
   const CFG = {
     style: 'https://tiles.openfreemap.org/styles/liberty',
@@ -311,7 +311,13 @@ function skyHexAt(el) {
   }
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-right');
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
-  map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: 'Rocket: <a href="https://sketchfab.com/3d-models/spacex-starship-block-3-6f6c6f88a3eb4b4d822fdca66733fbb2" target="_blank" rel="noopener">“SpaceX Starship Block 3”</a> by <a href="https://sketchfab.com/clarence365" target="_blank" rel="noopener">Clarence365</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, simplified' }), 'bottom-right');
+  // credits for the 3D location pins this build ships (SG.pins)
+  const PIN_CREDITS = {
+    starship: 'Starship: <a href="https://sketchfab.com/3d-models/spacex-starship-block-3-6f6c6f88a3eb4b4d822fdca66733fbb2" target="_blank" rel="noopener">“SpaceX Starship Block 3”</a> by <a href="https://sketchfab.com/clarence365" target="_blank" rel="noopener">Clarence365</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>, simplified',
+    f22: 'F-22: from <a href="https://huggingface.co/spaces/cutechicken/3D-Airforce-Simulator" target="_blank" rel="noopener">3D Air Combat Simulator</a> by cutechicken, <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener">CC BY-NC 4.0</a>, simplified',
+  };
+  const pinCredits = (Array.isArray(SG.pins) ? SG.pins : Object.keys(PIN_CREDITS)).map((k) => PIN_CREDITS[k]).filter(Boolean);
+  map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: pinCredits.length ? pinCredits : undefined }), 'bottom-right');
 
   let styleReady = false, buildingSource = null, tilesLoaded = 0, tileErrors = 0;
   map.on('error', (e) => {
@@ -696,8 +702,10 @@ function skyHexAt(el) {
        (https://sketchfab.com/3d-models/spacex-starship-block-3-6f6c6f88a3eb4b4d822fdca66733fbb2), CC BY 4.0,
        adapted with tools/slim_model.mjs (logo decal removed, simplified). Real length 124 m (V3 stack).
        Flies belly (heat-shield tiles) down; fires its engines while you move.
-     - F-22 Raptor: model supplied by the project owner (see README for its source); adapted with
-       tools/slim_model.mjs. Real length 18.9 m (USAF fact sheet).
+     - F-22 Raptor: from the Hugging Face Space "3D Air Combat Simulator" by cutechicken
+       (https://huggingface.co/spaces/cutechicken/3D-Airforce-Simulator), CC BY-NC 4.0 (non-commercial);
+       the Space does not name the original modeller. Adapted with tools/slim_model.mjs.
+       Real length 18.9 m (USAF fact sheet).
      Both are drawn at real size unless that would be shorter than ~100 px on screen; then they are enlarged
      and the status line says by how much. */
   const CRAFTS = {

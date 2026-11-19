@@ -6,7 +6,8 @@
 //   node slim_model.mjs starship in.glb assets/starship-block3.glb
 //   Drops the logo decal (a trademark, not covered by the licence), the fine weathering (metal/roughness) texture
 //   and unused UVs, then merges and simplifies (meshopt, ratio 0.04, error 0.001: coarser loses the hot-stage ring).
-// F-22: supplied by the project owner (source in the README).
+// F-22: models/f-22.glb from the Hugging Face Space "3D Air Combat Simulator" by cutechicken,
+//   https://huggingface.co/spaces/cutechicken/3D-Airforce-Simulator (Space licence: CC BY-NC 4.0; no modeller named)
 //   node slim_model.mjs f22 in.glb assets/f22-raptor.glb
 //   Drops the normal and metal/roughness maps (invisible at map size); texture -> 512 px WebP; merges. (Already gear-up.)
 import { NodeIO } from '@gltf-transform/core';
@@ -41,6 +42,8 @@ if (MODE === 'starship') {
   await doc.transform(prune(), dedup(), flatten(), join({ keepNamed: false }), weld(), prune(),
     textureCompress({ encoder: sharp, targetFormat: 'webp', resize: [512, 512], quality: 82 }));
   note = 'normal and metal/roughness maps dropped, texture resized to 512 px WebP, meshes merged';
+  root.getAsset().extras = { ...(root.getAsset().extras || {}), title: 'F-22 (models/f-22.glb)', author: 'cutechicken (Hugging Face); original modeller not named',
+    license: 'CC-BY-NC-4.0 (https://creativecommons.org/licenses/by-nc/4.0/), as declared by the Space', source: 'https://huggingface.co/spaces/cutechicken/3D-Airforce-Simulator/blob/main/models/f-22.glb' };
 }
 await doc.transform(reorder({ encoder: MeshoptEncoder }), quantize(), meshopt({ encoder: MeshoptEncoder, level: 'medium' }), prune());
 const a = root.getAsset();
