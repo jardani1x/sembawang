@@ -756,6 +756,85 @@ with sync_playwright() as p:
         check('sg: no console errors (desktop; ignoring the injected geocoder 503)', not errs_real and len(errs) - len(errs_real) <= 1, errs[:5])
         ctx.close()
 
+        # ---------- live location (Playwright geolocation emulation: no device heading, so direction comes from successive fixes) ----------
+        HOME = (1.4565, 103.8170)
+        def off(lat, lon, d, brg):  # d metres along bearing brg (deg) on a sphere
+            R = 6371008.8; p1, l1, t = math.radians(lat), math.radians(lon), math.radians(brg)
+            p2 = math.asin(math.sin(p1) * math.cos(d / R) + math.cos(p1) * math.sin(d / R) * math.cos(t))
+            l2 = l1 + math.atan2(math.sin(t) * math.sin(d / R) * math.cos(p1), math.cos(d / R) - math.sin(p1) * math.sin(p2))
+            return math.degrees(p2), math.degrees(l2)
+        def hav(a, b):  # [lon, lat] pairs, metres
+            R = 6371008.8; p1, p2 = math.radians(a[1]), math.radians(b[1])
+            h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(b[0] - a[0]) / 2) ** 2
+            return 2 * R * math.asin(math.sqrt(h))
+        LSTATE = """async () => { const m = __sg.map, mk = __sg.meMarker, me = document.querySelector('.me'), d = await m.getSource('me-acc').getData();
+          const ring = d.geometry ? d.geometry.coordinates[0] : [];
+          return { state: document.querySelector('.sg-locate').dataset.state, pressed: document.querySelector('.sg-locate').getAttribute('aria-pressed'),
+            c: m.getCenter().toArray(), z: m.getZoom(), ll: me ? mk.getLngLat().toArray() : null, align: mk.getRotationAlignment(), rot: mk.getRotation(),
+            moving: !!(me && me.classList.contains('moving')), ring0: ring[0] || null, n: ring.length, chip: document.getElementById('locChip').hidden ? '' : document.getElementById('locChip').textContent,
+            heading: __sg.LOC.heading, hash: location.hash, stored: JSON.stringify(localStorage) }; }"""
+        lctx = browser.new_context(viewport={'width': 1280, 'height': 800}, geolocation={'latitude': HOME[0], 'longitude': HOME[1], 'accuracy': 25}, permissions=['geolocation'])
+        lctx, page, lerrs = open_sg(0, 0, ctx=lctx)
+        ev = page.evaluate
+        page.wait_for_function('window.__sg && __sg.styleReady()', timeout=60000); ev(IDLE)
+        s0 = ev(LSTATE); hash0 = s0['hash']
+        page.click('.sg-locate'); page.wait_for_selector('.me', timeout=15000); page.wait_for_timeout(200); ev(IDLE)
+        s1 = ev(LSTATE); me = [HOME[1], HOME[0]]
+        check('location: off until asked; one tap finds you, flies there (z ≥ 16.5) and follows', s0['state'] == 'off' and s0['ll'] is None and s1['state'] == 'follow' and s1['pressed'] == 'true'
+              and hav(s1['ll'], me) < 0.5 and hav(s1['c'], me) < 3 and s1['z'] >= 16.5, {k: s1[k] for k in ('state', 'c', 'z', 'll')})
+        check('location: accuracy circle = reported accuracy (25 m), chip says ±25 m; rocket upright while still',
+              s1['n'] == 65 and abs(hav(s1['ring0'], me) - 25) < 0.3 and '±25 m' in s1['chip'] and s1['align'] == 'viewport' and s1['rot'] == 0 and not s1['moving'],
+              {'ring r m': round(hav(s1['ring0'], me), 2), 'chip': s1['chip'], 'align': s1['align']})
+        im = shot_px(page); page.screenshot(path=f'{SHOTS}/sg07_location.png')
+        pt = ev("(() => { const p = __sg.map.project(__sg.meMarker.getLngLat()), r = __sg.map.getContainer().getBoundingClientRect(); return [p.x + r.left, p.y + r.top]; })()")
+        red = sum(1 for x in range(int(pt[0]) - 20, int(pt[0]) + 21) for y in range(int(pt[1]) - 70, int(pt[1]) - 5)
+                  if (lambda p: p[0] > 200 and p[1] < 110 and p[2] < 110)(im.getpixel((x, y))))
+        blue = sum(1 for x in range(int(pt[0]) - 6, int(pt[0]) + 7) for y in range(int(pt[1]) - 6, int(pt[1]) + 7) if (lambda p: p[2] > 200 and p[0] < 60)(im.getpixel((x, y))))
+        check('location: the rocket is drawn above the blue dot at your position (pixels)', red > 40 and blue > 20, {'red px over dot': red, 'blue dot px': blue})
+        # walk 60 m north-east: the rocket turns to point that way and the camera follows
+        p2 = off(HOME[0], HOME[1], 60, 45); lctx.set_geolocation({'latitude': p2[0], 'longitude': p2[1], 'accuracy': 10})
+        page.wait_for_function('__sg.LOC.heading !== null', timeout=10000); page.wait_for_timeout(900); ev(IDLE)
+        s2 = ev(LSTATE); me2 = [p2[1], p2[0]]
+        page.screenshot(path=f'{SHOTS}/sg07b_location_moving.png')
+        check('location: moving 60 m NE → rocket points along the way (heading 45°), camera follows', abs(s2['heading'] - 45) < 1 and s2['align'] == 'map' and abs(s2['rot'] - s2['heading']) < 1e-6
+              and s2['moving'] and 'heading NE' in s2['chip'] and hav(s2['c'], me2) < 3 and hav(s2['ll'], me2) < 0.5, {'heading': round(s2['heading'], 2), 'chip': s2['chip'], 'centre off m': round(hav(s2['c'], me2), 2)})
+        check('location: while following, your position stays out of the #view link and saved settings',
+              s2['hash'] == hash0 and f"{p2[0]:.4f}" not in s2['stored'] and f"{HOME[0]:.4f}" not in s2['stored'] and f"{HOME[0]:.4f}" not in s2['hash'], {'hash': s2['hash']})
+        # drag the map: following pauses; the dot still moves; the button re-centres
+        page.mouse.move(640, 450); page.mouse.down(); page.mouse.move(540, 400, steps=8); page.mouse.up(); page.wait_for_timeout(300); ev(IDLE)
+        cA = ev('__sg.map.getCenter().toArray()')
+        p3 = off(p2[0], p2[1], 40, 90); lctx.set_geolocation({'latitude': p3[0], 'longitude': p3[1], 'accuracy': 10})
+        page.wait_for_function(f"Math.abs(__sg.meMarker.getLngLat().lng - {p3[1]}) < 1e-7", timeout=10000); page.wait_for_timeout(700)
+        s3 = ev(LSTATE); me3 = [p3[1], p3[0]]
+        check('location: dragging the map stops following (button "Centre on me"); the pin keeps updating', s3['state'] == 'free' and hav(s3['c'], cA) < 0.5 and hav(s3['ll'], me3) < 0.5 and abs(s3['heading'] - 90) < 1,
+              {'state': s3['state'], 'camera moved m': round(hav(s3['c'], cA), 2), 'heading': round(s3['heading'], 1)})
+        page.click('.sg-locate'); page.wait_for_timeout(300); ev(IDLE)
+        s4 = ev(LSTATE)
+        check('location: tapping again re-centres and follows', s4['state'] == 'follow' and hav(s4['c'], me3) < 3, {'state': s4['state'], 'off m': round(hav(s4['c'], me3), 2)})
+        ev("__sg.goTo(__sg.PLACES.find((p) => p.id === 'bishan'))"); page.wait_for_timeout(300); ev(IDLE)
+        s5 = ev(LSTATE)
+        check('location: flying to a place pauses following but keeps tracking', s5['state'] == 'free' and hav(s5['c'], [103.8484, 1.3510]) < 50, {'state': s5['state']})
+        page.click('.sg-locate'); page.wait_for_timeout(300); ev(IDLE)
+        lctx.set_geolocation({'latitude': 3.1390, 'longitude': 101.6869, 'accuracy': 20}); page.wait_for_function("document.getElementById('locChip').textContent.includes('outside')", timeout=10000)
+        page.wait_for_timeout(400); s6 = ev(LSTATE)
+        check('location: outside Singapore → says so and leaves the map where it is', 'outside the map area' in s6['chip'] and hav(s6['c'], me3) < 3, {'chip': s6['chip'][:60], 'centre': s6['c']})
+        page.click('.sg-locate'); page.wait_for_timeout(300)
+        s7 = ev(LSTATE)
+        lctx.set_geolocation({'latitude': HOME[0], 'longitude': HOME[1], 'accuracy': 25}); page.wait_for_timeout(1200)
+        s8 = ev(LSTATE)
+        check('location: tapping while following stops tracking (pin, circle and chip gone; no more updates)', s7['state'] == 'off' and s7['ll'] is None and s7['n'] == 0 and not s7['chip'] and s8['ll'] is None and s8['state'] == 'off', {'after stop': s7['state'], 'later': s8['state']})
+        page.keyboard.press('l'); page.wait_for_selector('.me', timeout=15000)
+        check('location: the L key starts it', ev("document.querySelector('.sg-locate').dataset.state") in ('follow', 'wait'), ev("document.querySelector('.sg-locate').dataset.state"))
+        check('location: no console errors', not lerrs, lerrs[:5])
+        lctx.close()
+        # permission refused
+        dctx = browser.new_context(viewport={'width': 1024, 'height': 700})
+        dctx, page, derrs = open_sg(0, 0, ctx=dctx)
+        page.wait_for_function('window.__sg && __sg.styleReady()', timeout=60000)
+        page.click('.sg-locate'); page.wait_for_function("document.querySelector('.sg-locate').dataset.state === 'error'", timeout=15000)
+        dn = page.evaluate("({ chip: document.getElementById('locChip').textContent, pin: !!document.querySelector('.me') })")
+        check('location: permission refused → clear message, no pin', 'blocked' in dn['chip'] and not dn['pin'], dn)
+        dctx.close()
         # style unreachable → clear message instead of a blank page
         net['style_fail'] = True
         ctx, page, errs = open_sg(1024, 700)
@@ -777,6 +856,13 @@ with sync_playwright() as p:
         page.screenshot(path=f'{SHOTS}/sg06_mobile_places.png')
         page.tap('#placeList button[data-id="raffles"]'); page.wait_for_timeout(400)
         check('sg mobile: places panel spans the screen and closes after a pick', pl[0] <= 8 and pl[1] >= pl[2] - 8 and not page.is_visible('#places'), pl)
+        lb = page.evaluate("(() => { const r = document.querySelector('.sg-locate').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height), innerWidth]; })()")
+        ctx.grant_permissions(['geolocation']); ctx.set_geolocation({'latitude': 1.4565, 'longitude': 103.8170, 'accuracy': 15})
+        page.tap('.sg-locate'); page.wait_for_selector('.me', timeout=15000); page.wait_for_timeout(1500)
+        page.screenshot(path=f'{SHOTS}/sg08_mobile_location.png')
+        mst = page.evaluate("document.querySelector('.sg-locate').dataset.state")
+        check('sg mobile: location button (≥ 38 px touch target, top-right) tracks you', lb[2] >= 38 and lb[0] + lb[2] <= lb[4] and lb[1] > 56 and mst == 'follow', {'button': lb, 'state': mst})
+        page.tap('.sg-locate'); page.wait_for_timeout(300)
         # one-finger drag pans (MapLibre default touch gestures)
         page.evaluate("__sg.map.jumpTo({ center: [103.8130, 1.4599], zoom: 16, pitch: 50, bearing: 0 })"); page.evaluate(IDLE)
         c0 = page.evaluate('__sg.map.getCenter().toArray()'); b0 = page.evaluate('__sg.map.getBearing()')

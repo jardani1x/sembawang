@@ -37,6 +37,25 @@ button.icon[aria-pressed=true]{background:var(--accent);color:#fff;border-color:
 .btn{height:32px;min-width:36px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font-size:13px}
 .btn[aria-pressed=true]{background:#F5A623;color:#fff;border-color:#F5A623}
 body.sun-off #sunbar{display:none}
+/* live location */
+#locChip{position:fixed;top:calc(var(--top) + 52px);left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);background:rgba(255,255,255,.94);color:var(--text);border:1px solid var(--line);font-size:13px;padding:7px 14px;border-radius:999px;box-shadow:var(--shadow);z-index:9;pointer-events:none;text-align:center}
+#locChip.warn{background:#FFF8E6;border-color:#F5D58A}
+#locChip.err{background:#FFF4F2;color:#B42318;border-color:#F5C2BA;border-radius:12px}
+.sg-locate{display:flex!important;align-items:center;justify-content:center;color:#1D1D1F}
+.sg-locate .fill{opacity:0}
+.sg-locate[data-state=follow]{color:var(--accent)}.sg-locate[data-state=follow] .fill{opacity:1}
+.sg-locate[data-state=free]{color:var(--accent)}
+.sg-locate[data-state=wait]{color:var(--accent);animation:locpulse 1s ease-in-out infinite}
+.sg-locate[data-state=error]{color:#B42318}
+@keyframes locpulse{50%{opacity:.35}}
+.me{width:22px;height:22px;pointer-events:none}
+.me-dot{position:absolute;left:4px;top:4px;width:14px;height:14px;border-radius:50%;background:#0A84FF;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+.me-rocket{position:absolute;left:-7px;bottom:13px;filter:drop-shadow(0 3px 3px rgba(0,0,0,.3));transform-origin:50% 100%}
+.me-flame{transform-origin:20px 50px;animation:flicker .18s ease-in-out infinite alternate}
+.me:not(.moving) .me-flame{transform:scaleY(.55)}
+.me:not(.moving) .me-flame{animation:none}
+@keyframes flicker{from{transform:scaleY(.85)}to{transform:scaleY(1.12)}}
+@media (prefers-reduced-motion:reduce){.me-flame,.sg-locate[data-state=wait]{animation:none}}
 .estate-pin{border:2px solid #fff;background:var(--mine);color:#fff;font:600 12px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:6px 10px;border-radius:999px;box-shadow:0 3px 10px rgba(0,0,0,.25);cursor:pointer;white-space:nowrap}
 .maplibregl-popup-content{border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.4}
 .maplibregl-popup-content p{margin:4px 0 8px;color:var(--muted)}
@@ -58,4 +77,6 @@ body.sun-off .maplibregl-ctrl-bottom-right,body.sun-off .maplibregl-ctrl-bottom-
   #sunRead{min-width:0;margin-left:auto}
   #sunbar .hint{display:none}
   .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{bottom:104px}
+  .maplibregl-ctrl-top-right .maplibregl-ctrl-group button{width:38px;height:38px} /* bigger touch targets */
+  #locChip{top:calc(var(--top) + 46px);max-width:calc(100% - 110px)}
 }

@@ -57,7 +57,14 @@
   if (!window.maplibregl) { showStatus('The map library could not be loaded from cdn.jsdelivr.net. Check your connection and reload.'); return; }
   const saved = store.get();
   const inBounds = (ll) => Array.isArray(ll) && ll[0] > CFG.maxBounds[0][0] && ll[0] < CFG.maxBounds[1][0] && ll[1] > CFG.maxBounds[0][1] && ll[1] < CFG.maxBounds[1][1];
-  const start = saved.view && inBounds(saved.view.center) && Number.isFinite(saved.view.zoom) ? saved.view : CFG.home;
+  /* #view=zoom/lat/lon/bearing/pitch in the address bar, so a link reopens the same view.
+     Written by hand (not MapLibre's hash option) so it can pause while the map follows your location. */
+  function readHash() {
+    const m = location.hash.match(/[#&]view=([^&]+)/); if (!m) return null;
+    const [z, lat, lon, b, p] = m[1].split('/').map(Number);
+    return [z, lat, lon].every(Number.isFinite) && inBounds([lon, lat]) ? { center: [lon, lat], zoom: z, bearing: b || 0, pitch: p || 0 } : null;
+  }
+  const start = readHash() || (saved.view && inBounds(saved.view.center) && Number.isFinite(saved.view.zoom) ? saved.view : CFG.home);
 
   let map;
   try {
@@ -65,7 +72,7 @@
       container: 'map', style: CFG.style,
       center: start.center, zoom: start.zoom, pitch: start.pitch, bearing: start.bearing,
       maxBounds: CFG.maxBounds, minZoom: 9, maxZoom: 19, maxPitch: 85,
-      hash: 'view', attributionControl: false, canvasContextAttributes: { antialias: true },
+      attributionControl: false, canvasContextAttributes: { antialias: true },
     });
   } catch (e) {
     showStatus(`This browser could not start the 3D map (${e.message || e}). WebGL is required.`);
@@ -138,6 +145,7 @@
     styleReady = true; showStatus('');
     setupBuildings();
     addEstate();
+    addLocLayers();
     applySun();
   });
 
@@ -146,13 +154,27 @@
   const updateHint = () => hint.classList.toggle('off', map.getZoom() >= CFG.buildingsFrom);
   map.on('zoom', updateHint); updateHint();
   let saveT = 0;
+  const followingMe = () => LOC.on && LOC.follow; // then the view centre is your position: keep it out of the link and storage
+  function writeHash() {
+    if (followingMe()) return;
+    const c = map.getCenter(), h = `#view=${map.getZoom().toFixed(2)}/${c.lat.toFixed(5)}/${c.lng.toFixed(5)}/${map.getBearing().toFixed(1)}/${map.getPitch().toFixed(0)}`;
+    if (location.hash !== h) history.replaceState(history.state, '', h);
+  }
+  map.on('load', writeHash);
   map.on('moveend', () => {
+    writeHash();
     clearTimeout(saveT);
-    saveT = setTimeout(() => { const c = map.getCenter(); store.set({ view: { center: [+c.lng.toFixed(6), +c.lat.toFixed(6)], zoom: +map.getZoom().toFixed(2), pitch: +map.getPitch().toFixed(1), bearing: +map.getBearing().toFixed(1) } }); }, 400);
+    saveT = setTimeout(() => {
+      if (followingMe()) return;
+      const c = map.getCenter();
+      store.set({ view: { center: [+c.lng.toFixed(6), +c.lat.toFixed(6)], zoom: +map.getZoom().toFixed(2), pitch: +map.getPitch().toFixed(1), bearing: +map.getBearing().toFixed(1) } });
+    }, 400);
   });
+  addEventListener('hashchange', () => { const v = readHash(); if (v) map.jumpTo(v); });
 
   /* ---------------- camera moves ---------------- */
   function goTo(p) {
+    stopFollowing(); // flying somewhere else ends "follow me" (tracking continues)
     const opts = { bearing: map.getBearing(), essential: true };
     if (reducedMotion()) opts.duration = 0;
     if (p.bbox) { // [s, n, w, e] from the geocoder
@@ -261,6 +283,7 @@
   document.addEventListener('keydown', (e) => {
     if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) return;
     if (e.key === '/') { e.preventDefault(); input.focus(); }
+    else if ((e.key === 'l' || e.key === 'L') && !e.ctrlKey && !e.metaKey && !e.altKey) locBtn.click();
   });
 
   /* ---------------- sun: light direction, colour and sky for a Singapore date + time ---------------- */
@@ -319,6 +342,114 @@
   setSunBar(saved.sunOn !== false);
   applySun();
 
+  /* ---------------- live location: an original rocket pin, accuracy circle, follow mode ----------------
+     Uses the browser's Geolocation API only. The position stays on this device: it is not sent
+     anywhere and not saved. The rocket stands upright while you are still and points along your
+     direction of travel while you move (the device's heading, else the bearing between fixes). */
+  const LOC = { watch: null, on: false, follow: false, fix: null, prev: null, heading: null, movedAt: 0, first: false, shown: false };
+  const R_EARTH = 6371008.8;
+  const distM = (a, b) => { const p1 = a[1] * Math.PI / 180, p2 = b[1] * Math.PI / 180, dp = p2 - p1, dl = (b[0] - a[0]) * Math.PI / 180;
+    const h = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2; return 2 * R_EARTH * Math.asin(Math.sqrt(h)); };
+  const bearingDeg = (a, b) => { const p1 = a[1] * Math.PI / 180, p2 = b[1] * Math.PI / 180, dl = (b[0] - a[0]) * Math.PI / 180;
+    const y = Math.sin(dl) * Math.cos(p2), x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+    return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360; };
+  function circle(ll, r, n = 64) {
+    const out = [], lat = ll[1] * Math.PI / 180;
+    for (let i = 0; i <= n; i++) { const t = (i % n) / n * 2 * Math.PI;
+      out.push([ll[0] + (r * Math.sin(t)) / (R_EARTH * Math.cos(lat)) * 180 / Math.PI, ll[1] + (r * Math.cos(t)) / R_EARTH * 180 / Math.PI]); }
+    return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [out] } };
+  }
+  const EMPTY = { type: 'FeatureCollection', features: [] };
+  function addLocLayers() {
+    map.addSource('me-acc', { type: 'geojson', data: LOC.fix ? circle(LOC.fix.ll, LOC.fix.acc) : EMPTY });
+    const before = map.getLayer('sg-3d') ? 'sg-3d' : undefined;
+    map.addLayer({ id: 'me-acc-fill', type: 'fill', source: 'me-acc', paint: { 'fill-color': '#0A84FF', 'fill-opacity': 0.12 } }, before);
+    map.addLayer({ id: 'me-acc-line', type: 'line', source: 'me-acc', paint: { 'line-color': '#0A84FF', 'line-opacity': 0.55, 'line-width': 1.2 } }, before);
+  }
+
+  // the pin: an original cartoon rocket over a location dot (the dot's centre is the position)
+  const meEl = document.createElement('div');
+  meEl.className = 'me'; meEl.setAttribute('aria-hidden', 'true');
+  meEl.innerHTML = `<div class="me-rocket"><svg viewBox="0 0 40 66" width="36" height="59">
+    <path class="me-flame" d="M14 50 Q20 70 26 50 Z" fill="#FF9F0A"/><path class="me-flame" d="M17 50 Q20 62 23 50 Z" fill="#FFE27A"/>
+    <path d="M11 33 L3 48 Q3 50 5 50 L11 47 Z M29 33 L37 48 Q37 50 35 50 L29 47 Z" fill="#E5484D" stroke="#1D1D1F" stroke-width="1.2" stroke-linejoin="round"/>
+    <rect x="15" y="46" width="10" height="5" rx="1.5" fill="#8E8E93" stroke="#1D1D1F" stroke-width="1.2"/>
+    <path d="M20 2 C30 12 31 28 29 47 L11 47 C9 28 10 12 20 2 Z" fill="#F5F5F7" stroke="#1D1D1F" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="M20 2 C25.4 7.4 28.3 13 29.5 18 L10.5 18 C11.7 13 14.6 7.4 20 2 Z" fill="#E5484D" stroke="#1D1D1F" stroke-width="1.4" stroke-linejoin="round"/>
+    <circle cx="20" cy="29" r="5" fill="#0A84FF" stroke="#1D1D1F" stroke-width="1.4"/><circle cx="18.4" cy="27.4" r="1.5" fill="#fff" opacity=".85"/>
+    <rect x="18.6" y="38" width="2.8" height="11" rx="1.4" fill="#E5484D" stroke="#1D1D1F" stroke-width="1"/></svg></div><div class="me-dot"></div>`;
+  const meMarker = new maplibregl.Marker({ element: meEl, anchor: 'center' });
+
+  const locBtn = document.createElement('button');
+  locBtn.type = 'button'; locBtn.className = 'sg-locate';
+  locBtn.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="2"/><circle class="fill" cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 2.5v3.2M12 18.3v3.2M2.5 12h3.2M18.3 12h3.2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  map.addControl({ onAdd() { const d = document.createElement('div'); d.className = 'maplibregl-ctrl maplibregl-ctrl-group'; d.appendChild(locBtn); return d; }, onRemove() {} }, 'top-right');
+  const LOC_LABEL = { off: 'Show my location (L)', wait: 'Finding your location… (tap to cancel)', follow: 'Following your location (tap to stop)', free: 'Centre on my location', error: 'Location unavailable (tap to try again)' };
+  function setLocState(s) { locBtn.dataset.state = s; locBtn.title = LOC_LABEL[s]; locBtn.setAttribute('aria-label', LOC_LABEL[s]); locBtn.setAttribute('aria-pressed', String(s === 'follow' || s === 'free' || s === 'wait')); }
+  setLocState('off');
+  const chip = $('#locChip');
+  function locChip(text, kind) { chip.textContent = text || ''; chip.hidden = !text; chip.className = kind || ''; }
+
+  function centreOnMe(first) {
+    if (!LOC.fix || !inBounds(LOC.fix.ll)) return;
+    const o = { center: LOC.fix.ll, essential: true };
+    if (reducedMotion()) o.duration = 0;
+    if (first) map.flyTo({ ...o, zoom: Math.max(map.getZoom(), 16.5), pitch: Math.max(map.getPitch(), 45) });
+    else map.easeTo({ ...o, duration: o.duration === 0 ? 0 : 600 });
+  }
+  function onFix(pos) {
+    if (!LOC.on) return;
+    const c = pos.coords, now = Date.now();
+    const fix = { ll: [c.longitude, c.latitude], acc: Math.max(1, c.accuracy || 0) };
+    // direction of travel: the device's own heading when it is moving, else the bearing since the last clearly-separate fix
+    if (Number.isFinite(c.heading) && c.heading !== null && (c.speed == null || c.speed > 0.7)) { LOC.heading = c.heading; LOC.movedAt = now; LOC.prev = fix; }
+    else if (!LOC.prev) LOC.prev = fix;
+    else if (distM(LOC.prev.ll, fix.ll) > Math.max(8, 0.5 * (fix.acc + LOC.prev.acc))) { LOC.heading = bearingDeg(LOC.prev.ll, fix.ll); LOC.movedAt = now; LOC.prev = fix; }
+    if (LOC.heading != null && now - LOC.movedAt > 20000) LOC.heading = null; // still for 20 s: back on the pad
+    LOC.fix = fix;
+    meMarker.setLngLat(fix.ll);
+    if (!LOC.shown) { meMarker.addTo(map); LOC.shown = true; }
+    const moving = LOC.heading != null;
+    meEl.classList.toggle('moving', moving);
+    if (moving) { meMarker.setRotationAlignment('map'); meMarker.setPitchAlignment('map'); meMarker.setRotation(LOC.heading); }
+    else { meMarker.setRotationAlignment('viewport'); meMarker.setPitchAlignment('viewport'); meMarker.setRotation(0); }
+    const src = map.getSource('me-acc'); if (src) src.setData(circle(fix.ll, fix.acc));
+    if (!inBounds(fix.ll)) { locChip('You are outside the map area (Singapore), so the map stays where it is.', 'warn'); }
+    else {
+      locChip(`You are here · ±${Math.round(fix.acc)} m${moving ? ` · heading ${compass(LOC.heading)}` : ''}`);
+      if (LOC.follow && (LOC.first || !map.isMoving())) centreOnMe(LOC.first);
+    }
+    LOC.first = false;
+    setLocState(LOC.follow ? 'follow' : 'free');
+  }
+  function onLocErr(err) {
+    if (!LOC.on) return;
+    if (err.code === 1) { locStop(); setLocState('error'); locChip('Location is blocked for this page. Allow location for this site in your browser settings, then tap the button again.', 'err'); return; }
+    if (!LOC.fix) setLocState('wait');
+    locChip(err.code === 3 ? 'Still looking for your position…' : 'Your position is unavailable right now (no GPS or network fix). Still trying…', 'warn');
+  }
+  function locStart() {
+    if (!('geolocation' in navigator)) { setLocState('error'); locChip('This browser has no location service.', 'err'); return; }
+    if (!window.isSecureContext) { setLocState('error'); locChip('Location needs a secure (https) page.', 'err'); return; }
+    Object.assign(LOC, { on: true, follow: true, first: true, fix: null, prev: null, heading: null });
+    setLocState('wait'); locChip('Finding your location…');
+    LOC.watch = navigator.geolocation.watchPosition(onFix, onLocErr, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+  }
+  function locStop() {
+    if (LOC.watch != null) navigator.geolocation.clearWatch(LOC.watch);
+    Object.assign(LOC, { watch: null, on: false, follow: false, fix: null, prev: null, heading: null });
+    if (LOC.shown) { meMarker.remove(); LOC.shown = false; }
+    const src = map.getSource('me-acc'); if (src) src.setData(EMPTY);
+    setLocState('off'); locChip('');
+  }
+  locBtn.addEventListener('click', () => {
+    if (!LOC.on) return locStart();
+    if (LOC.fix && !LOC.follow) { LOC.follow = true; LOC.first = false; centreOnMe(true); setLocState('follow'); return; }
+    locStop();
+  });
+  map.on('dragstart', () => { if (LOC.on && LOC.follow) { LOC.follow = false; setLocState(LOC.fix ? 'free' : 'wait'); } });
+  function stopFollowing() { if (LOC.on && LOC.follow) { LOC.follow = false; setLocState(LOC.fix ? 'free' : 'wait'); } }
+
   /* debug / test hooks (?debug) */
-  if (/[?&]debug\b/.test(location.search)) window.__sg = { map, PLACES, goTo, applySun, sun, lastSun: () => lastSun, setPlaying, geocode, matchPlaces, CFG, styleReady: () => styleReady };
+  if (/[?&]debug\b/.test(location.search)) window.__sg = { map, PLACES, goTo, applySun, sun, lastSun: () => lastSun, setPlaying, geocode, matchPlaces, CFG, styleReady: () => styleReady, LOC, meMarker };
 })();
