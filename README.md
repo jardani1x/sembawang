@@ -2,7 +2,7 @@
 
 An interactive 3D model of **Sembawang Brook**, an HDB Build-To-Order estate (2026) along Admiralty Street in Sembawang, Singapore. It is reconstructed from the brochure site plan and photos of HDB's 1:300 sales model. The whole app is one `index.html` built on [Three.js](https://threejs.org) r160, with no build step to use it. It works on desktop and phones. A second page, `singapore.html`, is a [3D map of all of Singapore](#singapore-3d-map) with OpenStreetMap buildings.
 
-**Live:** https://jardani1x.github.io/sembawang-brooks/ (once GitHub Pages is enabled; see [Deploy](#deploy))
+**Live:** https://jardani1x.github.io/sembawang/ (GitHub Pages; see [Deploy](#deploy)). The Singapore map is at https://jardani1x.github.io/sembawang/singapore.html
 
 ![Sembawang Brook seen from Admiralty Street](docs/preview.jpg)
 
@@ -312,7 +312,7 @@ node tools/build_area.mjs export.geojson coastline.geojson 1.430,103.795,1.475,1
 **Optional private build** that opens with a flat preselected (keep it out of the public repo):
 ```sh
 python3 tools/build.py --preset-flat 439A,160,12 --out private.html \
-    --sg-url https://jardani1x.github.io/sembawang-brooks/singapore.html
+    --sg-url https://jardani1x.github.io/sembawang/singapore.html
 ```
 `--sg-url` points the Singapore tab somewhere else. An absolute URL opens in a new tab and builds no Singapore page, which suits hosts that block outside map tiles.
 
@@ -360,7 +360,7 @@ GitHub Pages serves `index.html` from the repository root:
 2. Set **Build and deployment → Source** to **Deploy from a branch**.
 3. Choose **Branch: `main`**, folder **`/ (root)`**, then **Save**.
 
-The site appears at `https://jardani1x.github.io/sembawang-brooks/` within a few minutes, with the Singapore map at `…/singapore.html`. Rebuild and commit `index.html` and `singapore.html` after every change to `src/` or `data/`.
+The site appears at `https://jardani1x.github.io/sembawang/` within a few minutes, with the Singapore map at `…/singapore.html`. Rebuild and commit `index.html` and `singapore.html` after every change to `src/` or `data/`.
 
 ## Limitations
 

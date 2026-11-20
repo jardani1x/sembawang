@@ -3,7 +3,7 @@
 
   python3 tools/build.py                          # public build -> ./index.html
   python3 tools/build.py --preset-flat 439A,160,12 --out private.html \
-      --sg-url https://example.github.io/sembawang-brooks/singapore.html
+      --sg-url https://example.github.io/sembawang/singapore.html
       # optional private build that opens with a flat preselected (block,unit,storey)
 
 The estate page's "Singapore" tab points at --sg-url (default singapore.html). A relative URL
