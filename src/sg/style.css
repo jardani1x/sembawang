@@ -37,6 +37,7 @@ button.icon[aria-pressed=true]{background:var(--accent);color:#fff;border-color:
 .btn{height:32px;min-width:36px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font-size:13px}
 .btn[aria-pressed=true]{background:#F5A623;color:#fff;border-color:#F5A623}
 body.sun-off #sunbar{display:none}
+body.cc-open #locChip,body.cc-open #zoomHint{visibility:hidden} /* the coordinates card sits in their place */
 /* live location */
 #locChip{position:fixed;top:calc(var(--top) + 52px);left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);background:rgba(255,255,255,.94);color:var(--text);border:1px solid var(--line);font-size:13px;padding:7px 14px;border-radius:16px;box-shadow:var(--shadow);z-index:9;pointer-events:none;text-align:center}
 #locChip.warn{background:#FFF8E6;border-color:#F5D58A}

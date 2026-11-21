@@ -285,6 +285,50 @@ with sync_playwright() as p:
         ev("__sb.goPreset('top')"); page.wait_for_timeout(3500)
         idle = ev("new Promise((r) => { const f0 = __sb.renderer.info.render.frame; setTimeout(() => r(__sb.renderer.info.render.frame - f0), 2000); })")
         check('idle: no redraws once the view is still (render on demand)', idle == 0, idle)
+        # ---------- hold to copy coordinates (estate) ----------
+        ctx.grant_permissions(['clipboard-read', 'clipboard-write'])
+        def dist_brg(a, b):  # (lat, lon) pairs -> metres, bearing° (sphere; independent of the app's georef maths)
+            R = 6371008.8; p1, p2, dl = math.radians(a[0]), math.radians(b[0]), math.radians(b[1] - a[1])
+            h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+            brg = math.degrees(math.atan2(math.sin(dl) * math.cos(p2), math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl))) % 360
+            return 2 * R * math.asin(math.sqrt(h)), brg
+        def proj(x, y, z):
+            return ev(f"(() => {{ const v = new __sb.THREE.Vector3({x}, {y}, {z}).project(__sb.camera), r = __sb.renderer.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; }})()")
+        def mouse_hold(x, y, ms=1300, move=0):  # long enough for the software renderer's slow frames
+            page.wait_for_timeout(600)
+            page.mouse.move(x, y); page.mouse.down()
+            if move: page.mouse.move(x + move, y, steps=6)
+            page.wait_for_timeout(ms); page.mouse.up(); page.wait_for_timeout(500)
+        CARD = "(() => { const el = document.querySelector('.cc'); return el && !el.hidden ? { ll: el.querySelector('.cc-ll').textContent, what: el.querySelector('.cc-what').textContent, status: el.querySelector('.cc-status').textContent, href: el.querySelector('.cc-map').href, dots: document.querySelectorAll('.cc-dot').length } : null; })()"
+        ev("__sb.select(null)"); ev("__sb.goPreset('top')"); page.wait_for_timeout(2500)
+        ev("navigator.clipboard.writeText('-')")
+        px = proj(-15, 0, 15); mouse_hold(*px)
+        c1 = ev(CARD); clip = ev("navigator.clipboard.readText()")
+        got = [float(v) for v in c1['ll'].split(',')] if c1 else [0, 0]
+        d, b = dist_brg((1.4591402, 103.8118527), got)  # site origin (SW corner of Blk 436), from the OSM georeference
+        page.screenshot(path=f'{SHOTS}/d30_hold_copy.png')
+        check('hold to copy: holding on the ground copies its lat/lon: 15 m W + 15 m S of the site origin = 21.2 m at 225° (sphere check)',
+              c1 and c1['what'] == 'Ground' and clip == c1['ll'] and c1['status'] == 'copied' and abs(d - 21.21) < 0.8 and abs(b - 225) < 3 and c1['dots'] == 1
+              and c1['href'].endswith(c1['ll'].replace(', ', '%2C')) and ev("__sb.state.selection") is None,
+              {'card': c1, 'clipboard': clip, 'm': round(d, 2), 'bearing': round(b, 1)})
+        page.mouse.click(*px); page.wait_for_timeout(400)
+        c2 = ev(CARD)
+        mouse_hold(px[0], px[1], move=40); c3 = ev(CARD)
+        ev("__sb.goPreset('top')"); page.wait_for_timeout(2500)  # undo the drag's pan before the next hold
+        check('hold to copy: a quick tap or a drag does not copy (and a tap closes the card)', c2 is None and c3 is None and ev("navigator.clipboard.readText()") == clip, {'after tap': c2, 'after drag': c3})
+        bpx = ev("(() => { const r = __sb.renderer.domElement.getBoundingClientRect(); for (let y = r.top + 60; y < r.bottom - 60; y += 10) for (let x = r.left + 40; x < r.right - 40; x += 10) { const h = __sb.holdLocate(x, y); if (h && h.what.startsWith('Blk 437B') && h.point.y > 20) return [x, y, h.point.x, h.point.y, h.point.z]; } return null; })()")
+        if bpx:
+            mouse_hold(bpx[0], bpx[1]); c4 = ev(CARD)
+            back = ev(f"__sb.osmProjector(__sb.SITE().georef)({c4['ll'].split(',')[0]}, {c4['ll'].split(',')[1]})") if c4 else [1e9, 1e9]
+            check('hold to copy: on a block it names the block, height and storey, copies that spot (back to site frame within 0.2 m), and selects nothing',
+                  c4 and c4['what'].startswith('Blk 437B') and 'm up' in c4['what'] and 'storey' in c4['what'] and math.hypot(back[0] - bpx[2], back[1] - bpx[4]) < 0.2 and ev("__sb.state.selection") is None,
+                  {'card': c4, 'hit (x,z)': (round(bpx[2], 1), round(bpx[4], 1)), 'copied -> (x,z)': back})
+        else:
+            check('hold to copy: found Blk 437B in the top view', False, 'no pixel')
+        page.click('.cc .cc-x'); page.wait_for_timeout(300)
+        check('hold to copy: × closes the card and removes the spot marker', ev(CARD) is None and ev("document.querySelectorAll('.cc-dot').length") == 0)
+        rt = ev("(() => { const g = __sb.SITE().georef, P = __sb.osmProjector(g); let worst = 0; for (const [x, z] of [[0, 0], [-500, 300], [1234.5, -876.5], [3000, 3000]]) { const [la, lo] = __sb.siteToLatLon(g, x, z), [x2, z2] = P(la, lo); worst = Math.max(worst, Math.hypot(x2 - x, z2 - z)); } return worst; })()")
+        check('hold to copy: site → lat/lon is the exact inverse of the OSM georeference (round trip ≤ 0.05 m, its 0.1 m rounding)', rt <= 0.0501, rt)
         tab = ev("(() => { const a = document.getElementById('tabSG'), r = a.getBoundingClientRect(); return { href: a.getAttribute('href'), target: a.target, w: r.width, cur: document.querySelector('.pagetabs [aria-current=page]').textContent }; })()")
         check('tabs: Estate | Singapore switch in the header (Singapore -> singapore.html)', tab['href'] == 'singapore.html' and tab['target'] == '' and tab['w'] > 40 and tab['cur'] == 'Estate', tab)
         check('no console errors at end (desktop)', not errors, errors[:5])
@@ -314,6 +358,18 @@ with sync_playwright() as p:
         check('mobile: one-finger drag moves the map (no rotation)', mv > 10 and rot < 0.5, {'moved m': round(mv, 1), 'turned °': round(rot, 2)})
         mt = page.evaluate("(() => { const a = document.querySelector('#menu a[href]'); const tabs = getComputedStyle(document.querySelector('.pagetabs')).display; const sr = document.querySelector('.search').getBoundingClientRect(); return { href: a && a.getAttribute('href'), tabs, search: sr.width }; })()")
         check('mobile: Singapore map is in the ⋯ menu; header tabs hidden so search keeps its width', mt['href'] == 'singapore.html' and mt['tabs'] == 'none' and mt['search'] >= 100, mt)
+        # hold to copy with a real touch
+        ctx.grant_permissions(['clipboard-read', 'clipboard-write'])
+        page.evaluate("__sb.goPreset('top')"); page.wait_for_timeout(2500)
+        page.evaluate("navigator.clipboard.writeText('-')")
+        hp = page.evaluate("(() => { const v = new __sb.THREE.Vector3(-15, 0, 15).project(__sb.camera), r = __sb.renderer.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; })()")
+        cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': hp[0], 'y': hp[1]}]}); page.wait_for_timeout(850)
+        cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []}); page.wait_for_timeout(500)
+        mc = page.evaluate("(() => { const el = document.querySelector('.cc'); return el && !el.hidden ? { ll: el.querySelector('.cc-ll').textContent, status: el.querySelector('.cc-status').textContent, w: el.getBoundingClientRect().width, vw: innerWidth, lines: Math.round(el.querySelector('.cc-ll').getBoundingClientRect().height / 16) } : null; })()")
+        mclip = page.evaluate("navigator.clipboard.readText()")
+        page.screenshot(path=f'{SHOTS}/m10_hold_copy.png')
+        check('mobile: touch-and-hold copies the coordinates (card fits the screen, coordinates on one line)', mc and mc['status'] == 'copied' and mclip == mc['ll'] and mc['w'] <= mc['vw'] - 20 and mc['lines'] == 1, {'card': mc, 'clipboard': mclip})
+        page.click('.cc .cc-x')
         check('mobile: no console errors', not errors, errors[:5])
         ctx.close()
     if not only or 'area' in only:
@@ -961,6 +1017,78 @@ with sync_playwright() as p:
         pins = re.search(r'"pins":(\[[^\]]*\])', open(os.path.join(tmp, 'singapore.html')).read())
         check('build: a model that is not shipped is not offered (Starship only → no chooser, no F-22)', out.returncode == 0 and pins and json.loads(pins[1]) == ['starship'], pins and pins[1])
         shutil.rmtree(tmp, ignore_errors=True)
+        # ---------- hold to copy coordinates (Singapore map) ----------
+        def hav_ll(a, b):  # [lon, lat] pairs, metres
+            R = 6371008.8; p1, p2 = math.radians(a[1]), math.radians(b[1])
+            h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(b[0] - a[0]) / 2) ** 2
+            return 2 * R * math.asin(math.sqrt(h))
+        def py_centroid(geom):  # area centroid of the largest outer ring, in a local metric frame (independent of the page's code)
+            polys = [geom['coordinates']] if geom['type'] == 'Polygon' else geom['coordinates']
+            best, ba = None, 0
+            for poly in polys:
+                r = poly[0]; k = math.cos(math.radians(r[0][1])); A = cx = cy = 0
+                for (x0, y0), (x1, y1) in zip(r[:-1], r[1:]):
+                    x0 *= k; x1 *= k; c = x0 * y1 - x1 * y0; A += c; cx += (x0 + x1) * c; cy += (y0 + y1) * c
+                if abs(A) > ba: ba = abs(A); best = [cx / (3 * A) / k, cy / (3 * A)]
+            return best
+        CARD_SG = "(() => { const el = document.querySelector('.cc'); return el && !el.hidden ? { ll: el.querySelector('.cc-ll').textContent, what: el.querySelector('.cc-what').textContent, status: el.querySelector('.cc-status').textContent, dots: document.querySelectorAll('.cc-dot').length } : null; })()"
+        cctx = browser.new_context(viewport={'width': 1280, 'height': 800}, permissions=['clipboard-read', 'clipboard-write'])
+        cctx, page, cerrs = open_sg(0, 0, ctx=cctx)
+        ev = page.evaluate
+        page.wait_for_function('window.__sg && __sg.styleReady()', timeout=60000); ev(IDLE)
+        def sg_hold(x, y, ms=1300, move=0):
+            ev(IDLE); page.wait_for_timeout(300)
+            page.mouse.move(x, y); page.mouse.down()
+            if move: page.mouse.move(x + move, y, steps=6)
+            page.wait_for_timeout(ms); page.mouse.up(); page.wait_for_timeout(500)
+        def screen_of(ll):
+            return ev(f"(() => {{ const p = __sg.map.project({json.dumps(ll)}), r = __sg.map.getCanvas().getBoundingClientRect(); return [p.x + r.left, p.y + r.top, __sg.map.queryRenderedFeatures([p.x, p.y], {{ layers: ['sg-3d'] }}).length]; }})()")
+        ev("navigator.clipboard.writeText('-')")
+        ev("__sg.map.jumpTo({ center: [103.8300, 1.4700], zoom: 16.5, pitch: 50, bearing: 0 })"); ev(IDLE)
+        tgt = [103.83037, 1.47021]; px = screen_of(tgt)
+        sg_hold(px[0], px[1])
+        g1 = ev(CARD_SG); gclip = ev("navigator.clipboard.readText()")
+        gll = [float(v) for v in g1['ll'].split(',')][::-1] if g1 else [0, 0]
+        page.screenshot(path=f'{SHOTS}/sg10_hold_ground.png')
+        check('sg hold to copy: holding on open ground copies that spot (within 0.5 m) and marks it', px[2] == 0 and g1 and g1['what'] == 'Ground' and gclip == g1['ll'] and g1['status'] == 'copied' and hav_ll(gll, tgt) < 0.5 and g1['dots'] == 1,
+              {'card': g1, 'clipboard': gclip, 'off m': round(hav_ll(gll, tgt), 3)})
+        page.mouse.click(px[0], px[1]); page.wait_for_timeout(400); t2 = ev(CARD_SG)
+        c0 = ev('__sg.map.getCenter().toArray()'); sg_hold(px[0], px[1], move=60); t3 = ev(CARD_SG); c1 = ev('__sg.map.getCenter().toArray()')
+        check('sg hold to copy: a quick click or a drag does not copy (the drag pans; a click closes the card)', t2 is None and t3 is None and hav_ll(c0, c1) > 5 and ev("navigator.clipboard.readText()") == gclip,
+              {'after click': t2, 'after drag': t3, 'panned m': round(hav_ll(c0, c1), 1)})
+        # on a 3D building: the footprint centre, not the ground point behind it
+        ev("__sg.map.jumpTo({ center: [103.8170, 1.4565], zoom: 17, pitch: 60, bearing: 0 })"); ev(IDLE)
+        bp = ev("""(() => { const m = __sg.map, r = m.getCanvas().getBoundingClientRect(); let best = null;
+          for (let y = 220; y < r.height - 160; y += 14) for (let x = 200; x < r.width - 200; x += 14) { const f = m.queryRenderedFeatures([x, y], { layers: ['sg-3d'] })[0];
+            if (f && (f.properties.render_height || 0) > 40 && (!best || f.properties.render_height > best.h)) best = { x: x + r.left, y: y + r.top, px: [x, y], h: f.properties.render_height, geom: f.geometry, ground: m.unproject([x, y]).toArray() }; }
+          return best; })()""")
+        if bp:
+            sg_hold(bp['x'], bp['y'])
+            b1 = ev(CARD_SG); bll = [float(v) for v in b1['ll'].split(',')][::-1] if b1 else [0, 0]
+            # the building under that pixel now (same pixel, same view) for the independent centroid
+            geom = ev(f"__sg.map.queryRenderedFeatures({json.dumps(bp['px'])}, {{ layers: ['sg-3d'] }})[0].geometry")
+            exp = py_centroid(geom)
+            page.screenshot(path=f'{SHOTS}/sg11_hold_building.png')
+            check('sg hold to copy: on a 3D building it copies the footprint centre (within 0.3 m of an independent centroid), not the ground behind it',
+                  b1 and b1['what'].startswith('Building centre') and 'm tall' in b1['what'] and hav_ll(bll, exp) < 0.3 and hav_ll(bp['ground'], exp) > hav_ll(bll, exp) + 5,
+                  {'card': b1, 'off m': round(hav_ll(bll, exp), 3), 'ground point would be off m': round(hav_ll(bp['ground'], exp), 1), 'height': bp['h']})
+        else:
+            check('sg hold to copy: found a tall building in view', False, 'none')
+        # clipboard blocked: falls back to the older copy command; if that fails too, says so and the Copy button works
+        ev("(() => { window.__wt = navigator.clipboard.writeText.bind(navigator.clipboard); navigator.clipboard.writeText = () => Promise.reject(new Error('blocked')); })()")
+        ev("__sg.map.jumpTo({ center: [103.8300, 1.4700], zoom: 16.5, pitch: 50, bearing: 0 })"); ev(IDLE)
+        px = screen_of(tgt); ev("window.__wt('-')"); sg_hold(px[0], px[1])
+        f1 = ev(CARD_SG); fclip = ev("navigator.clipboard.readText()")
+        ev("(() => { window.__ec = document.execCommand.bind(document); document.execCommand = () => false; })()")
+        ev("window.__wt('-')"); sg_hold(px[0], px[1]); f2 = ev(CARD_SG)
+        ev("(() => { navigator.clipboard.writeText = window.__wt; document.execCommand = window.__ec; })()")
+        page.click('.cc .cc-copy'); page.wait_for_timeout(400); f3 = ev(CARD_SG); fclip3 = ev("navigator.clipboard.readText()")
+        check('sg hold to copy: if the clipboard API is blocked it falls back; if all copying fails it says "tap Copy", and Copy works',
+              f1 and f1['status'] == 'copied' and fclip == f1['ll'] and f2 and 'tap Copy' in f2['status'] and f3 and f3['status'] == 'copied' and fclip3 == f3['ll'],
+              {'fallback': f1 and f1['status'], 'both blocked': f2 and f2['status'], 'Copy button': f3 and f3['status']})
+        page.click('.cc .cc-x'); page.wait_for_timeout(300)
+        check('sg hold to copy: × closes the card and removes the marker; no console errors', ev(CARD_SG) is None and ev("document.querySelectorAll('.cc-dot').length") == 0 and not cerrs, cerrs[:3])
+        cctx.close()
         # style unreachable → clear message instead of a blank page
         net['style_fail'] = True
         ctx, page, errs = open_sg(1024, 700)
@@ -997,6 +1125,18 @@ with sync_playwright() as p:
         else:
             check('sg mobile: with only the Starship shipped there is no chooser', pb == [], pb)
         page.tap('.sg-locate'); page.wait_for_timeout(300)
+        # touch-and-hold on the phone
+        ctx.grant_permissions(['clipboard-read', 'clipboard-write'])
+        page.evaluate("__sg.map.jumpTo({ center: [103.8300, 1.4700], zoom: 16.5, pitch: 50, bearing: 0 })"); page.evaluate(IDLE); page.wait_for_timeout(300)
+        page.evaluate("navigator.clipboard.writeText('-')")
+        cdp2 = ctx.new_cdp_session(page)
+        cdp2.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': 195, 'y': 520}]}); page.wait_for_timeout(1300)
+        cdp2.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []}); page.wait_for_timeout(600)
+        mc = page.evaluate("(() => { const el = document.querySelector('.cc'); return el && !el.hidden ? { ll: el.querySelector('.cc-ll').textContent, status: el.querySelector('.cc-status').textContent, r: el.getBoundingClientRect().right, vw: innerWidth } : null; })()")
+        mclip = page.evaluate("navigator.clipboard.readText()")
+        page.screenshot(path=f'{SHOTS}/sg12_mobile_hold.png')
+        check('sg mobile: touch-and-hold copies the coordinates; the card fits the screen', mc and mc['status'] == 'copied' and mclip == mc['ll'] and mc['r'] <= mc['vw'], {'card': mc, 'clipboard': mclip})
+        page.click('.cc .cc-x'); page.wait_for_timeout(300)
         # one-finger drag pans (MapLibre default touch gestures)
         page.evaluate("__sg.map.jumpTo({ center: [103.8130, 1.4599], zoom: 16, pitch: 50, bearing: 0 })"); page.evaluate(IDLE)
         c0 = page.evaluate('__sg.map.getCenter().toArray()'); b0 = page.evaluate('__sg.map.getBearing()')

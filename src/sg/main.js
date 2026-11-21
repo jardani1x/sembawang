@@ -659,6 +659,49 @@
   map.on('zoomend', () => { if (LOC.fix && inBounds(LOC.fix.ll) && craftReady()) locChip(meChipText()); });
 
 
+  /* ---------------- hold to copy coordinates (02_holdcopy.js) ----------------
+     On a 3D building: the centre of its footprint (in a tilted view the ground point under your finger
+     lies behind the building, so it would be wrong by up to its height). Elsewhere: the ground point. */
+  function footprintCentre(geom) {
+    const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.type === 'MultiPolygon' ? geom.coordinates : [];
+    let best = null, bestA = 0;
+    for (const poly of polys) {
+      const r = poly[0]; if (!r || r.length < 4) continue;
+      const k = Math.cos(r[0][1] * Math.PI / 180); // local metric: shrink longitude by cos(lat)
+      let a = 0, cx = 0, cy = 0;
+      for (let i = 0; i < r.length - 1; i++) {
+        const x0 = r[i][0] * k, y0 = r[i][1], x1 = r[i + 1][0] * k, y1 = r[i + 1][1], c = x0 * y1 - x1 * y0;
+        a += c; cx += (x0 + x1) * c; cy += (y0 + y1) * c;
+      }
+      if (Math.abs(a) > bestA) { bestA = Math.abs(a); best = [cx / (3 * a) / k, cy / (3 * a)]; }
+    }
+    return best;
+  }
+  function holdLocate(x, y) {
+    const r = map.getCanvas().getBoundingClientRect(), pt = [x - r.left, y - r.top];
+    const on3d = map.getLayer('sg-3d') && map.getLayoutProperty('sg-3d', 'visibility') !== 'none' && map.getZoom() >= CFG.buildingsFrom;
+    const f = on3d ? map.queryRenderedFeatures(pt, { layers: ['sg-3d'] })[0] : null;
+    if (f) {
+      const c = footprintCentre(f.geometry);
+      const h = f.properties && Number(f.properties.render_height);
+      if (c) return { lon: c[0], lat: c[1], what: `Building centre${h ? ` · ${Math.round(h)} m tall` : ''}` };
+    }
+    const ll = map.unproject(pt);
+    return { lon: ll.lng, lat: ll.lat, what: 'Ground' };
+  }
+  let holdMoved = false;
+  map.on('move', (e) => { if (e.originalEvent) holdMoved = true; }); // moves you made (not follow-me or fly-to)
+  holdToCopy(map.getCanvasContainer(), {
+    onDown: () => { holdMoved = false; },
+    viewMoved: () => holdMoved,
+    locate: holdLocate,
+    mark(p) {
+      const d = document.createElement('div'); d.className = 'cc-dot';
+      const m = new maplibregl.Marker({ element: d, anchor: 'center' }).setLngLat([p.lon, p.lat]).addTo(map);
+      return () => m.remove();
+    },
+  });
+
   /* debug / test hooks (?debug) */
-  if (/[?&]debug\b/.test(location.search)) window.__sg = { map, PLACES, goTo, applySun, sun, lastSun: () => lastSun, setPlaying, geocode, matchPlaces, CFG, styleReady: () => styleReady, LOC, meMarker, CR, CRAFTS, craftLengthM, craftAltM, pin: () => pinChoice, setPin };
+  if (/[?&]debug\b/.test(location.search)) window.__sg = { map, PLACES, goTo, applySun, sun, lastSun: () => lastSun, setPlaying, geocode, matchPlaces, CFG, styleReady: () => styleReady, LOC, meMarker, CR, CRAFTS, craftLengthM, craftAltM, pin: () => pinChoice, setPin, holdLocate, footprintCentre, coordCard };
 })();

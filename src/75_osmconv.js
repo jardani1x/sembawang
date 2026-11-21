@@ -35,6 +35,14 @@ function osmProjector(g) {
   };
 }
 
+/** site frame (x east, z south, metres) -> [lat, lon]; exact inverse of osmProjector (without its 0.1 m rounding) */
+function siteToLatLon(g, X, Z) {
+  const r = Math.PI / 180, kx = r * g.N * Math.cos(g.lat0 * r), kz = r * g.M;
+  const c = Math.cos(g.theta || 0), s = Math.sin(g.theta || 0), sc = g.scale || 1;
+  const x = sc * (c * X - s * Z), z = sc * (s * X + c * Z);
+  return [g.lat0 - (z + g.tz) / kz, g.lon0 + (x + g.tx) / kx];
+}
+
 /* ---------- geometry helpers ---------- */
 function osmArea(r) { let a = 0; for (let i = 0, n = r.length; i < n; i++) { const p = r[i], q = r[(i + 1) % n]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; }
 function osmCentroid(r) { let x = 0, z = 0; for (const p of r) { x += p[0]; z += p[1]; } return [x / r.length, z / r.length]; }

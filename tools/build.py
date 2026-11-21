@@ -59,7 +59,7 @@ if not sg_abs:
           # 3D location pins whose model files are present next to the page (assets/); the page offers only these
           'pins': [k for k, f in (('starship', 'starship-block3.glb'), ('f22', 'f22-raptor.glb'))
                    if os.path.isfile(os.path.join(os.path.dirname(sg_out), 'assets', f))]}
-    sjs = open(os.path.join(ROOT, 'src', '01_suncalc.js')).read() + '\n' + open(os.path.join(ROOT, 'src', 'sg', 'main.js')).read()
+    sjs = '\n'.join(open(os.path.join(ROOT, 'src', f)).read() for f in ('01_suncalc.js', '02_holdcopy.js', os.path.join('sg', 'main.js')))
     sjs = sjs.replace('/*__SG_JSON__*/null', json.dumps(sg, separators=(',', ':')))
     assert '__SG_JSON__' not in sjs
     spage = open(os.path.join(ROOT, 'src', 'sg', 'template.html')).read()

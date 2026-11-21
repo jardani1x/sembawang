@@ -163,6 +163,47 @@ renderer.domElement.addEventListener('pointerup', (ev) => {
 });
 function storeyAtY(y) { const { f2f, vd } = hts(); return y < vd ? 1 : Math.floor((y - vd) / f2f) + 2; }
 
+/* hold to copy coordinates (02_holdcopy.js): the 3D point under the finger — a building's facade or roof,
+   an OpenStreetMap building in the area view, else the ground — converted back to latitude/longitude */
+const GROUND = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+function holdLocate(x, y) {
+  setNdc({ clientX: x, clientY: y }); raycaster.setFromCamera(ndc, camera);
+  let best = null;
+  const h1 = raycaster.intersectObjects(REG.pick, false)[0];
+  if (h1) best = { p: h1.point, d: h1.distance, owner: h1.object.userData.owner };
+  if (AREA.group.visible && AREA.pickMeshes.length) {
+    const h2 = raycaster.intersectObjects(AREA.pickMeshes, false)[0];
+    if (h2 && (!best || h2.distance < best.d)) best = { p: h2.point, d: h2.distance, bi: h2.object.userData.tri2b[h2.faceIndex] };
+  }
+  const gp = raycaster.ray.intersectPlane(GROUND, new THREE.Vector3());
+  if (gp && (!best || raycaster.ray.origin.distanceTo(gp) < best.d)) best = { p: gp, ground: true };
+  if (!best) return null; // the sky
+  const [lat, lon] = siteToLatLon(SITE.georef, best.p.x, best.p.z);
+  const up = best.p.y > 1.5 ? ` · ${Math.round(best.p.y)} m up` : '';
+  let what = 'Ground';
+  if (best.owner) {
+    const b = blockById(best.owner);
+    what = (/^\d{3}[A-Z]?$/.test(best.owner) ? `Blk ${best.owner}` : 'Building') + up + (b && b.kind === 'sale' && best.p.y > 1.5 ? ` (storey ${storeyAtY(best.p.y)})` : '');
+  } else if (best.bi != null) {
+    const ob = AREA.data.buildings[best.bi];
+    what = (ob && (ob.n || (ob.a ? (/^\d/.test(ob.a) ? 'Blk ' : '') + ob.a : '')) || 'Building') + up;
+  }
+  return { lat, lon, what, point: best.p.clone() };
+}
+let holdView = null;
+holdToCopy(renderer.domElement, {
+  enabled: () => state.tool !== 'walk',
+  onDown: () => { holdView = { p: camera.position.clone(), t: controls.target.clone() }; },
+  // moved more than ~0.2% of the viewing distance (a drag of a few pixels) since the press
+  viewMoved: () => !!holdView && camera.position.distanceTo(holdView.p) + controls.target.distanceTo(holdView.t) > 0.002 * camera.position.distanceTo(controls.target),
+  locate: holdLocate,
+  mark(p) {
+    const el = document.createElement('div'); el.className = 'cc-dot';
+    const o = new CSS2DObject(el); o.position.copy(p.point); G.tools.add(o); requestRender();
+    return () => { G.tools.remove(o); el.remove(); requestRender(); };
+  },
+});
+
 /* ---------- measure ---------- */
 const measure = { pts: [], objs: [] };
 function setTool(t) {
